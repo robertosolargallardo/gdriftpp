@@ -1,0 +1,116 @@
+{
+    "id": "0",
+    "run": "1",
+    "batch": "0",
+    "max-number-of-simulations": "20000",
+    "individual":
+    {
+        "ploidy": "1",
+        "chromosomes":
+        [
+            {
+                "id": "0",
+                "genes":
+                [
+                    {
+                        "id": "0",
+                        "nucleotides": "664",
+                        "mutation-rate": "7.61402082572018e-09",
+                        "number-of-segregating-sites": "6",
+                        "number-of-alleles": "65536"
+                    }
+                ]
+            }
+        ]
+    },
+    "scenario":
+    {
+        "id": "1",
+        "model": "0",
+        "events":
+        [
+            {
+                "id": "0",
+                "timestamp": "95",
+                "type": "create",
+                "params":
+                {
+                    "population":
+                    {
+                        "name": "p0",
+                        "size": "48728"
+                    }
+                }
+            },
+            {
+                "id": "1",
+                "timestamp": "122",
+                "type": "split",
+                "params":
+                {
+                    "partitions": "2",
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p0"
+                        }
+                    },
+                    "destination":
+                    [
+                        {
+                           "population":
+                           {
+                              "name": "p1"
+                           }
+                        },
+                        {
+                           "population":
+                           {
+                              "name": "p2"
+                           }
+                        }
+                    ]
+                }
+            },
+            {
+                "id": "2",
+                "timestamp": "201",
+                "type": "decrement",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p1",
+                            "percentage": "0.4622681745259845"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "3",
+                "timestamp": "586",
+                "type": "increment",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p2",
+                            "percentage": "0.1421735172793224"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "4",
+                "timestamp": "934",
+                "type": "endsim",
+                "params": ""
+            }
+        ]
+    }
+}

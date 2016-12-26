@@ -1,0 +1,155 @@
+{
+    "id": "0",
+    "run": "0",
+    "batch": "0",
+    "max-number-of-simulations": "20000",
+    "individual":
+    {
+        "ploidy": "1",
+        "chromosomes":
+        [
+            {
+                "id": "0",
+                "genes":
+                [
+                    {
+                        "id": "0",
+                        "nucleotides": "664",
+                        "mutation-rate": "0.1",
+                        "number-of-segregating-sites": "5",
+                        "number-of-alleles": "1024"
+                    }
+                ]
+            }
+        ]
+    },
+    "scenario":
+    {
+        "id": "0",
+        "model": "0",
+        "events":
+        [
+            {
+                "id": "0",
+                "timestamp": "534",
+                "type": "create",
+                "params":
+                {
+                    "population":
+                    {
+                        "name": "p0",
+                        "size": "1000"
+                    }
+                }
+            },
+            {
+                "id": "1",
+                "timestamp": "2243",
+                "type": "split",
+                "params":
+                {
+                    "partitions": "2",
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p0"
+                        }
+                    },
+                    "destination":
+                    [
+                       {
+                          "population":
+                          {
+                             "name": "p1"
+                          }
+                       },
+                       {
+                          "population":
+                          {
+                             "name": "p2"
+                          }
+                       }
+                    ]
+                }
+            },
+            {
+                "id": "2",
+                "timestamp": "3218",
+                "type": "decrement",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p1",
+                            "percentage": "1"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "3",
+                "timestamp": "5891",
+                "type": "increment",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p2",
+                            "percentage": "0.1229802858416953"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "4",
+                "timestamp": "7533",
+                "type": "migration",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p2",
+                            "percentage": "0.4382806586424828"
+                        }
+                    },
+                    "destination":
+                    {
+                        "population":
+                        {
+                            "name": "p1"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "5",
+                "timestamp": "8012",
+                "type": "increment",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p1",
+                            "percentage": "0.4872322266326078"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "6",
+                "timestamp": "9121",
+                "type": "endsim",
+                "params": ""
+            }
+        ]
+    }
+}

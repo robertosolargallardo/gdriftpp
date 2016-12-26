@@ -1,0 +1,197 @@
+{
+   "id"     : "0", 
+   "max-number-of-simulations" : "20000",
+   "individual" : {
+      "ploidy" : "1",
+      "chromosomes": [
+         {
+            "id": "0",
+            "genes":[
+               {"id": "0","nucleotides": "664",  "mutation-rate":{"type":"random", "min-value": "0.000000001", "max-value":"0.00000001"}, "number-of-segregating-sites": "5", "number-of-alleles" : "1024"}
+            ]
+         }
+      ]
+   },
+   "scenarios":[
+      {
+         "id" : "0",
+         "model":"0",
+         "events":[
+            {
+               "id" : "0",
+               "timestamp": {"type":"random","min-value":"0","max-value":"10000"}, 
+               "type" : "create",
+               "params" :
+                  {
+                     "population" : {
+                        "name" : "p0",
+                        "size":{"type":"random", "min-value":"100", "max-value":"100000"}
+                     }
+                  }
+            },
+            {
+               "id" : "1",
+               "timestamp": {"type":"random","min-value":"20000","max-value":"30000"},
+               "type" : "split" ,
+               "params" :
+                  {
+                     "source":{
+                        "population" : {
+                           "name" : "p0"
+                        }
+                     },
+                     "partitions":"2",
+                     "destination":[
+                        {
+                           "population" : {"name" : "p1"}
+                        },
+                        {
+                           "population" : {"name" : "p2"}
+                        }
+                     ]
+                  }
+            },
+            {
+               "id" : "2",
+               "timestamp": {"type":"random","min-value":"30000","max-value":"40000"}, 
+               "type" : "decrement" ,
+               "params" : 
+                  {
+                     "source": {
+                        "population" : {
+                           "name" : "p1",
+                           "percentage" : {"type" : "fixed", "value" : "1"}
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "3",
+               "timestamp": {"type":"random","min-value":"50000","max-value":"60000"}, 
+               "type" : "increment" ,
+               "params" : 
+                  {
+                     "source": {
+                        "population" : {
+                           "name" : "p2",
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "4",
+               "timestamp": {"type":"random","min-value":"70000","max-value":"80000"}, 
+               "type" : "migration" ,
+               "params" : 
+                  {
+                     "source" : {
+                        "population" : {
+                           "name" : "p2",
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
+                        }
+                     },
+                     "destination": {
+                        "population" : {
+                           "name" : "p1"
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "5",
+               "timestamp": {"type":"random","min-value":"80000","max-value":"90000"}, 
+               "type" : "increment" ,
+               "params" : 
+                  {
+                     "source": {
+                        "population" : {
+                           "name" : "p1",
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "6",
+               "timestamp": {"type":"random","min-value":"90000","max-value":"100000"}, 
+               "type" : "endsim"
+            }
+         ]
+      },
+      {
+          "id" : "1",
+         "model":"0",
+         "events":[
+            {
+               "id" : "0",
+               "timestamp": {"type":"random","min-value":"0","max-value":"10000"}, 
+               "type" : "create",
+               "params" :
+                  {
+                     "population" : {
+                        "name" : "p0",
+                        "size":{"type":"random", "min-value":"100", "max-value":"100000"}
+                     }
+                  }
+            },
+            {
+               "id" : "1",
+               "timestamp": {"type":"random","min-value":"10000","max-value":"20000"},
+               "type" : "split" ,
+               "params" :
+                  {
+                     "source":{
+                        "population" : {
+                           "name" : "p0"
+                        }
+                     },
+                     "partitions":"2",
+                     "destination":[
+                        {
+                           "population" : {"name" : "p1"}
+                        },
+                        {
+                           "population" : {"name" : "p2"}
+                        }
+                     ]
+                  }
+            },
+            {
+               "id" : "2",
+               "timestamp": {"type":"random","min-value":"20000","max-value":"30000"}, 
+               "type" : "decrement" ,
+               "params" : 
+                  {
+                     "source": {
+                        "population" : {
+                           "name" : "p1",
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "3",
+               "timestamp": {"type":"random","min-value":"50000","max-value":"60000"}, 
+               "type" : "increment" ,
+               "params" : 
+                  {
+                     "source": {
+                        "population" : {
+                           "name" : "p2",
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
+                        }
+                     }
+                  }
+            },
+            {
+               "id" : "4",
+               "timestamp": {"type":"random","min-value":"90000","max-value":"100000"}, 
+               "type" : "endsim"
+            }
+         ]
+        
+      }
+   ]
+}

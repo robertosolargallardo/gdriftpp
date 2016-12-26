@@ -1,0 +1,53 @@
+{
+    "id": "0",
+    "run": "2",
+    "populations":
+    [
+        {
+            "name": "p3",
+            "chromosomes":
+            [
+                {
+                    "id": "0",
+                    "genes":
+                    [
+                        {
+                            "id": "0",
+                            "indices":
+                            {
+                                "mean-of-the-number-of-pairwise-differences": "7.661538461538462",
+                                "number-of-haplotypes": "0.9776223776223776",
+                                "number-of-segregating-sites": "20",
+                                "tajima-d-statistics": "1.175332656478954",
+                                "variance-of-the-number-of-pairwise-differences": "3.738124439662904"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "p4",
+            "chromosomes":
+            [
+                {
+                    "id": "0",
+                    "genes":
+                    [
+                        {
+                            "id": "0",
+                            "indices":
+                            {
+                                "mean-of-the-number-of-pairwise-differences": "7.942516770761046",
+                                "number-of-haplotypes": "0.9841545223224611",
+                                "number-of-segregating-sites": "37",
+                                "tajima-d-statistics": "0.2543502682564115",
+                                "variance-of-the-number-of-pairwise-differences": "3.783070880761802"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

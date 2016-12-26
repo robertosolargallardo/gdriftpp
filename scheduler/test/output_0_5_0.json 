@@ -1,0 +1,172 @@
+{
+    "id": "0",
+    "run": "5",
+    "batch": "0",
+    "max-number-of-simulations": "10",
+    "individual":
+    {
+        "ploidy": "2",
+        "chromosomes":
+        [
+            {
+                "id": "0",
+                "genes":
+                [
+                    {
+                        "id": "0",
+                        "nucleotides": "8",
+                        "mutation-rate": "1.00503521434643e-05",
+                        "number-of-segregating-sites": "2",
+                        "number-of-alleles": "200"
+                    },
+                    {
+                        "id": "1",
+                        "nucleotides": "16",
+                        "mutation-rate": "0.00002",
+                        "number-of-segregating-sites": "2",
+                        "number-of-alleles": "200"
+                    }
+                ]
+            },
+            {
+                "id": "1",
+                "genes":
+                [
+                    {
+                        "id": "0",
+                        "nucleotides": "16",
+                        "mutation-rate": "1.612681056655281e-05",
+                        "number-of-segregating-sites": "2",
+                        "number-of-alleles": "200"
+                    },
+                    {
+                        "id": "1",
+                        "nucleotides": "32",
+                        "mutation-rate": "1.746833444731288e-05",
+                        "number-of-segregating-sites": "2",
+                        "number-of-alleles": "200"
+                    },
+                    {
+                        "id": "2",
+                        "nucleotides": "4",
+                        "mutation-rate": "1.029983971485347e-05",
+                        "number-of-segregating-sites": "2",
+                        "number-of-alleles": "200"
+                    }
+                ]
+            }
+        ]
+    },
+    "scenario":
+    {
+        "id": "1",
+        "model": "0",
+        "events":
+        [
+            {
+                "id": "0",
+                "timestamp": "125",
+                "type": "create",
+                "params":
+                {
+                    "population":
+                    {
+                        "name": "p0",
+                        "size": "2166"
+                    }
+                }
+            },
+            {
+                "id": "1",
+                "timestamp": "575",
+                "type": "migration",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p0",
+                            "percentage": "0.1493770501923086"
+                        }
+                    },
+                    "destination":
+                    {
+                        "population":
+                        {
+                            "name": "p1"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "2",
+                "timestamp": "1414",
+                "type": "decrement",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p0",
+                            "percentage": "0.3458655533274535"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "3",
+                "timestamp": "1222",
+                "type": "increment",
+                "params":
+                {
+                    "source":
+                    {
+                        "population":
+                        {
+                            "name": "p0",
+                            "percentage": "0.6041059268564403"
+                        }
+                    }
+                }
+            },
+            {
+                "id": "4",
+                "timestamp": "2395",
+                "type": "merge",
+                "params":
+                {
+                    "destination":
+                    {
+                        "population":
+                        {
+                            "name": "p2"
+                        }
+                    },
+                    "source":
+                    [
+                        {
+                            "population":
+                            {
+                                "name": "p0"
+                            }
+                        },
+                        {
+                            "population":
+                            {
+                                "name": "p1"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "id": "5",
+                "timestamp": "2565",
+                "type": "endsim",
+                "params": ""
+            }
+        ]
+    }
+}

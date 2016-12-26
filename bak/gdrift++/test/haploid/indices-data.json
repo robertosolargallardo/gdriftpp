@@ -1,0 +1,76 @@
+{
+    "id": "0",
+    "type": "data",
+    "populations":
+    [
+        {
+            "name": "p1",
+            "chromosomes":
+            [
+                {
+                    "id": "0",
+                    "genes":
+                    [
+                        {
+                            "id": "0",
+                            "indices":
+                            {
+                                "number-of-haplotypes": "0.4642857142857142",
+                                "number-of-segregating-sites": "2",
+                                "mean-of-the-number-of-pairwise-differences": "0.5",
+                                "variance-of-the-number-of-pairwise-differences": "0.3214285714285715",
+                                "tajima-d-statistics": "-0.5155014372018816"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "p2",
+            "chromosomes":
+            [
+                {
+                    "id": "0",
+                    "genes":
+                    [
+                        {
+                            "id": "0",
+                            "indices":
+                            {
+                                "number-of-haplotypes": "0.6666666666666666",
+                                "number-of-segregating-sites": "4",
+                                "mean-of-the-number-of-pairwise-differences": "2.666666666666667",
+                                "variance-of-the-number-of-pairwise-differences": "3.555555555555556",
+                                "tajima-d-statistics": "0"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "summary",
+            "chromosomes":
+            [
+                {
+                    "id": "0",
+                    "genes":
+                    [
+                        {
+                            "id": "0",
+                            "indices":
+                            {
+                                "number-of-haplotypes": "0.781818181818182",
+                                "number-of-segregating-sites": "6",
+                                "mean-of-the-number-of-pairwise-differences": "1.381818181818182",
+                                "variance-of-the-number-of-pairwise-differences": "1.072396694214876",
+                                "tajima-d-statistics": "-0.4089264665363953"
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
