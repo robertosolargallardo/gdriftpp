@@ -1,7 +1,8 @@
-#ifndef _COMMUNICATION_H_
-#define _COMMUNICATION_H_
+#ifndef _COMM_H_
+#define _COMM_H_
+#include <curl/curl.h>
 namespace comm{
-	static void send(const std::string &_host,const std::string &_port,const std::string &_resource,const boost::property_tree::ptree &_fresponse){
+	inline void send(const std::string &_host,const std::string &_port,const std::string &_resource,const boost::property_tree::ptree &_fresponse){
    	std::stringstream ss;
    	write_json(ss,_fresponse);
 
@@ -9,7 +10,7 @@ namespace comm{
    	curl_global_init(CURL_GLOBAL_ALL);
    	curl=curl_easy_init();
 
-   	curl_easy_setopt(curl,CURLOPT_URL,std::string(_host+std::string(":")+_port+std::string("/")+_resource).c_str());
+   	curl_easy_setopt(curl,CURLOPT_URL,std::string(_host+std::string(":")+_port+_resource).c_str());
                                                  
    	size_t length=ss.str().length();
    	char *buffer=(char*)malloc(length);

@@ -2,6 +2,8 @@
 #define _SEMAPHORE_H_
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition_variable.hpp>
+
+namespace util{
 class Semaphore{
    private: unsigned _threads_available;
             boost::mutex _mutex;
@@ -12,4 +14,5 @@ class Semaphore{
             void lock(void);
             void unlock(void);
 };
+}
 #endif

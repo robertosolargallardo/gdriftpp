@@ -1,12 +1,6 @@
 #include "Analyzer.h"
-#include "../../util/MongoDB.h"
-#include "../../util/Communication.h"
-Analyzer::Analyzer(void){
-   mongocxx::uri uri("mongodb://localhost:27017");
-	this->_client=make_shared<mongocxx::client>(uri);
-	mongocxx::database db=(*this->_client.get())["gdrift"];
-	this->_collection_data=make_shared<mongocxx::collection>(db["data"]);
-	this->_collection_results=make_shared<mongocxx::collection>(db["results"]);
+Analyzer::Analyzer(boost::property_tree::ptree &_fhosts):Node(_fhosts){
+	this->_mongo=make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
 }
 Analyzer::~Analyzer(void){
    ;  
@@ -50,71 +44,40 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
 
    return(d);
 }
-void Analyzer::analyze(boost::property_tree::ptree &_frequest){
+void Analyzer::run(boost::property_tree::ptree &_frequest){
    
    switch(util::hash(_frequest.get<string>("type"))){
-      case SIMULATED:{
+      case results::SIMULATED:{
 								uint32_t id=_frequest.get<uint32_t>("id");
 								if(this->_accepted.count(id)==0) return;								
 
 								this->_batch_size[id]++;
 								double dist=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
-cout << dist << endl;
 								if(dist<=MAX_DIST){
 									this->_accepted[id]++;
 									_frequest.put("distance",dist);
-									std::stringstream ss;
-   								write_json(ss,_frequest);
-									bsoncxx::document::value doc=bsoncxx::from_json(ss.str().c_str());
-									auto r=this->_collection_results->insert_one(doc.view());
+									this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.results"),_frequest);
 								}
 
-//cout << "batch size::" << this->_batch_size[id] <<endl;
-
-								if(this->_batch_size[id]==BATCH_LENGTH){
+								if(this->_batch_size[id]==(BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 			    					boost::property_tree::ptree fresponse;
 									fresponse.put("id",_frequest.get<uint32_t>("id"));
 
-//cout << "accepted::" << this->_accepted[id] <<endl;
-//cout << "max-number-of-simulations::" << _frequest.get<double>("max-number-of-simulations")<<endl;
-
-									if(this->_accepted[id]<uint32_t(_frequest.get<double>("max-number-of-simulations")*0.1)){
+									if(this->_accepted[id]<uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
 										this->_batch_size[id]=0U;
-//cout << "continue" << endl;
 										fresponse.put("type","continue");
 									}
 									else{
 										this->_accepted.erase(this->_accepted.find(id));
 										this->_batch_size.erase(this->_batch_size.find(id));
-//cout << "finalize" << endl;
 										fresponse.put("type","finalize");
 									}
 
-									comm::send("http://citiaps2.diinf.usach.cl","1987","scheduler",fresponse);
+									comm::send(this->_fhosts.get<string>("scheduler.host"),this->_fhosts.get<string>("scheduler.port"),this->_fhosts.get<string>("scheduler.resource"),fresponse);
 								}
-                        /*this->_simulated[_frequest.get<uint32_t>("id")][_frequest.get<uint32_t>("batch_size")*BATCH_LENGTH+_frequest.get<uint32_t>("run")]=_frequest;
-			               this->_distances[_frequest.get<uint32_t>("id")][_frequest.get<uint32_t>("batch_size")*BATCH_LENGTH+_frequest.get<uint32_t>("run")]=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
-cout << this->_distances[_frequest.get<uint32_t>("id")][_frequest.get<uint32_t>("batch_size")*BATCH_LENGTH+_frequest.get<uint32_t>("run")] << endl;*/
-								/*TODO*/
-								/*int counter=0;
-			               if(!(this->_simulated[_frequest.get<uint32_t>("id")].size()%BATCH_LENGTH)){
-									for(auto& i : this->_distances[_frequest.get<uint32_t>("id")]){
-										if(i.second<15.0) counter++;
-									}
-cout <<"Number of Results::"<<counter << endl;	
-			    					boost::property_tree::ptree fresponse;
-									fresponse.put("id",_frequest.get<uint32_t>("id"));
-									if(counter<=50)
-									   fresponse.put("type","continue");
-									else
-									   fresponse.put("type","finalize");
-									send(fresponse);
-			               }*/
-								/*TODO*/
                         break;
                      };
-      case DATA:  {
-						
+      case results::DATA:  {
 							this->_accepted[_frequest.get<uint32_t>("id")]=0U;	
 							this->_batch_size[_frequest.get<uint32_t>("id")]=0U;	
 				
@@ -135,15 +98,10 @@ cout <<"Number of Results::"<<counter << endl;
 
                      fposterior.push_back(make_pair("populations",fpopulations));
 
-							/*save*/
 							_frequest.push_back(make_pair("posterior",fposterior));
-							std::stringstream ss;
-   						write_json(ss,_frequest);
-							bsoncxx::document::value doc=bsoncxx::from_json(ss.str().c_str());
-							auto r=this->_collection_data->insert_one(doc.view());
-							/*save*/
-
                      this->_data[_frequest.get<uint32_t>("id")]=_frequest;
+
+							this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.data"),_frequest);
 		
                      break;
                   };

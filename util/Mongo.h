@@ -1,5 +1,5 @@
-#ifndef _MONGODB_H_
-#define _MONGODB_H_
+#ifndef _MONGO_H_
+#define _MONGO_H_
 #include <string>
 #include <list>
 #include <boost/property_tree/ptree.hpp>
@@ -17,14 +17,14 @@ using namespace std;
 using bsoncxx::builder::stream::document;
 using bsoncxx::builder::stream::finalize;
 
-namespace Util{
-class MongoDB{
-	private:	 shared_ptr<mongocxx::client>	_client;
+namespace util{
+class Mongo{
+	private:	shared_ptr<mongocxx::client>	_client;
 
-	public:	MongoDB(void){
+	public:	Mongo(void){
 					;
 				}
-				MongoDB(const string &_uri_name){
+				Mongo(const string &_uri_name){
 					mongocxx::uri uri(_uri_name);
 				   this->_client=make_shared<mongocxx::client>(uri);
 				}
@@ -60,7 +60,7 @@ class MongoDB{
 				
 					return(results);
 				}
-				~MongoDB(void){
+				~Mongo(void){
 					;
 				}
 };
