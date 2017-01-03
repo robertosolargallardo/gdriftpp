@@ -15,7 +15,7 @@ boost::property_tree::ptree indices(const vector<Population*> &_populations){
 
    return(fpopulations);
 }
-void Controller::run(boost::property_tree::ptree &_frequest){
+boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_frequest){
 	boost::property_tree::ptree findividual=_frequest.get_child("individual");
    boost::property_tree::ptree fscenario=_frequest.get_child("scenario");
 
@@ -42,6 +42,7 @@ void Controller::run(boost::property_tree::ptree &_frequest){
    fresponse.push_back(make_pair("scenario",fscenario));
    
 	comm::send(this->_fhosts.get<string>("analyzer.host"),this->_fhosts.get<string>("analyzer.port"),this->_fhosts.get<string>("analyzer.resource"),fresponse);
+	return(_frequest);
 }
 Controller::~Controller(void){
 	;

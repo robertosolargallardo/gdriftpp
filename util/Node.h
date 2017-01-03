@@ -12,6 +12,6 @@ class Node{
 				~Node(void){
 
 				}
-				virtual void run(boost::property_tree::ptree&)=0;
+				virtual boost::property_tree::ptree run(boost::property_tree::ptree&)=0;
 };
 #endif

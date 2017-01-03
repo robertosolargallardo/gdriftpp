@@ -24,15 +24,35 @@ namespace method{
     	content_length=request->get_header("Content-Length",content_length);
 
     	_session->fetch(content_length,[](const shared_ptr<Session> &_session,const Bytes &_body){
-			boost::property_tree::ptree fmessage;
+			boost::property_tree::ptree frequest;
       	istringstream is(string(_body.begin(),_body.end()));
       	_session->close(OK,HEADERS);
 
-      	read_json(is,fmessage);
-			boost::thread t(run,fmessage);
+      	read_json(is,frequest);
+			boost::thread t(run,frequest);
       	t.detach();
 		});
 	};
+
+	template<boost::property_tree::ptree (*run)(boost::property_tree::ptree)>
+	void get(const shared_ptr<Session> &_session){
+   	_session->yield(OK,HEADERS,[](const shared_ptr<Session> _session){});
+
+	   size_t content_length=0;
+   	content_length=_session->get_request()->get_header("Content-Length",content_length);
+
+   	_session->fetch(content_length,[](const shared_ptr<Session> &_session,const Bytes &_body){
+      	boost::property_tree::ptree frequest;
+      	istringstream is(string(_body.begin(),_body.end()));
+      	read_json(is,frequest);
+
+      	ostringstream os;
+      	boost::property_tree::ptree fresponse=run(frequest);
+      	write_json(os,fresponse);
+
+      	_session->close(os.str());
+   	});
+	}
 
 	void options(const shared_ptr<Session> &_session){
    	_session->close(OK,HEADERS);

@@ -22,6 +22,7 @@ extern mt19937 rng;
 class Scheduler:public Node{
    private: shared_ptr<util::Mongo> _mongo;
 				shared_ptr<util::Semaphore> _semaphore;
+  				enum Types {INIT=305198855,CONTINUE=810372829,FINALIZE=3761776383};
 
 				class Settings{
 					public:	boost::property_tree::ptree _fsettings;
@@ -43,7 +44,7 @@ class Scheduler:public Node{
 
    public:
       Scheduler(const boost::property_tree::ptree&);
-		void run(boost::property_tree::ptree&);
+		boost::property_tree::ptree run(boost::property_tree::ptree&);
       ~Scheduler(void);
 
 };

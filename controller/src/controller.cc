@@ -1,4 +1,5 @@
 #include <restbed>
+#include <boost/lexical_cast.hpp>
 
 #include "../../util/Semaphore.h"
 #include "../../util/Method.h"
@@ -33,7 +34,7 @@ int main(int argc,char** argv){
    unsigned MAX_THREADS=std::thread::hardware_concurrency();
    semaphore=make_shared<util::Semaphore>(MAX_THREADS);
 	controller=make_shared<Controller>(fhosts,id);
-	
+
 	auto myself=std::find_if(fhosts.get_child("controller").begin(),fhosts.get_child("controller").end(),[&id](const pair<const basic_string<char>,basic_ptree<basic_string<char>,basic_string<char>>> &p)->bool{return p.second.get<uint32_t>("id")==id;});
 
    auto resource=make_shared<Resource>();

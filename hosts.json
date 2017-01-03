@@ -9,6 +9,11 @@
 		"port" : "1987",
 		"resource" : "/scheduler"
 	},
+	"results" : {
+		"host" : "citiaps2.diinf.usach.cl",
+		"port" : "1988",
+		"resource" : "/results"
+	},
 	"controller" : [
 		{	
 			"id"   : "0",
@@ -16,7 +21,7 @@
 			"port" : "1985",
 			"resource" : "/controller"
 		},
-		{	
+		{
 			"id"   : "1",
 			"host" : "citiaps1.diinf.usach.cl",
 			"port" : "1985",
@@ -26,7 +31,7 @@
 	"database" : {
 		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
 		"name" : "gdrift",
-		"collections" :{
+		"collections" : {
 			"data"     : "data",
 			"settings" : "settings",
 			"results"  : "results"

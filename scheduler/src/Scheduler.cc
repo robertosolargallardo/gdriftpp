@@ -15,23 +15,23 @@ Scheduler::Scheduler(const boost::property_tree::ptree &_fhosts):Node(_fhosts){
 Scheduler::~Scheduler(void){
 	this->_settings.clear();
 }
-void Scheduler::run(boost::property_tree::ptree &_frequest){
+boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_frequest){
 	uint32_t id=_frequest.get<uint32_t>("id");
    uint32_t type=util::hash(_frequest.get<string>("type"));
 
    switch(type){
-          case scheduling::INIT:{
+          case INIT:{
 			   this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"),_frequest);
 
 				this->_semaphore->lock();
 				this->_settings[id]=make_shared<Settings>(_frequest);
 				this->_semaphore->unlock();
 			 }
-          case scheduling::CONTINUE:{
+          case CONTINUE:{
 				this->_settings[id]->send(BATCH_LENGTH,this->_fhosts);
             break;
           }
-          case scheduling::FINALIZE:{
+          case FINALIZE:{
 				this->_semaphore->lock();
 				this->_settings.erase(this->_settings.find(id));
 				this->_semaphore->unlock();
@@ -43,6 +43,7 @@ void Scheduler::run(boost::property_tree::ptree &_frequest){
 				 break;
 			 }
    }
+	return(_frequest);
 }
 //TODO This function parse the distributions. Now only works with uniform.
 template<class T>

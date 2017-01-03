@@ -18,9 +18,10 @@ class Analyzer:public Node{
 				map<uint32_t,uint32_t> _batch_size;
 
 				shared_ptr<util::Mongo> _mongo;
+				enum Types{SIMULATED=416813159,DATA=1588979285};
 
    public:  Analyzer(boost::property_tree::ptree&);
-				void run(boost::property_tree::ptree&);
+				boost::property_tree::ptree run(boost::property_tree::ptree&);
             ~Analyzer(void);
 
             friend double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);

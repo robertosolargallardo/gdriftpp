@@ -26,7 +26,7 @@
                   {
                      "population" : {
                         "name" : "p0",
-                        "size":{"type":"random", "min-value":"1000", "max-value":"10000"}
+                        "size":{"type":"random", "min-value":"10000", "max-value":"100000"}
                      }
                   }
             },
@@ -61,7 +61,7 @@
                      "source": {
                         "population" : {
                            "name" : "p1",
-                           "percentage" : {"type" : "fixed", "value" : "1"}
+                           "percentage" : {"type":"random","min-value":"0.1","max-value":"0.5"}
                         }
                      }
                   }
@@ -133,7 +133,7 @@
                   {
                      "population" : {
                         "name" : "p0",
-                        "size":{"type":"random", "min-value":"1000", "max-value":"10000"}
+                        "size":{"type":"random", "min-value":"10000", "max-value":"100000"}
                      }
                   }
             },

@@ -44,12 +44,12 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
 
    return(d);
 }
-void Analyzer::run(boost::property_tree::ptree &_frequest){
+boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
    
    switch(util::hash(_frequest.get<string>("type"))){
-      case results::SIMULATED:{
+      case SIMULATED:{
 								uint32_t id=_frequest.get<uint32_t>("id");
-								if(this->_accepted.count(id)==0) return;								
+								if(this->_accepted.count(id)==0) return(_frequest);
 
 								this->_batch_size[id]++;
 								double dist=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
@@ -77,7 +77,7 @@ void Analyzer::run(boost::property_tree::ptree &_frequest){
 								}
                         break;
                      };
-      case results::DATA:  {
+      case DATA:  {
 							this->_accepted[_frequest.get<uint32_t>("id")]=0U;	
 							this->_batch_size[_frequest.get<uint32_t>("id")]=0U;	
 				
@@ -110,4 +110,5 @@ void Analyzer::run(boost::property_tree::ptree &_frequest){
                   exit(EXIT_FAILURE);
                };
    }
+	return(_frequest);
 }

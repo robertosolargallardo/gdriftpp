@@ -9,7 +9,7 @@ class Controller:public Node{
 	private:	uint32_t _id;
 
 	public:	Controller(const boost::property_tree::ptree&,const uint32_t&);
-				void run(boost::property_tree::ptree&);
+				boost::property_tree::ptree run(boost::property_tree::ptree&);
 				friend boost::property_tree::ptree indices(const vector<Population*>&);
 				~Controller(void);
 };
