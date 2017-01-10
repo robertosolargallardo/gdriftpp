@@ -38,20 +38,16 @@ namespace method{
 	void get(const shared_ptr<Session> &_session){
    	_session->yield(OK,HEADERS,[](const shared_ptr<Session> _session){});
 
-	   size_t content_length=0;
-   	content_length=_session->get_request()->get_header("Content-Length",content_length);
+		const auto& request=_session->get_request();
+      boost::property_tree::ptree frequest;
+		for(auto param : request->get_query_parameters())
+			frequest.put(param.first,param.second);
 
-   	_session->fetch(content_length,[](const shared_ptr<Session> &_session,const Bytes &_body){
-      	boost::property_tree::ptree frequest;
-      	istringstream is(string(_body.begin(),_body.end()));
-      	read_json(is,frequest);
+		ostringstream os;
+      boost::property_tree::ptree fresponse=run(frequest);
+      write_json(os,fresponse);
 
-      	ostringstream os;
-      	boost::property_tree::ptree fresponse=run(frequest);
-      	write_json(os,fresponse);
-
-      	_session->close(os.str());
-   	});
+      _session->close(os.str());
 	}
 
 	void options(const shared_ptr<Session> &_session){

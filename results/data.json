@@ -1,9 +1,9 @@
 {
     "_id":
     {
-        "$oid": "586d12523f2e11b1f87b6002"
+        "$oid": "5873eb7d3f2e116f0551f352"
     },
-    "id": "2000000",
+    "id": "3000000",
     "ploidy": "1",
     "type": "data",
     "populations":
@@ -2227,7 +2227,7 @@
     ],
     "posterior":
     {
-        "id": "2000000",
+        "id": "3000000",
         "type": "data",
         "populations":
         [

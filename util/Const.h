@@ -3,3 +3,4 @@
 #define BATCH_LENGTH 32
 #define MAX_DIST 		10.0
 #define PERCENT  		0.1
+#endif

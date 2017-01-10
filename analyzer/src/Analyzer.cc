@@ -53,6 +53,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 
 								this->_batch_size[id]++;
 								double dist=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
+								cout << dist << endl;
 								if(dist<=MAX_DIST){
 									this->_accepted[id]++;
 									_frequest.put("distance",dist);
