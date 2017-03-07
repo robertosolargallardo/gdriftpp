@@ -28,7 +28,7 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
       }
    }
 
-   double d=0.0;
+   /*double d=0.0;
    for(auto i : indices_data){
       for(auto j : i.second){
          for(auto k : j.second){
@@ -40,9 +40,23 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
             d+=sqrt(sum);
          }
       }
-   }
+   }*/
 
-   return(d);
+	double a=0.0,b=0.0,s=0.0,n=0.0,diff=0.0;
+   for(auto i : indices_data){
+      for(auto j : i.second){
+         for(auto k : j.second){
+            for(auto l : k.second){
+					a=indices_data[i.first][j.first][k.first][l.first];
+					b=indices_simulated[i.first][j.first][k.first][l.first];
+					diff=(a-b)/max(a,b);
+					s+=diff*diff;
+					n+=1.0;
+            }
+         }
+      }
+   }
+   return(sqrt(s/n));
 }
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
    
@@ -54,6 +68,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 								this->_batch_size[id]++;
 								double dist=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
 								cout << dist << endl;
+
 								if(dist<=MAX_DIST){
 									this->_accepted[id]++;
 									_frequest.put("distance",dist);

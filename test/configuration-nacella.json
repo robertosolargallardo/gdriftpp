@@ -1,14 +1,14 @@
 {
    "id"     : "3000000", 
    "type"   : "init",
-   "max-number-of-simulations" : "20000",
+   "max-number-of-simulations" : "2000",
    "individual" : {
       "ploidy" : "1",
       "chromosomes": [
          {
             "id": "0",
             "genes": [
-               {"id": "0","nucleotides": "664",  "mutation-rate":{"type":"random", "min-value": "0.00001", "max-value":"0.0001"}, "number-of-segregating-sites": "10", "number-of-alleles" : "1048576"}
+               {"id": "0","nucleotides": "664",  "mutation-rate":{"type":"random", "min-value": "0.0001", "max-value":"0.001"}, "number-of-segregating-sites": "10", "number-of-alleles" : "1048576"}
             ]
          }
       ]
@@ -26,7 +26,7 @@
                   {
                      "population" : {
                         "name" : "p0",
-                        "size":{"type":"random", "min-value":"100", "max-value":"100000"}
+                        "size":{"type":"random", "min-value":"1000", "max-value":"10000"}
                      }
                   }
             },
@@ -133,7 +133,7 @@
                   {
                      "population" : {
                         "name" : "p0",
-                        "size":{"type":"random", "min-value":"100", "max-value":"100000"}
+                        "size":{"type":"random", "min-value":"1000", "max-value":"10000"}
                      }
                   }
             },
