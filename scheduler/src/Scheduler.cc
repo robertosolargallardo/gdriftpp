@@ -22,7 +22,6 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
    switch(type){
           case INIT:{
 			   this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"),_frequest);
-
 				this->_semaphore->lock();
 				this->_settings[id]=make_shared<Settings>(_frequest);
 				this->_semaphore->unlock();

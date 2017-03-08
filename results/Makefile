@@ -1,7 +1,7 @@
 TARGET=results
 CXX=g++-4.9
-LIBRARIES=-L/usr/local/lib -L../gdriftlib/lib/ 
-INCLUDES=-I/usr/local/include/bsoncxx/v_noabi/ -I/usr/local/include/mongocxx/v_noabi/ -I/usr/local/include  -I../gdriftlib/src
+LIBRARIES=-L/usr/local/lib -L../libgdrift/lib/ 
+INCLUDES=-I/usr/local/include/bsoncxx/v_noabi/ -I/usr/local/include/mongocxx/v_noabi/ -I/usr/local/include  -I../libgdrift/src
 CXXFLAGS=-std=c++11 -Wall -g -ggdb -O3 -pthread -lboost_thread -lboost_system -larmadillo -lcurl -fopenmp -lrestbed -lssl -lcrypto -ldl -lmongocxx -lbsoncxx -lgdrift++
 
 OBJS=obj/results.o obj/Results.o obj/Semaphore.o

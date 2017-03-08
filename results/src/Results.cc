@@ -1,5 +1,5 @@
 #include "Results.h"
-#define DELTA 5.0
+#define DELTA 100.0
 Results::Results(boost::property_tree::ptree &_fhosts):Node(_fhosts){
 	this->_mongo=make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
 }

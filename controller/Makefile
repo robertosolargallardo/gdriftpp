@@ -1,7 +1,7 @@
 TARGET=controller
 CXX=g++-4.9
-LIBRARIES=-L../gdriftlib/lib/ 
-INCLUDES=-I../gdriftlib/src/ 
+LIBRARIES=-L../libgdrift/lib/ 
+INCLUDES=-I../libgdrift/src/ 
 CXXFLAGS=-std=c++11 -Wall -g -ggdb -O3 -pthread -lboost_thread -lboost_system -larmadillo -lcurl -fopenmp -lgdrift++ -lrestbed -lssl -lcrypto -ldl
 
 OBJS=obj/controller.o obj/Semaphore.o obj/Controller.o

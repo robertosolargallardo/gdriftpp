@@ -1,7 +1,7 @@
 {
-   "id"     : "3000000", 
+   "id"     : "8000000", 
    "type"   : "init",
-   "max-number-of-simulations" : "2000",
+   "max-number-of-simulations" : "200000",
    "individual" : {
       "ploidy" : "1",
       "chromosomes": [
