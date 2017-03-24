@@ -49,15 +49,18 @@ T generate(const boost::property_tree::ptree &_fdistribution){
 
 	/*std::stringstream ss;
    write_json(ss,_fdistribution);
-
    cout << ss.str() << endl;*/
 
    uint32_t type=util::hash(_fdistribution.get<string>("type"));
 
    switch(type){
 		case UNIFORM:{
-   		std::uniform_real_distribution<double> uniform(_fdistribution.get<double>("params.a"),_fdistribution.get<double>("params.b"));
-   		return(T(uniform(rng)));
+   		std::uniform_real_distribution<> uniform(_fdistribution.get<double>("params.a"),_fdistribution.get<double>("params.b"));
+   		return(static_cast<T>(uniform(rng)));
+		}
+		case NORMAL:{
+   		std::normal_distribution<> normal(_fdistribution.get<double>("params.mean"),_fdistribution.get<double>("params.stddev"));
+   		return(static_cast<T>(normal(rng)));
 		}
 		default:{
 			cout << "Error::Unknown Distribution Type::" << type << endl;
@@ -80,13 +83,13 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 	for(auto &fevent : _fscenario.get_child("events")){
 		boost::property_tree::ptree ftimestamp=fevent.second.get_child("timestamp");
       fevent.second.erase("timestamp");
-		fevent.second.put<uint32_t>("timestamp",util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<double>(ftimestamp.get_child("distribution")):ftimestamp.get<double>("value"));
+		fevent.second.put<uint32_t>("timestamp",util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution")):ftimestamp.get<uint32_t>("value"));
 
 		switch(util::hash(fevent.second.get<string>("type"))){
 			case CREATE:{ 	
 								boost::property_tree::ptree fsize=fevent.second.get_child("params.population.size");
       						fevent.second.get_child("params.population").erase("size");
-      						fevent.second.get_child("params.population").put<uint32_t>("size",util::hash(fsize.get<string>("type"))==RANDOM?generate<double>(fsize.get_child("distribution")):fsize.get<double>("value"));
+      						fevent.second.get_child("params.population").put<uint32_t>("size",util::hash(fsize.get<string>("type"))==RANDOM?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value"));
 								break;
 							}
 			case INCREMENT:
@@ -121,9 +124,10 @@ void Scheduler::Settings::send(const uint32_t &_batch_length,const boost::proper
       fjob.add_child("individual",parse_individual(this->_fsettings.get_child("individual")));
       fjob.add_child("scenario",parse_scenario(scenarios[i%scenarios.size()]));
 		
-/*std::stringstream ss;
+std::stringstream ss;
 write_json(ss,fjob);
-cout << ss.str() << endl;*/
+cout << ss.str() << endl;
+exit(0);
 
 		fjobs.push_back(fjob);
 	}

@@ -17,7 +17,7 @@ void run(boost::property_tree::ptree _frequest){
 }
 int main(int argc,char** argv){
 	
-	/*boost::property_tree::ptree fhosts;
+	boost::property_tree::ptree fhosts;
 	read_json(argv[1],fhosts);
 
 	boost::property_tree::ptree frequest;
@@ -25,9 +25,9 @@ int main(int argc,char** argv){
 
 	scheduler=make_shared<Scheduler>(fhosts);
 	
-	scheduler->run(frequest);*/
+	scheduler->run(frequest);
 
-	if(argc<2){
+	/*if(argc<2){
    	cerr << "Error::Hosts File not Specified" << endl;
 		exit(EXIT_FAILURE);
 	}
@@ -49,7 +49,7 @@ int main(int argc,char** argv){
    Service service;
    service.publish(resource);
 	service.set_logger(make_shared<CustomLogger>());
-   service.start(settings);
+   service.start(settings);*/
 
    return(EXIT_SUCCESS);
 }

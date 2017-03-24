@@ -17,7 +17,7 @@
 
 extern mt19937 rng;
 
-enum Distributions {UNIFORM=3830327609};
+enum Distributions {UNIFORM=3830327609,NORMAL=1330140418};
 
 using namespace std;
 class Scheduler:public Node{
