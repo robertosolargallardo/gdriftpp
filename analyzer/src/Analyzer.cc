@@ -69,11 +69,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 								double dist=distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
 								cout << dist << endl;
 
-								if(dist<=MAX_DIST){
+								//if(dist<=MAX_DIST){
 									this->_accepted[id]++;
 									_frequest.put("distance",dist);
 									this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.results"),_frequest);
-								}
+								//}
 
 								if(this->_batch_size[id]==(BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 			    					boost::property_tree::ptree fresponse;
