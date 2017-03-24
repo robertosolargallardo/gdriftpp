@@ -16,6 +16,17 @@ void run(boost::property_tree::ptree _frequest){
 	scheduler->run(_frequest);
 }
 int main(int argc,char** argv){
+	
+	/*boost::property_tree::ptree fhosts;
+	read_json(argv[1],fhosts);
+
+	boost::property_tree::ptree frequest;
+	read_json(argv[2],frequest);
+
+	scheduler=make_shared<Scheduler>(fhosts);
+	
+	scheduler->run(frequest);*/
+
 	if(argc<2){
    	cerr << "Error::Hosts File not Specified" << endl;
 		exit(EXIT_FAILURE);

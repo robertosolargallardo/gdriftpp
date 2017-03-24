@@ -1,9 +1,9 @@
 {
     "_id":
     {
-        "$oid": "58bf08ba3f2e11e1085578fc"
+        "$oid": "58bf057f3f2e11e108557832"
     },
-    "id": "8000000",
+    "id": "5000000",
     "ploidy": "1",
     "type": "data",
     "populations":
@@ -2227,7 +2227,7 @@
     ],
     "posterior":
     {
-        "id": "8000000",
+        "id": "5000000",
         "type": "data",
         "populations":
         [
@@ -2246,7 +2246,7 @@
                                     "number-of-haplotypes": "0.6905608755129958",
                                     "number-of-segregating-sites": "15",
                                     "mean-of-the-number-of-pairwise-differences": "0.9354309165526675",
-                                    "variance-of-the-number-of-pairwise-differences": "0.6037651699880844",
+                                    "variance-of-the-number-of-pairwise-differences": "0.6037651699880874",
                                     "tajima-d-statistics": "-0.9886414489069542"
                                 }
                             }
@@ -2269,7 +2269,7 @@
                                     "number-of-haplotypes": "0.8827586206896552",
                                     "number-of-segregating-sites": "12",
                                     "mean-of-the-number-of-pairwise-differences": "2.340229885057471",
-                                    "variance-of-the-number-of-pairwise-differences": "1.898036728762059",
+                                    "variance-of-the-number-of-pairwise-differences": "1.898036728762063",
                                     "tajima-d-statistics": "-0.3090000041737871"
                                 }
                             }
@@ -2292,7 +2292,7 @@
                                     "number-of-haplotypes": "0.7889055472263867",
                                     "number-of-segregating-sites": "25",
                                     "mean-of-the-number-of-pairwise-differences": "1.410944527736132",
-                                    "variance-of-the-number-of-pairwise-differences": "1.188096109366586",
+                                    "variance-of-the-number-of-pairwise-differences": "1.188096109366606",
                                     "tajima-d-statistics": "-1.027621084781474"
                                 }
                             }

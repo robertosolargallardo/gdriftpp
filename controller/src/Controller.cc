@@ -2,15 +2,15 @@
 Controller::Controller(const boost::property_tree::ptree &_fhosts,const uint32_t &_id):Node(_fhosts){
 	this->_id=_id;
 }
-boost::property_tree::ptree indices(const vector<Population*> &_populations){
+boost::property_tree::ptree indices(map<string,Sample*> _samples){
    boost::property_tree::ptree fpopulations;
 
-   Population* all=new Population("summary");
-   for(auto& population : _populations){
-      fpopulations.push_back(std::make_pair("",population->indices(0.1)));
-      all->merge(population);
-   }
-   fpopulations.push_back(std::make_pair("",all->indices(0.1)));
+   Sample* all=new Sample("summary");
+	for(map<string,Sample*>::iterator i=_samples.begin();i!=_samples.end();i++){
+      fpopulations.push_back(std::make_pair("",i->second->indices()));
+      all->merge(i->second);
+	}
+   fpopulations.push_back(std::make_pair("",all->indices()));
    delete all;
 
    return(fpopulations);
@@ -31,9 +31,9 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
    
    Simulator* sim=new Simulator(_frequest);
 
-   fprior.push_back(std::make_pair("populations",indices(sim->populations())));
+   //fprior.push_back(std::make_pair("populations",indices(sim->populations())));
    sim->run();
-   fposterior.push_back(std::make_pair("populations",indices(sim->populations())));
+   fposterior.push_back(std::make_pair("populations",indices(sim->samples())));
    delete sim;
 
    fresponse.push_back(make_pair("prior",fprior));

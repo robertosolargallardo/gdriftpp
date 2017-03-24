@@ -104,12 +104,12 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
                      boost::property_tree::ptree fpopulations;
                      Population* all=new Population("summary");
                      for(auto& population : _frequest.get_child("populations")){
-                     	Population* p=new Population(Ploidy(_frequest.get<uint32_t>("ploidy")),population.second);
-                        fpopulations.push_back(std::make_pair("",p->indices(1.0)));
+                     	Population* p=new Population(Ploidy(_frequest.get<uint32_t>("ploidy")),population.second,_frequest);
+                        fpopulations.push_back(std::make_pair("",((Sample*)p)->indices()));
                         all->merge(p);  
 								delete p;
 							}
-                     fpopulations.push_back(std::make_pair("",all->indices(1.0)));
+                     fpopulations.push_back(std::make_pair("",((Sample*)all)->indices()));
 							delete all;
 
                      fposterior.push_back(make_pair("populations",fpopulations));

@@ -15,10 +15,11 @@
 #include "../../util/Const.h"
 #include "../../util/Semaphore.h"
 
-using namespace std;
-
 extern mt19937 rng;
 
+enum Distributions {UNIFORM=3830327609};
+
+using namespace std;
 class Scheduler:public Node{
    private: shared_ptr<util::Mongo> _mongo;
 				shared_ptr<util::Semaphore> _semaphore;

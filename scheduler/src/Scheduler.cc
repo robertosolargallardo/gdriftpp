@@ -37,50 +37,64 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
             break;
           }
 			 default:{
-				 cout << "Error::Unknown Scheduling Type::" << type << endl;
+				 cerr<< "Error::Unknown Scheduling Type::" << type << endl;
 				 exit(EXIT_FAILURE);
-				 break;
 			 }
    }
 	return(_frequest);
 }
 //TODO This function parse the distributions. Now only works with uniform.
 template<class T>
-T generate(const boost::property_tree::ptree &_fparams){
-   std::uniform_real_distribution<double> uniform(_fparams.get<double>("min-value"),_fparams.get<double>("max-value"));
-   return(T(uniform(rng)));
+T generate(const boost::property_tree::ptree &_fdistribution){
+
+	/*std::stringstream ss;
+   write_json(ss,_fdistribution);
+
+   cout << ss.str() << endl;*/
+
+   uint32_t type=util::hash(_fdistribution.get<string>("type"));
+
+   switch(type){
+		case UNIFORM:{
+   		std::uniform_real_distribution<double> uniform(_fdistribution.get<double>("params.a"),_fdistribution.get<double>("params.b"));
+   		return(T(uniform(rng)));
+		}
+		default:{
+			cout << "Error::Unknown Distribution Type::" << type << endl;
+			exit(EXIT_FAILURE);
+			break;
+		}
+	}
 }
 boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findividual){
    for(auto &fchromosome : _findividual.get_child("chromosomes")){
       for(auto &fgene: fchromosome.second.get_child("genes")){
-         if(fgene.second.get<string>("mutation-rate.type")=="random"){
-            boost::property_tree::ptree fparams=fgene.second.get_child("mutation-rate");
-            fgene.second.erase("mutation-rate");
-            fgene.second.put<double>("mutation-rate",generate<double>(fparams));
-         }
+			boost::property_tree::ptree frate=fgene.second.get_child("mutation.rate");
+         fgene.second.get_child("mutation").erase("rate");
+         fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution")):frate.get<double>("value"));
       }
    }
    return(_findividual);
 }
 boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario){
 	for(auto &fevent : _fscenario.get_child("events")){
-		boost::property_tree::ptree fparams=fevent.second.get_child("timestamp");
+		boost::property_tree::ptree ftimestamp=fevent.second.get_child("timestamp");
       fevent.second.erase("timestamp");
-		fevent.second.put<uint32_t>("timestamp",(fparams.get<string>("type")=="random")?generate<uint32_t>(fparams):fparams.get<uint32_t>("value"));
+		fevent.second.put<uint32_t>("timestamp",util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<double>(ftimestamp.get_child("distribution")):ftimestamp.get<double>("value"));
 
 		switch(util::hash(fevent.second.get<string>("type"))){
 			case CREATE:{ 	
-								boost::property_tree::ptree fparams=fevent.second.get_child("params.population.size");
+								boost::property_tree::ptree fsize=fevent.second.get_child("params.population.size");
       						fevent.second.get_child("params.population").erase("size");
-      						fevent.second.get_child("params.population").put<uint32_t>("size",(fparams.get<string>("type")=="random")?generate<uint32_t>(fparams):fparams.get<uint32_t>("value"));
+      						fevent.second.get_child("params.population").put<uint32_t>("size",util::hash(fsize.get<string>("type"))==RANDOM?generate<double>(fsize.get_child("distribution")):fsize.get<double>("value"));
 								break;
 							}
 			case INCREMENT:
 			case DECREMENT:
 			case MIGRATION:{
-									boost::property_tree::ptree fparams=fevent.second.get_child("params.source.population.percentage");
+									boost::property_tree::ptree fpercentage=fevent.second.get_child("params.source.population.percentage");
       							fevent.second.get_child("params.source.population").erase("percentage");
-      							fevent.second.get_child("params.source.population").put<double>("percentage",(fparams.get<string>("type")=="random")?generate<double>(fparams):fparams.get<double>("value"));
+      							fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution")):fpercentage.get<double>("value"));
 									break;
 								}
 			default:	break;
@@ -107,9 +121,12 @@ void Scheduler::Settings::send(const uint32_t &_batch_length,const boost::proper
       fjob.add_child("individual",parse_individual(this->_fsettings.get_child("individual")));
       fjob.add_child("scenario",parse_scenario(scenarios[i%scenarios.size()]));
 		
+/*std::stringstream ss;
+write_json(ss,fjob);
+cout << ss.str() << endl;*/
+
 		fjobs.push_back(fjob);
 	}
-
 	random_shuffle(fjobs.begin(),fjobs.end());
 
 	for(uint32_t i=0;i<fjobs.size();i++)
