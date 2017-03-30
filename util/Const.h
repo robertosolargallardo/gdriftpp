@@ -6,5 +6,4 @@
 
 
 #define RANDOM 3957470568
-#define FIXED  3103353123
 #endif

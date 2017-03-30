@@ -31,9 +31,24 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
    
    Simulator* sim=new Simulator(_frequest);
 
+	//std::stringstream ss;
+	//char filename[256];
+	//sprintf(filename,"out-%s-%s-%s.json",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
+   //write_json(filename,_frequest);
+   //cout << ss.str() << endl;
+
    //fprior.push_back(std::make_pair("populations",indices(sim->populations())));
+
+	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
    sim->run();
+	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
+
+	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
    fposterior.push_back(std::make_pair("populations",indices(sim->samples())));
+	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
+
+	//sprintf(filename,"err-%s-%s-%s.json",_frequest.get<string>("id").c_str(),_frequest.get<string>("run").c_str(),_frequest.get<string>("batch").c_str());
+   //write_json(filename,fposterior);
    delete sim;
 
    fresponse.push_back(make_pair("prior",fprior));

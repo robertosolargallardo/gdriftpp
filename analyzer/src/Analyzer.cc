@@ -96,7 +96,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
       case DATA:  {
 							this->_accepted[_frequest.get<uint32_t>("id")]=0U;	
 							this->_batch_size[_frequest.get<uint32_t>("id")]=0U;	
-				
+
                      boost::property_tree::ptree fposterior;
                      fposterior.put("id",_frequest.get<string>("id"));
                      fposterior.put("type","data");

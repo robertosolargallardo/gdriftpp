@@ -47,9 +47,10 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 template<class T>
 T generate(const boost::property_tree::ptree &_fdistribution){
 
-	/*std::stringstream ss;
+	std::stringstream ss;
    write_json(ss,_fdistribution);
-   cout << ss.str() << endl;*/
+   cout << ss.str() << endl;
+	exit(0);
 
    uint32_t type=util::hash(_fdistribution.get<string>("type"));
 
@@ -61,6 +62,10 @@ T generate(const boost::property_tree::ptree &_fdistribution){
 		case NORMAL:{
    		std::normal_distribution<> normal(_fdistribution.get<double>("params.mean"),_fdistribution.get<double>("params.stddev"));
    		return(static_cast<T>(normal(rng)));
+		}
+		case GAMMA:{
+   		std::gamma_distribution<double> gamma(_fdistribution.get<double>("params.alpha"),_fdistribution.get<double>("params.beta"));
+   		return(static_cast<T>(gamma(rng)));
 		}
 		default:{
 			cout << "Error::Unknown Distribution Type::" << type << endl;
@@ -124,10 +129,10 @@ void Scheduler::Settings::send(const uint32_t &_batch_length,const boost::proper
       fjob.add_child("individual",parse_individual(this->_fsettings.get_child("individual")));
       fjob.add_child("scenario",parse_scenario(scenarios[i%scenarios.size()]));
 		
-std::stringstream ss;
+/*std::stringstream ss;
 write_json(ss,fjob);
 cout << ss.str() << endl;
-exit(0);
+exit(0);*/
 
 		fjobs.push_back(fjob);
 	}
