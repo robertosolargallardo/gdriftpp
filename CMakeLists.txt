@@ -14,10 +14,11 @@ else()
     message(FATAL_ERROR "Compiler ${CMAKE_CXX_COMPILER} has no C++11 support.")
 endif()
 
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
+
+add_definitions(-DRESTBED_PATH=/usr/local)
 #file(GLOB SOURCES "${CMAKE_SOURCE_DIR}/src/*.cc")
 
 #add_executable(test_sim "${CMAKE_SOURCE_DIR}/test/sim/test.cc")
