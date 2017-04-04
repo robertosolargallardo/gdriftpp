@@ -2,10 +2,13 @@
 
 The gdrift++ platform is a fully distributed system designed for performing approximate bayesian computation for parameter inference and model selection in population-genetic models. The gdrift++ platform is composed by a set of RESTful services that communicate each other by exchanging JavaScript Object Notation(JSON) documents via HTTP requests.
 
-### Installation ###
+# Installation #
 
-* Install dependecies
-
+install dependecies
+-------------------
+```
+ls
+```
 ### Contribution guidelines ###
 
 * Writing tests
