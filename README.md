@@ -43,8 +43,19 @@ sudo make install
 git clone https://github.com/robertosolargallardo/libgdrift.git
 mkdir libgdrift/build
 cd libgdrift/build
-cmake ..
+cmake .. [-DCMAKE_INSTALL_PREFIX=/output-directory]
 make
 sudo make install
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:/usr/local/lib
+```
+
+install the platform
+--------------------
+```
+git clone https://github.com/robertosolargallardo/services.git
+mkdir services/build
+cd services/build
+cmake [-DGDRIFT_ROOT_DIR=/path-to-gdrift] [-DRESTBED_ROOT_DIR=/path-to-restbed] [-DMONGOCXX_ROOT_DIR=/path-to-mongocxx] [-DBSONCXX_ROOT_DIR=/path-to-bsoncxx] [-DCMAKE_INSTALL_PREFIX=/output-directory] ..
+make
+sudo make install
 ```
