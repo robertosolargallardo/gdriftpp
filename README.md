@@ -1,33 +1,61 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
+The gdrift++ platform is a fully distributed system designed for performing approximate bayesian computation for parameter inference and model selection in population-genetic models. The gdrift++ platform is composed by a set of RESTful services that communicate each other by exchanging JavaScript Object Notation(JSON) documents via HTTP requests.
 
-### What is this repository for? ###
+# Installation #
 
-* Quick summary
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+install dependecies
+-------------------
+```
+git clone --recursive https://github.com/corvusoft/restbed.git
+mkdir restbed/build
+cd restbed/build
+cmake [-DBUILD_TESTS=YES] [-DBUILD_EXAMPLES=YES] [-DBUILD_SSL=NO] [-DBUILD_SHARED=YES] [-DCMAKE_INSTALL_PREFIX=/output-directory] ..
+make [-j CPU_CORES+1] install
+make test
+```
 
-### How do I get set up? ###
+```
+git clone https://github.com/mongodb/libbson.git
+cd libbson/build
+cmake ..
+sudo make install
+```
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
+```
+git clone https://github.com/mongodb/mongo-c-driver.git
+cd mongo-c-driver
+sh autogen.sh
+./configure --disable-automatic-init-and-cleanup
+make LDFLAGS=-pthread
+sudo make install
+```
 
-### Contribution guidelines ###
+```
+curl -OL https://github.com/mongodb/mongo-cxx-driver/archive/r3.1.1.tar.gz 
+tar -xzf r3.1.1.tar.gz
+cd mongo-cxx-driver-r3.1.1/build
+sudo cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+sudo make install
+```
 
-* Writing tests
-* Code review
-* Other guidelines
+```
+git clone https://github.com/robertosolargallardo/libgdrift.git
+mkdir libgdrift/build
+cd libgdrift/build
+cmake .. [-DCMAKE_INSTALL_PREFIX=/output-directory]
+make
+sudo make install
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:.:/usr/local/lib
+```
 
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
-
-TODO::
-1) homogeneizar los send (crear funcion o clase).
-2) crear clase servicio y q los servicios hereden de esta.
+install the platform
+--------------------
+```
+git clone https://github.com/robertosolargallardo/services.git
+mkdir services/build
+cd services/build
+cmake [-DGDRIFT_ROOT_DIR=/path-to-gdrift] [-DRESTBED_ROOT_DIR=/path-to-restbed] [-DMONGOCXX_ROOT_DIR=/path-to-mongocxx] [-DBSONCXX_ROOT_DIR=/path-to-bsoncxx] [-DCMAKE_INSTALL_PREFIX=/output-directory] ..
+make
+sudo make install
+```
