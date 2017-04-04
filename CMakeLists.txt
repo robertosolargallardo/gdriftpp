@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.9)
 project(gdrift_services)
 set(CMAKE_BUILD_TYPE Release)
 find_package(Boost 1.55.0 REQUIRED)
+find_package(Armadillo 4.450.4 REQUIRED)
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
