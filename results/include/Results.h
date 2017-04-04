@@ -9,8 +9,8 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 
-#include "../../util/Mongo.h"
-#include "../../util/Node.h"
+#include <Mongo.h>
+#include <Node.h>
 #include <Simulator.h>
 
 class Results:public Node{

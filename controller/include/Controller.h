@@ -3,8 +3,8 @@
 #include <Simulator.h>
 #include <Sample.h>
 #include <boost/property_tree/ptree.hpp>
-#include "../../util/Node.h"
-#include "../../util/Comm.h"
+#include <Node.h>
+#include <Comm.h>
 
 class Controller:public Node{
 	private:	uint32_t _id;

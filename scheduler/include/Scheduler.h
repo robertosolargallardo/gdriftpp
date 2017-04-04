@@ -9,11 +9,11 @@
 #include <vector>
 #include <Simulator.h>
 
-#include "../../util/Comm.h"
-#include "../../util/Node.h"
-#include "../../util/Mongo.h"
-#include "../../util/Const.h"
-#include "../../util/Semaphore.h"
+#include <Comm.h>
+#include <Node.h>
+#include <Mongo.h>
+#include <Const.h>
+#include <Semaphore.h>
 
 extern mt19937 rng;
 

@@ -1,10 +1,10 @@
 #include <restbed>
 #include <boost/lexical_cast.hpp>
 
-#include "../../util/Semaphore.h"
-#include "../../util/Method.h"
-#include "../../util/Logger.h"
-#include "Controller.h"
+#include <Semaphore.h>
+#include <Method.h>
+#include <Logger.h>
+#include <Controller.h>
 
 using namespace std;
 using namespace restbed;
@@ -32,8 +32,8 @@ int main(int argc,char** argv){
 
 	uint32_t id=atoi(argv[2]);
    unsigned MAX_THREADS=std::thread::hardware_concurrency();
-   //semaphore=make_shared<util::Semaphore>(MAX_THREADS);
-   semaphore=make_shared<util::Semaphore>(1);
+   semaphore=make_shared<util::Semaphore>(MAX_THREADS);
+   //semaphore=make_shared<util::Semaphore>(1);
 	controller=make_shared<Controller>(fhosts,id);
 
 	auto myself=std::find_if(fhosts.get_child("controller").begin(),fhosts.get_child("controller").end(),[&id](const pair<const basic_string<char>,basic_ptree<basic_string<char>,basic_string<char>>> &p)->bool{return p.second.get<uint32_t>("id")==id;});

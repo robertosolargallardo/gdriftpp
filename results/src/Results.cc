@@ -121,8 +121,8 @@ map<uint32_t,uint32_t> cumulative(boost::property_tree::ptree _fscenario,const s
 }
 map<uint32_t,uint32_t> histo(vector<double> data){
 	sort(data.begin(),data.end());
-	double min=data[0];
-	double max=data[data.size()-1];
+	//double min=data[0];
+	//double max=data[data.size()-1];
 
 	map<uint32_t,uint32_t> histogram;
 

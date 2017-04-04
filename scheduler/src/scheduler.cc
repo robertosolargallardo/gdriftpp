@@ -2,11 +2,11 @@
 #include <cstdlib>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
-#include "../../util/Const.h"
-#include "../../util/Logger.h"
-#include "../../util/Method.h"
+#include <Const.h>
+#include <Logger.h>
+#include <Method.h>
 
-#include "Scheduler.h"
+#include <Scheduler.h>
 
 random_device seed;
 mt19937 rng(seed());

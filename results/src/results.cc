@@ -4,10 +4,10 @@
 #include <cstdlib>
 #include <restbed>
 #include <armadillo>
-#include "Results.h"
-#include "../../util/Logger.h"
-#include "../../util/Method.h"
-#include "../../util/Semaphore.h"
+#include <Results.h>
+#include <Logger.h>
+#include <Method.h>
+#include <Semaphore.h>
 
 using namespace std;
 using namespace restbed;

@@ -1,21 +1,21 @@
-find_path(RESTBED_INCLUDE_DIR
+find_path(RESTBED_INCLUDE
     NAMES http.hpp
     PATHS ${RESTBED_ROOT_DIR}/include/corvusoft/restbed/
-    DOC "The Restbed include directory"
+    DOC "The restbed include directory"
 )
 
-find_library(RESTBED_LIBRARY 
-    NAMES restbed
+find_path(RESTBED_LIBRARY 
+    NAMES librestbed.a
     PATHS ${RESTBED_ROOT_DIR}/library
-    DOC "The Restbed library"
+    DOC "The restbed library"
 )
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(RESTBED DEFAULT_MSG RESTBED_INCLUDE_DIR RESTBED_LIBRARY)
+find_package_handle_standard_args(RESTBED DEFAULT_MSG RESTBED_INCLUDE RESTBED_LIBRARY)
 
 if (RESTBED_FOUND)
-    set(RESTBED_LIBRARIES ${RESTBED_LIBRARY} )
-    set(RESTBED_INCLUDE_DIRS ${RESTBED_INCLUDE_DIR} )
+    set(RESTBED_LIBRARY ${RESTBED_LIBRARY} )
+    set(RESTBED_INCLUDE ${RESTBED_INCLUDE} )
     set(RESTBED_DEFINITIONS )
 endif()
 
