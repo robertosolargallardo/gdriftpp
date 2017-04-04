@@ -6,20 +6,12 @@ The gdrift++ platform is a fully distributed system designed for performing appr
 
 install dependecies
 -------------------
+restbed
 ```
-ls
+git clone --recursive https://github.com/corvusoft/restbed.git
+mkdir restbed/build
+cd restbed/build
+cmake [-DBUILD_TESTS=YES] [-DBUILD_EXAMPLES=YES] [-DBUILD_SSL=NO] [-DBUILD_SHARED=YES] [-DCMAKE_INSTALL_PREFIX=/output-directory] ..
+make [-j CPU_CORES+1] install
+make test
 ```
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
-
-TODO::
-1) homogeneizar los send (crear funcion o clase).
-2) crear clase servicio y q los servicios hereden de esta.
