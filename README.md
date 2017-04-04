@@ -7,7 +7,7 @@ The gdrift++ platform is a fully distributed system designed for performing appr
 * Version
 * [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
 
-### How do I get set up? ###
+### Installation ###
 
 * Summary of set up
 * Configuration
