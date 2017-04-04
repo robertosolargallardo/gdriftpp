@@ -1,10 +1,10 @@
 #include <memory>
 #include <cstdlib>
-#include "../../util/Method.h"
-#include "../../util/Logger.h"
-#include "../../util/Semaphore.h"
+#include <Method.h>
+#include <Logger.h>
+#include <Semaphore.h>
 
-#include "Analyzer.h"
+#include <Analyzer.h>
 
 using namespace std;
 

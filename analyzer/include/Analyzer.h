@@ -5,10 +5,10 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <map>
 
-#include "../../util/Mongo.h"
-#include "../../util/Comm.h"
-#include "../../util/Node.h"
-#include "../../util/Const.h"
+#include "Mongo.h"
+#include "Comm.h"
+#include "Node.h"
+#include "Const.h"
 
 using namespace std;
 

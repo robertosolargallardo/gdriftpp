@@ -1,0 +1,20 @@
+1) install libbson
+$ git clone https://github.com/mongodb/libbson.git
+$ cd libbson/build
+$ cmake ..
+$ sudo make install
+
+2) install mongo-c-driver
+$ git clone https://github.com/mongodb/mongo-c-driver.git
+$ cd mongo-c-driver
+$ sh autogen.sh
+$ ./configure --disable-automatic-init-and-cleanup
+$ make LDFLAGS=-pthread
+$ sudo make install
+
+3) install mongo-cxx-driver
+$ curl -OL https://github.com/mongodb/mongo-cxx-driver/archive/r3.1.1.tar.gz 
+$ tar -xzf r3.1.1.tar.gz
+$ cd mongo-cxx-driver-r3.1.1/build
+$ sudo cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local ..
+$ sudo make install
