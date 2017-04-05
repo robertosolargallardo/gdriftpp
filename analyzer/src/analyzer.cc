@@ -6,10 +6,14 @@
 
 #include <Analyzer.h>
 
+#include <mongocxx/instance.hpp>
+
 using namespace std;
 
 random_device seed;
 mt19937 rng(seed());
+mongocxx::instance inst{};
+
 
 shared_ptr<Analyzer>  analyzer;
 shared_ptr<util::Semaphore> semaphore;
