@@ -16,15 +16,15 @@ using namespace boost::property_tree;
 random_device seed;
 mt19937 rng(seed());
 
-//shared_ptr<util::Semaphore>  semaphore;
-std::mutex internal_mutex;
+shared_ptr<util::Semaphore>  semaphore;
+//std::mutex internal_mutex;
 shared_ptr<Controller> controller;
 
 void run(boost::property_tree::ptree _frequest){
-//	semaphore->lock();
-	lock_guard<mutex> lock(internal_mutex);
+	semaphore->lock();
+//	lock_guard<mutex> lock(internal_mutex);
 	controller->run(_frequest);
-//	semaphore->unlock();
+	semaphore->unlock();
 }
 
 int main(int argc, char **argv){
@@ -37,8 +37,8 @@ int main(int argc, char **argv){
 	read_json(argv[1], fhosts);
 	uint32_t id = atoi(argv[2]);
 	
-//	unsigned MAX_THREADS = std::thread::hardware_concurrency();
-//	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
+	unsigned MAX_THREADS = std::thread::hardware_concurrency();
+	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
 //	semaphore = make_shared<util::Semaphore>(1);
 	
 	controller = make_shared<Controller>(fhosts, id);

@@ -47,10 +47,10 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 template<class T>
 T generate(const boost::property_tree::ptree &_fdistribution){
 
-	std::stringstream ss;
-   write_json(ss,_fdistribution);
-   cout << ss.str() << endl;
-	exit(0);
+//	std::stringstream ss;
+//   write_json(ss,_fdistribution);
+//   cout << ss.str() << endl;
+//	exit(0);
 
    uint32_t type=util::hash(_fdistribution.get<string>("type"));
 

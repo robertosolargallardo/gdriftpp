@@ -12,18 +12,20 @@
 
 using namespace std;
 
-class Analyzer:public Node{
-   private: map<uint32_t,boost::property_tree::ptree> _data;
-				map<uint32_t,uint32_t> _accepted;
-				map<uint32_t,uint32_t> _batch_size;
+class Analyzer : public Node{
+private: 
+	map<uint32_t,boost::property_tree::ptree> _data;
+	map<uint32_t,uint32_t> _accepted;
+	map<uint32_t,uint32_t> _batch_size;
 
-				shared_ptr<util::Mongo> _mongo;
-				enum Types{SIMULATED=416813159,DATA=1588979285};
+	shared_ptr<util::Mongo> _mongo;
+	enum Types{SIMULATED=416813159, DATA=1588979285};
 
-   public:  Analyzer(boost::property_tree::ptree&);
-				boost::property_tree::ptree run(boost::property_tree::ptree&);
-            ~Analyzer(void);
-
-            friend double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);
+public: 
+	Analyzer(boost::property_tree::ptree&);
+	~Analyzer(void);
+	
+	boost::property_tree::ptree run(boost::property_tree::ptree&);
+	friend double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);
 };
 #endif
