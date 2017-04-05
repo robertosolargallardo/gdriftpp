@@ -19,6 +19,9 @@ boost::property_tree::ptree indices(map<string,Sample*> _samples){
 }
 
 boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_frequest){
+
+	cout<<"Controller::run - Inicio (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
+	
 	boost::property_tree::ptree findividual = _frequest.get_child("individual");
 	boost::property_tree::ptree fscenario = _frequest.get_child("scenario");
 
@@ -59,6 +62,9 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	fresponse.push_back(make_pair("scenario", fscenario));
 
 	comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.resource"), fresponse);
+	
+	cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
+	
 	return(_frequest);
 }
 

@@ -1,6 +1,6 @@
 #include "Analyzer.h"
 Analyzer::Analyzer(boost::property_tree::ptree &_fhosts):Node(_fhosts){
-	this->_mongo=make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
+	this->_mongo = make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
 }
 Analyzer::~Analyzer(void){
 }
@@ -18,7 +18,7 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
 			for(auto g : c.second.get_child("genes")){
 				uint32_t gid = g.second.get<uint32_t>("id");
 				for(auto i : g.second.get_child("indices")){
-//					indices_data[p.second.get<string>("name")][c.second.get<uint32_t>("id")][g.second.get<uint32_t>("id")][i.first] = boost::lexical_cast<double>(i.second.data());
+//					indices_data[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
 					indices_data[pop_name][cid][gid][i.first] = std::stod(i.second.data());
 				}
 			}
@@ -31,7 +31,7 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
 			for(auto g : c.second.get_child("genes")){
 				uint32_t gid = g.second.get<uint32_t>("id");
 				for(auto i : g.second.get_child("indices")){
-//					indices_simulated[p.second.get<string>("name")][c.second.get<uint32_t>("id")][g.second.get<uint32_t>("id")][i.first] = boost::lexical_cast<double>(i.second.data());
+//					indices_simulated[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
 					indices_simulated[pop_name][cid][gid][i.first] = std::stod(i.second.data());
 				}
 			}
@@ -73,7 +73,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 
 	switch(util::hash(_frequest.get<string>("type"))){
 		case SIMULATED:{
-			uint32_t id=_frequest.get<uint32_t>("id");
+			uint32_t id = _frequest.get<uint32_t>("id");
+			
+			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", _batch_size[id]: "<<_batch_size[id]<<")\n";
+			
 			if(this->_accepted.count(id)==0) return(_frequest);
 
 			this->_batch_size[id]++;
@@ -85,18 +88,30 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				_frequest.put("distance",dist);
 				this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.results"),_frequest);
 			//}
-
-			if(this->_batch_size[id]==(BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
+			
+			// La idea aqui es que, cuando se tengan suficientes resultados para la simulacion id
+			// ...se ejecute el algoritmo de entrenamiento y ajuste de parametros
+			// ...los parametros nuevos se le pasan al scheduler con un reload y un continue
+			// Si aun faltan simulaciones, simplemente se continua
+			// Este modulo o el modulo de estadisticas debe considerar el crecimiento de la poblacion
+			// Eso podria almacenarse agregando otro valor al id de las simulaciones, como el ciclo de realimentacion
+			// Un valor feedback podria partir en 0 e incrementarse en 1 en cada fase de reload
+			// El tamaño de la poblacion podria escalarse por una funcion de feedback y el numero de iteraciones de entrenamiento esperado
+			
+			cout<<"Analyzer::run - _batch_size[id]: "<<_batch_size[id]<<" vs "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<"\n";
+			if(this->_batch_size[id] == (BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 				boost::property_tree::ptree fresponse;
 				fresponse.put("id",_frequest.get<uint32_t>("id"));
-				if(this->_accepted[id]<uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
-					this->_batch_size[id]=0U;
-					fresponse.put("type","continue");
+				if(this->_accepted[id] < uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
+					cout<<"Analyzer::run - Preparando continue\n";
+					this->_batch_size[id] = 0;
+					fresponse.put("type", "continue");
 				}
 				else{
+					cout<<"Analyzer::run - Preparando finalize\n";
 					this->_accepted.erase(this->_accepted.find(id));
 					this->_batch_size.erase(this->_batch_size.find(id));
-					fresponse.put("type","finalize");
+					fresponse.put("type", "finalize");
 				}
 
 				comm::send(this->_fhosts.get<string>("scheduler.host"),this->_fhosts.get<string>("scheduler.port"),this->_fhosts.get<string>("scheduler.resource"),fresponse);
@@ -108,16 +123,15 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			this->_batch_size[_frequest.get<uint32_t>("id")]=0U;	
 
 			boost::property_tree::ptree fposterior;
-			fposterior.put("id",_frequest.get<string>("id"));
-			fposterior.put("type","data");
+			fposterior.put("id", _frequest.get<string>("id"));
+			fposterior.put("type", "data");
 
 			boost::property_tree::ptree fpopulations;
 			Sample all("summary");
 			for(auto& population : _frequest.get_child("populations")){
 				Sample p(Ploidy(_frequest.get<uint32_t>("ploidy")), population.second, _frequest);
 				fpopulations.push_back(std::make_pair("", p.indices()));
-				all.merge(&p);  
-//				delete p;
+				all.merge(&p);
 			}
 			fpopulations.push_back(std::make_pair("", all.indices()));
 
