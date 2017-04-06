@@ -17,12 +17,10 @@ random_device seed;
 mt19937 rng(seed());
 
 shared_ptr<util::Semaphore>  semaphore;
-//std::mutex internal_mutex;
 shared_ptr<Controller> controller;
 
 void run(boost::property_tree::ptree _frequest){
 	semaphore->lock();
-//	lock_guard<mutex> lock(internal_mutex);
 	controller->run(_frequest);
 	semaphore->unlock();
 }

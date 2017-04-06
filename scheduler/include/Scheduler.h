@@ -23,12 +23,13 @@ using namespace std;
 class Scheduler:public Node{
    private: shared_ptr<util::Mongo> _mongo;
 				shared_ptr<util::Semaphore> _semaphore;
-  				enum Types {INIT=305198855,CONTINUE=810372829,FINALIZE=3761776383};
+  				enum Types {INIT=305198855, CONTINUE=810372829, RELOAD=1571056488, FINALIZE=3761776383};
 
 				class Settings{
 					public:	boost::property_tree::ptree _fsettings;
 								uint32_t _run;
 								uint32_t _batch;
+								uint32_t _feedback;
 						
 								Settings(boost::property_tree::ptree &_fsettings);
 
@@ -41,7 +42,7 @@ class Scheduler:public Node{
 								
 				};
 
-				map<uint32_t,shared_ptr<Settings>> _settings;
+				map<uint32_t, shared_ptr<Settings>> _settings;
 
    public:
       Scheduler(const boost::property_tree::ptree&);

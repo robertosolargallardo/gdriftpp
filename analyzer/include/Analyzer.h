@@ -3,6 +3,7 @@
 #include <Simulator.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/optional/optional.hpp>
 #include <map>
 
 #include "Mongo.h"
@@ -17,6 +18,9 @@ private:
 	map<uint32_t,boost::property_tree::ptree> _data;
 	map<uint32_t,uint32_t> _accepted;
 	map<uint32_t,uint32_t> _batch_size;
+	
+	map<uint32_t,uint32_t> next_feedback;
+	static const unsigned int feedback_size = 8;
 
 	shared_ptr<util::Mongo> _mongo;
 	enum Types{SIMULATED=416813159, DATA=1588979285};

@@ -71,19 +71,28 @@ double distance(const boost::property_tree::ptree &_data,const boost::property_t
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
 
+	uint32_t id = _frequest.get<uint32_t>("id");
+	
 	switch(util::hash(_frequest.get<string>("type"))){
 		case SIMULATED:{
-			uint32_t id = _frequest.get<uint32_t>("id");
 			
 			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", _batch_size[id]: "<<_batch_size[id]<<")\n";
+			
+			cout<<"Analyzer::run - Leyendo feedback\n";
+			unsigned int feedback = 0;
+			boost::property_tree::ptree::assoc_iterator it = _frequest.find("feedback");
+			if( it != _frequest.not_found() ){
+				feedback = _frequest.get<uint32_t>("feedback");
+			}
+			cout<<"Analyzer::run - feedback: "<<feedback<<"\n";
 			
 			if(this->_accepted.count(id)==0) return(_frequest);
 
 			this->_batch_size[id]++;
-			double dist = distance(this->_data[_frequest.get<uint32_t>("id")].get_child("posterior"),_frequest.get_child("posterior"));
+			double dist = distance(this->_data[id].get_child("posterior"),_frequest.get_child("posterior"));
 			cout << dist << endl;
 
-			//if(dist<=MAX_DIST){
+			//if(dist <= MAX_DIST){
 				this->_accepted[id]++;
 				_frequest.put("distance",dist);
 				this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.results"),_frequest);
@@ -101,26 +110,44 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			cout<<"Analyzer::run - _batch_size[id]: "<<_batch_size[id]<<" vs "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<"\n";
 			if(this->_batch_size[id] == (BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 				boost::property_tree::ptree fresponse;
-				fresponse.put("id",_frequest.get<uint32_t>("id"));
-				if(this->_accepted[id] < uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
-					cout<<"Analyzer::run - Preparando continue\n";
-					this->_batch_size[id] = 0;
-					fresponse.put("type", "continue");
-				}
-				else{
+				fresponse.put("id", id);
+				
+				if(this->_accepted[id] >= uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
 					cout<<"Analyzer::run - Preparando finalize\n";
 					this->_accepted.erase(this->_accepted.find(id));
 					this->_batch_size.erase(this->_batch_size.find(id));
 					fresponse.put("type", "finalize");
 				}
+				else if( this->_accepted[id] >= next_feedback[id] ){
+					cout<<"Analyzer::run - Feedback iniciado\n";
+					// Codigo de feedback, preparacion de nuevos parametros
+//					Statistics st(id);
+//					st.run();
+//					res = st.getResults()
+					next_feedback[id] += feedback_size;
+					cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<next_feedback[id]<<")\n";
+					fresponse.put("type", "reload");
+					fresponse.put("feedback", 1 + feedback);
+					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
+					// Enviar nuevos parametros al scheduler
+					cout<<"Analyzer::run - Preparando continue\n";
+					this->_batch_size[id] = 0;
+					fresponse.put("type", "continue");
+				}
+				else{
+					cout<<"Analyzer::run - Preparando continue\n";
+					this->_batch_size[id] = 0;
+					fresponse.put("type", "continue");
+				}
 
-				comm::send(this->_fhosts.get<string>("scheduler.host"),this->_fhosts.get<string>("scheduler.port"),this->_fhosts.get<string>("scheduler.resource"),fresponse);
+				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 			}
 			break;
 		};
 		case DATA:  {
-			this->_accepted[_frequest.get<uint32_t>("id")]=0U;	
-			this->_batch_size[_frequest.get<uint32_t>("id")]=0U;	
+			this->_accepted[id] = 0;	
+			this->_batch_size[id] = 0;	
+			next_feedback[id] = feedback_size;	
 
 			boost::property_tree::ptree fposterior;
 			fposterior.put("id", _frequest.get<string>("id"));
@@ -138,7 +165,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			fposterior.push_back(make_pair("populations", fpopulations));
 
 			_frequest.push_back(make_pair("posterior",fposterior));
-			this->_data[_frequest.get<uint32_t>("id")]=_frequest;
+			this->_data[id] = _frequest;
 
 			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.data"),_frequest);
 
