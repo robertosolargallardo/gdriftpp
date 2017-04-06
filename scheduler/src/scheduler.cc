@@ -17,7 +17,7 @@ mongocxx::instance inst{};
 shared_ptr<Scheduler> scheduler;
 
 void run(boost::property_tree::ptree _frequest){
-	cout<<"scheduler::main::run - Inicio\n";
+//	cout<<"scheduler::main::run - Inicio\n";
 	scheduler->run(_frequest);
 }
 

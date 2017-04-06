@@ -22,11 +22,11 @@ Scheduler::~Scheduler(void){
 boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_frequest){
 	uint32_t id = _frequest.get<uint32_t>("id");
 	uint32_t type = util::hash(_frequest.get<string>("type"));
-	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
+//	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
 
 	switch(type){
 		case INIT:{
-			cout<<"Scheduler::run - INIT\n";
+//			cout<<"Scheduler::run - INIT\n";
 			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"),_frequest);
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<Settings>(_frequest);
@@ -35,17 +35,17 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			break;
 		}
 		case CONTINUE:{
-			cout<<"Scheduler::run - CONTINUE\n";
+//			cout<<"Scheduler::run - CONTINUE\n";
 			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			break;
 		}
 		case RELOAD:{
-			cout<<"Scheduler::run - RELOAD\n";
+//			cout<<"Scheduler::run - RELOAD\n";
 			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
 			break;
 		}
 		case FINALIZE:{
-			cout<<"Scheduler::run - FINALIZE\n";
+//			cout<<"Scheduler::run - FINALIZE\n";
 			this->_semaphore->lock();
 			this->_settings.erase(this->_settings.find(id));
 			this->_semaphore->unlock();
@@ -56,7 +56,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			exit(EXIT_FAILURE);
 		}
 	}
-	cout<<"Scheduler::run - Fin\n";
+//	cout<<"Scheduler::run - Fin\n";
 	return(_frequest);
 }
 
