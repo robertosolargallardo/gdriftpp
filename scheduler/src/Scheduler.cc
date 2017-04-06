@@ -22,11 +22,11 @@ Scheduler::~Scheduler(void){
 boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_frequest){
 	uint32_t id = _frequest.get<uint32_t>("id");
 	uint32_t type = util::hash(_frequest.get<string>("type"));
-//	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
+	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
 
 	switch(type){
 		case INIT:{
-//			cout<<"Scheduler::run - INIT\n";
+			cout<<"Scheduler::run - INIT\n";
 			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"),_frequest);
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<Settings>(_frequest);
@@ -35,17 +35,17 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			break;
 		}
 		case CONTINUE:{
-//			cout<<"Scheduler::run - CONTINUE\n";
+			cout<<"Scheduler::run - CONTINUE\n";
 			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			break;
 		}
 		case RELOAD:{
-//			cout<<"Scheduler::run - RELOAD\n";
+			cout<<"Scheduler::run - RELOAD\n";
 			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
 			break;
 		}
 		case FINALIZE:{
-//			cout<<"Scheduler::run - FINALIZE\n";
+			cout<<"Scheduler::run - FINALIZE\n";
 			this->_semaphore->lock();
 			this->_settings.erase(this->_settings.find(id));
 			this->_semaphore->unlock();
@@ -56,7 +56,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			exit(EXIT_FAILURE);
 		}
 	}
-//	cout<<"Scheduler::run - Fin\n";
+	cout<<"Scheduler::run - Fin\n";
 	return(_frequest);
 }
 
@@ -103,9 +103,9 @@ boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findiv
 }
 
 // Este metodo puede recibir el escalamiento de poblacion (feedback / max_feedback)
-//boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
+boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
 //boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, float population_factor){
-boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario){
+//boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario){
 	for(auto &fevent : _fscenario.get_child("events")){
 		boost::property_tree::ptree ftimestamp=fevent.second.get_child("timestamp");
 		fevent.second.erase("timestamp");
@@ -118,22 +118,17 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 //				fevent.second.get_child("params.population").put<uint32_t>("size", util::hash(fsize.get<string>("type"))==RANDOM?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value"));
 				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value");
 				
-				std::ostringstream oss;
-				boost::property_tree::ini_parser::write_ini(oss, fsize.get_child("distribution"));
-
+//				std::ostringstream oss;
+//				boost::property_tree::ini_parser::write_ini(oss, fsize.get_child("distribution"));
 //				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<" ("<<oss.str()<<")\n";
-				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
 				
-//				// Generacion de poblacion con feedback
-//				unsigned int population_size = 0;
-//				if(util::hash(fsize.get<string>("type")) == RANDOM){
-//					population_size = generate<uint32_t>(fsize.get_child("distribution"));
-//				}
-//				else{
-//					population_size = fsize.get<uint32_t>("value");
-//				}
-//				population_size = (unsigned int)((double)(population_size - min_pop) * feedback / max_feedback + min_pop);
-//				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
+				if( feedback < max_feedback ){
+					cout<<"Scheduler::parse_scenario - Reduciendo population_size ("<<population_size<<", min_pop: "<<min_pop<<", feedback: "<<feedback<<", max_feedback: "<<max_feedback<<")\n";
+					population_size = (unsigned int)((double)(population_size - min_pop) * feedback / max_feedback + min_pop);
+					cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<"\n";
+				}
+
+				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
 				
 				break;
 			}
@@ -170,11 +165,12 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 		
 		fjob.put("feedback_size", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
 		
-//		unsigned int max_feedback = 0;
-//		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("training-feedback-phases");
-//		if( it != _frequest.not_found() ){
-//			max_feedback = this->_fsettings.get<uint32_t>("training-feedback-phases");
-//		}
+		unsigned int max_feedback = 0;
+		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("training-feedback-phases");
+		if( it != _fsettings.not_found() ){
+			max_feedback = this->_fsettings.get<uint32_t>("training-feedback-phases");
+		}
+		
 //		double population_factor = 1.0
 //		if(max_feedback > 0){
 //			population_factor = (double)(this->_feedback) / max_feedback;
@@ -184,7 +180,8 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 		
 		fjob.put("max-number-of-simulations", this->_fsettings.get<uint32_t>("max-number-of-simulations"));
 		fjob.add_child("individual", parse_individual(this->_fsettings.get_child("individual")));
-		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()]));
+//		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()]));
+		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()], 100, _feedback, max_feedback));
 		
 		/*std::stringstream ss;
 		write_json(ss,fjob);
