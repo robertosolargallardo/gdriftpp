@@ -1,7 +1,8 @@
 {
 	"id": "0",
 	"type": "init",
-	"max-number-of-simulations": "10",
+	"max-number-of-simulations": "32",
+	"max-feedback": "24",
 
 	"individual": {
 		"ploidy": "1",
