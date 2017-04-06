@@ -1,9 +1,9 @@
 {
 	"id": "0",
 	"type": "init",
-	"max-number-of-simulations": "32",
-	"simulations-per-feedback": "8",
-	"training-feedback-phases": "3",
+	"max-number-of-simulations": "20000",
+	"simulations-per-feedback": "64",
+	"training-feedback-phases": "10",
 
 	"individual": {
 		"ploidy": "1",
