@@ -73,15 +73,15 @@ T generate(const boost::property_tree::ptree &_fdistribution){
 
 	switch(type){
 		case UNIFORM:{
-			std::uniform_real_distribution<> uniform(_fdistribution.get<double>("params.a"),_fdistribution.get<double>("params.b"));
+			std::uniform_real_distribution<> uniform(_fdistribution.get<double>("params.a"), _fdistribution.get<double>("params.b"));
 			return(static_cast<T>(uniform(rng)));
 		}
 		case NORMAL:{
-			std::normal_distribution<> normal(_fdistribution.get<double>("params.mean"),_fdistribution.get<double>("params.stddev"));
+			std::normal_distribution<> normal(_fdistribution.get<double>("params.mean"), _fdistribution.get<double>("params.stddev"));
 			return(static_cast<T>(normal(rng)));
 		}
 		case GAMMA:{
-			std::gamma_distribution<double> gamma(_fdistribution.get<double>("params.alpha"),_fdistribution.get<double>("params.beta"));
+			std::gamma_distribution<double> gamma(_fdistribution.get<double>("params.alpha"), _fdistribution.get<double>("params.beta"));
 			return(static_cast<T>(gamma(rng)));
 		}
 		default:{
@@ -102,8 +102,8 @@ boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findiv
 	return(_findividual);
 }
 
-// Este metodo puede recibir el escalamiento de poblacion (feedback / total_feedback)
-//boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int total_feedback){
+// Este metodo puede recibir el escalamiento de poblacion (feedback / max_feedback)
+//boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
 //boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, float population_factor){
 boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario){
 	for(auto &fevent : _fscenario.get_child("events")){
@@ -115,7 +115,26 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 			case CREATE:{
 				boost::property_tree::ptree fsize=fevent.second.get_child("params.population.size");
 				fevent.second.get_child("params.population").erase("size");
-				fevent.second.get_child("params.population").put<uint32_t>("size",util::hash(fsize.get<string>("type"))==RANDOM?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value"));
+//				fevent.second.get_child("params.population").put<uint32_t>("size", util::hash(fsize.get<string>("type"))==RANDOM?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value"));
+				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value");
+				
+				std::ostringstream oss;
+				boost::property_tree::ini_parser::write_ini(oss, fsize.get_child("distribution"));
+
+//				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<" ("<<oss.str()<<")\n";
+				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
+				
+//				// Generacion de poblacion con feedback
+//				unsigned int population_size = 0;
+//				if(util::hash(fsize.get<string>("type")) == RANDOM){
+//					population_size = generate<uint32_t>(fsize.get_child("distribution"));
+//				}
+//				else{
+//					population_size = fsize.get<uint32_t>("value");
+//				}
+//				population_size = (unsigned int)((double)(population_size - min_pop) * feedback / max_feedback + min_pop);
+//				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
+				
 				break;
 			}
 			case INCREMENT:
@@ -149,17 +168,19 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 		fjob.put("batch", this->_batch);
 		fjob.put("feedback", this->_feedback);
 		
-//		unsigned int total_feedback = 0;
-//		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("total-feedback");
+		fjob.put("feedback_size", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
+		
+//		unsigned int max_feedback = 0;
+//		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("training-feedback-phases");
 //		if( it != _frequest.not_found() ){
-//			total_feedback = this->_fsettings.get<uint32_t>("total-feedback");
+//			max_feedback = this->_fsettings.get<uint32_t>("training-feedback-phases");
 //		}
 //		double population_factor = 1.0
-//		if(total_feedback > 0){
-//			population_factor = (double)(this->_feedback) / total_feedback;
+//		if(max_feedback > 0){
+//			population_factor = (double)(this->_feedback) / max_feedback;
 //		}
-		// La otra opcion es pasarle _feedback y total_feedback a parse_scenario para que haga el calculo
-		// population_size = min_size + (rand_population_size - min_size) * feedback / total_feedback;
+		// La otra opcion es pasarle _feedback y max_feedback a parse_scenario para que haga el calculo
+		// population_size = min_size + (rand_population_size - min_size) * feedback / max_feedback;
 		
 		fjob.put("max-number-of-simulations", this->_fsettings.get<uint32_t>("max-number-of-simulations"));
 		fjob.add_child("individual", parse_individual(this->_fsettings.get_child("individual")));

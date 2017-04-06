@@ -19,8 +19,12 @@ private:
 	map<uint32_t,uint32_t> _accepted;
 	map<uint32_t,uint32_t> _batch_size;
 	
-	map<uint32_t,uint32_t> next_feedback;
-	static const unsigned int feedback_size = 8;
+	// next feedback es para cada escenario (por eso el indice, <sim, scen>)
+//	map<pair<uint32_t, uint32_t>, uint32_t> next_feedback;
+	// Por ahora lo dejo dependiendo de la simulacion, pues accepted cuanta por simulacion
+	map<uint32_t, uint32_t> next_feedback;
+	// cada simulacion puede definir su propio feedback_size (y su propio max_feedback)
+	map<uint32_t, uint32_t> feedback_size;
 
 	shared_ptr<util::Mongo> _mongo;
 	enum Types{SIMULATED=416813159, DATA=1588979285};
