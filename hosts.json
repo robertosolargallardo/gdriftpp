@@ -1,35 +1,29 @@
 {
 	"analyzer" : {
-		"host" : "citiaps2.diinf.usach.cl",
+		"host" : "localhost",
 		"port" : "1986",
 		"resource" : "/analyzer"
 	},
 	"scheduler" : {
-		"host" : "citiaps2.diinf.usach.cl",
+		"host" : "localhost",
 		"port" : "1987",
 		"resource" : "/scheduler"
 	},
 	"results" : {
-		"host" : "citiaps2.diinf.usach.cl",
+		"host" : "localhost",
 		"port" : "1988",
 		"resource" : "/results"
 	},
 	"controller" : [
 		{	
 			"id"   : "0",
-			"host" : "citiaps2.diinf.usach.cl",
-			"port" : "1985",
-			"resource" : "/controller"
-		},
-		{
-			"id"   : "1",
-			"host" : "citiaps1.diinf.usach.cl",
+			"host" : "localhost",
 			"port" : "1985",
 			"resource" : "/controller"
 		}
 	],
 	"database" : {
-		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
+		"uri"  : "mongodb://localhost:27017",
 		"name" : "gdrift",
 		"collections" : {
 			"data"     : "data",
