@@ -23,72 +23,59 @@ unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &json, map
 	return inserts;
 }
 
-double Analyzer::distance(const boost::property_tree::ptree &_data,const boost::property_tree::ptree &_simulated){
-	//TODO
-
-	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_data;
+double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simulated){
+	
 	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_simulated;
-	
-	parseIndices(_data, indices_data);
 	parseIndices(_simulated, indices_simulated);
-	
-//	for(auto& p : _data.get_child("populations")){
-//		string pop_name = p.second.get<string>("name");
-//		for(auto c : p.second.get_child("chromosomes")){
-//			uint32_t cid = c.second.get<uint32_t>("id");
-//			for(auto g : c.second.get_child("genes")){
-//				uint32_t gid = g.second.get<uint32_t>("id");
-//				for(auto i : g.second.get_child("indices")){
-////					indices_data[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
-//					indices_data[pop_name][cid][gid][i.first] = std::stod(i.second.data());
-//				}
-//			}
-//		}
-//	}
-//	
-//	for(auto& p : _simulated.get_child("populations")){
-//		string pop_name = p.second.get<string>("name");
-//		for(auto c : p.second.get_child("chromosomes")){
-//			uint32_t cid = c.second.get<uint32_t>("id");
-//			for(auto g : c.second.get_child("genes")){
-//				uint32_t gid = g.second.get<uint32_t>("id");
-//				for(auto i : g.second.get_child("indices")){
-////					indices_simulated[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
-//					indices_simulated[pop_name][cid][gid][i.first] = std::stod(i.second.data());
-//				}
-//			}
-//		}
-//	}
 
-	/*double d=0.0;
-	for(auto i : indices_data){
-		for(auto j : i.second){
-			for(auto k : j.second){
-				double sum=0.0;
-				for(auto l : k.second){
-					double diff=indices_data[i.first][j.first][k.first][l.first]-indices_simulated[i.first][j.first][k.first][l.first];
-					sum+=diff*diff;
-				}
-				d+=sqrt(sum);
-			}
-		}
-	}*/
-
-	double a=0.0,b=0.0,s=0.0,n=0.0,diff=0.0;
-	for(auto i : indices_data){
+	/*
+	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
+	map<string, vector<double>> deltas;
+	for(auto i : _data_indices[id]){
 		for(auto j : i.second){
 			for(auto k : j.second){
 				for(auto l : k.second){
-					a = indices_data[i.first][j.first][k.first][l.first];
+					a = _data_indices[id][i.first][j.first][k.first][l.first];
 					b = indices_simulated[i.first][j.first][k.first][l.first];
-					diff = (a-b)/max(a,b);
-					s += diff*diff;
+					if(a == 0 && b == 0){
+						continue;
+					}
+					diff = (a - b) / max(a, b);
+					s += diff * diff;
 					n += 1.0;
+					cout<<"Analyzer::distance - s: "<<s<<", diff: "<<diff<<" (a: "<<a<<", b: "<<b<<", "<<l.first<<")\n";
 				}
 			}
 		}
 	}
-	return(sqrt(s/n));
+	*/
+
+	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
+	map<string, vector<double>> deltas;
+	for(auto i : _data_indices[id]){
+		for(auto j : i.second){
+			for(auto k : j.second){
+				for(auto l : k.second){
+					a = _data_indices[id][i.first][j.first][k.first][l.first];
+					b = indices_simulated[i.first][j.first][k.first][l.first];
+					if(a == 0){
+						continue;
+					}
+					diff = (a>b)?(a-b):(b-a);
+					// Por ahora voy a calcular la distancia normalizando cada indice por el target
+					diff /= a;
+					s += diff * diff;
+					++n;
+//					cout<<"Analyzer::distance - s: "<<s<<", diff: "<<diff<<" (a: "<<a<<", b: "<<b<<", "<<l.first<<")\n";
+				}
+			}
+		}
+	}
+	
+//	cout<<"Analyzer::distance - n: "<<n<<", s: "<<s<<", dist: "<<sqrt(s/n)<<"\n";
+	// Notar que si se retorna inf aqui, entonces NO habia estadisticos validos
+	// En ese caso, la distancia no deberia ser considerada en lo absoluto (por lo que ES correcto retornar inf u otra marca)
+	return sqrt(s/n);
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
@@ -119,7 +106,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			if(this->_accepted.count(id)==0) return(_frequest);
 			
 			this->_batch_size[id]++;
-			double dist = distance(this->_data[id].get_child("posterior"), _frequest.get_child("posterior"));
+//			double dist = distance(this->_data[id].get_child("posterior"), _frequest.get_child("posterior"));
+			double dist = distance(id, _frequest.get_child("posterior"));
 			cout << dist << endl;
 			
 			//if(dist <= MAX_DIST){
@@ -200,6 +188,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 
 			_frequest.push_back(make_pair("posterior",fposterior));
 			this->_data[id] = _frequest;
+			_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
+			parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
 
 			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.data"),_frequest);
 

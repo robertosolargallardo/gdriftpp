@@ -15,9 +15,10 @@ using namespace std;
 
 class Analyzer : public Node{
 private: 
-	map<uint32_t,boost::property_tree::ptree> _data;
-	map<uint32_t,uint32_t> _accepted;
-	map<uint32_t,uint32_t> _batch_size;
+	map<uint32_t, boost::property_tree::ptree> _data;
+	map<uint32_t, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> > _data_indices;
+	map<uint32_t, uint32_t> _accepted;
+	map<uint32_t, uint32_t> _batch_size;
 	
 	// next feedback es para cada escenario (por eso el indice, <sim, scen>)
 //	map<pair<uint32_t, uint32_t>, uint32_t> next_feedback;
@@ -38,7 +39,7 @@ public:
 	~Analyzer(void);
 	
 	boost::property_tree::ptree run(boost::property_tree::ptree&);
-	double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);
+	double distance(uint32_t id, const boost::property_tree::ptree&);
 	
 };
 #endif
