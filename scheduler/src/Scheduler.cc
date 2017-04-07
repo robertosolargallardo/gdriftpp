@@ -27,7 +27,8 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	switch(type){
 		case INIT:{
 			cout<<"Scheduler::run - INIT\n";
-			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"),_frequest);
+			_frequest.put("feedback", 0);
+			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<Settings>(_frequest);
 			this->_semaphore->unlock();
@@ -41,6 +42,14 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 		}
 		case RELOAD:{
 			cout<<"Scheduler::run - RELOAD\n";
+			// Aqui hay que guardar _frequest nuevamente en settings, pues trae nuevos parametros para el propio scheduler
+			// Tambien hay que recrear settings (con los nuevos parametros)
+			// Hay que asegurar entonces, que en reload el analizer envie el ptree de settings !!!
+			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			this->_semaphore->lock();
+			this->_settings[id].reset(new Settings(_frequest));
+			this->_semaphore->unlock();
+			// Asigno independientemente el feedback, quzas podria definirse en el constructo si se encuentra (para ser resistente al init)
 			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
 			break;
 		}
@@ -115,7 +124,6 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 			case CREATE:{
 				boost::property_tree::ptree fsize=fevent.second.get_child("params.population.size");
 				fevent.second.get_child("params.population").erase("size");
-//				fevent.second.get_child("params.population").put<uint32_t>("size", util::hash(fsize.get<string>("type"))==RANDOM?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value"));
 				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value");
 				
 //				std::ostringstream oss;
