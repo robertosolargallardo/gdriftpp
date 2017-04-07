@@ -16,6 +16,8 @@
 using namespace std;
 using bsoncxx::builder::stream::document;
 using bsoncxx::builder::stream::finalize;
+using bsoncxx::builder::stream::open_document;
+using bsoncxx::builder::stream::close_document;
 
 namespace util{
 class Mongo{
@@ -32,48 +34,104 @@ class Mongo{
 		
 		~Mongo(void){}
 		
-		void write(const string &_db_name,const string &_collection_name,boost::property_tree::ptree &_json){
+		void write(const string &db_name, const string &collection_name, boost::property_tree::ptree &_json){
+			cout<<"Mongo::write\n";
 			std::stringstream ss;
-			write_json(ss,_json);
-			bsoncxx::document::value doc=bsoncxx::from_json(ss.str().c_str());
-			auto r = _client[_db_name][_collection_name].insert_one(doc.view());
+			write_json(ss, _json);
+			bsoncxx::document::value doc = bsoncxx::from_json(ss.str().c_str());
+			auto r = _client[db_name][collection_name].insert_one(doc.view());
 		}
 		
-		list<boost::property_tree::ptree> read(const string &_db_name, const string &_collection_name, const uint32_t &_id){
+		list<boost::property_tree::ptree> read(const string &db_name, const string &collection_name, uint32_t id){
 			list<boost::property_tree::ptree> results;
-			read(results, _db_name, _collection_name, _id);
+			read(results, db_name, collection_name, id);
 			return results;
 		}
 		
-		unsigned int read(list<boost::property_tree::ptree> &results, const string &_db_name, const string &_collection_name, const uint32_t &_id){
-			mongocxx::cursor cursor = _client[_db_name][_collection_name].find(document{} << "id" << boost::lexical_cast<string>(_id) << finalize);
+		unsigned int read(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id){
+			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << finalize);
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){
 				istringstream is(bsoncxx::to_json(doc));
-				read_json(is,json);
+				read_json(is, json);
 				results.push_back(json);
 				++inserted;
 			}
 			return inserted;
 		}
 		
-		list<boost::property_tree::ptree> read_all(const string &_db_name, const string &_collection_name){
+		list<boost::property_tree::ptree> read_all(const string &db_name, const string &collection_name){
 			list<boost::property_tree::ptree> results;
-			read_all(results, _db_name, _collection_name);
+			read_all(results, db_name, collection_name);
 			return results;
 		}
 		
-		unsigned int read_all(list<boost::property_tree::ptree> &results, const string &_db_name, const string &_collection_name){
-			mongocxx::cursor cursor = _client[_db_name][_collection_name].find(document{} << finalize); 
+		unsigned int read_all(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name){
+			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << finalize); 
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){
 				istringstream is(bsoncxx::to_json(doc));
-				read_json(is,json);
+				read_json(is, json);
 				results.push_back(json);
 			}
 			return inserted;
+		}
+		
+		list<boost::property_tree::ptree> readStatistics(const string &db_name, const string &collection_name, uint32_t id){
+			list<boost::property_tree::ptree> results;
+			read(results, db_name, collection_name, id);
+			return results;
+		}
+		
+		unsigned int readStatistics(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid, uint32_t feedback){
+			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << "distance" << open_document << "$ne" << "inf"<< close_document << finalize);
+			boost::property_tree::ptree json;
+			unsigned int inserted = 0;
+			for(auto doc : cursor){
+				istringstream is(bsoncxx::to_json(doc));
+				read_json(is, json);
+//				json = json.get_child("posterior");
+				
+				std::stringstream ss;
+				write_json(ss, json);
+				cout<<ss.str()<<"\n";
+				
+				results.push_back(json);
+				++inserted;
+			}
+			return inserted;
+		}
+		
+		list<boost::property_tree::ptree> readStatistics(const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid, uint32_t feedback){
+			list<boost::property_tree::ptree> results;
+			readStatistics(results, db_name, collection_name, id, scenid, feedback);
+			return results;
+		}
+		
+		boost::property_tree::ptree readSettings(const string &db_name, const string &collection_name, uint32_t id, uint32_t feedback){
+			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "feedback" << std::to_string(feedback) << finalize);
+			boost::property_tree::ptree json;
+			for(auto doc : cursor){
+				istringstream is(bsoncxx::to_json(doc));
+				read_json(is, json);
+				
+				std::stringstream ss;
+				write_json(ss, json);
+				cout<<ss.str()<<"\n";
+				
+				break;
+			}
+			return json;
+			/*
+			// Aqui habria que usar find_one
+			// Desúes revisar como usarlo correctamente
+			mongocxx::stdx::optional<bsoncxx::document::value> maybe_result = _client[db_name][collection_name].find_one(document{} << "id" << std::to_string(id) <<  finalize);
+			if(maybe_result) {
+				// Do something with *maybe_result;
+			}
+			*/
 		}
 		
 		
