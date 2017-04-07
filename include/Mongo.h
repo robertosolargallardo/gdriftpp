@@ -34,10 +34,16 @@ class Mongo{
 		
 		~Mongo(void){}
 		
-		void write(const string &db_name, const string &collection_name, boost::property_tree::ptree &_json){
-			cout<<"Mongo::write\n";
+		void write(const string &db_name, const string &collection_name, boost::property_tree::ptree &json){
+//			cout<<"Mongo::write\n";
+			
+			json.erase("_id");
 			std::stringstream ss;
-			write_json(ss, _json);
+			
+//			write_json(ss, json);
+//			cout<<ss.str()<<"\n";
+			
+			write_json(ss, json);
 			bsoncxx::document::value doc = bsoncxx::from_json(ss.str().c_str());
 			auto r = _client[db_name][collection_name].insert_one(doc.view());
 		}
