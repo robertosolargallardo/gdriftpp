@@ -28,12 +28,17 @@ private:
 
 	shared_ptr<util::Mongo> _mongo;
 	enum Types{SIMULATED=416813159, DATA=1588979285};
-
+	
+	// Mapa de indices: <sample, chrid, genid, map<statistic, value>>
+	// Retorna el numero total de indices parseados
+	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
+	
 public: 
 	Analyzer(boost::property_tree::ptree&);
 	~Analyzer(void);
 	
 	boost::property_tree::ptree run(boost::property_tree::ptree&);
-	friend double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);
+	double distance(const boost::property_tree::ptree&,const boost::property_tree::ptree&);
+	
 };
 #endif

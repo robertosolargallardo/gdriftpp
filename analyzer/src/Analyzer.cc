@@ -5,38 +5,60 @@ Analyzer::Analyzer(boost::property_tree::ptree &_fhosts):Node(_fhosts){
 Analyzer::~Analyzer(void){
 }
 
-double distance(const boost::property_tree::ptree &_data,const boost::property_tree::ptree &_simulated){
+unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices){
+	unsigned int inserts = 0;
+	for(auto& p : json.get_child("populations")){
+		string pop_name = p.second.get<string>("name");
+		for(auto c : p.second.get_child("chromosomes")){
+			uint32_t cid = c.second.get<uint32_t>("id");
+			for(auto g : c.second.get_child("genes")){
+				uint32_t gid = g.second.get<uint32_t>("id");
+				for(auto i : g.second.get_child("indices")){
+					indices[pop_name][cid][gid][i.first] = std::stod(i.second.data());
+					++inserts;
+				}
+			}
+		}
+	}
+	return inserts;
+}
+
+double Analyzer::distance(const boost::property_tree::ptree &_data,const boost::property_tree::ptree &_simulated){
 	//TODO
 
 	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_data;
 	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_simulated;
 	
-	for(auto& p : _data.get_child("populations")){
-		string pop_name = p.second.get<string>("name");
-		for(auto c : p.second.get_child("chromosomes")){
-			uint32_t cid = c.second.get<uint32_t>("id");
-			for(auto g : c.second.get_child("genes")){
-				uint32_t gid = g.second.get<uint32_t>("id");
-				for(auto i : g.second.get_child("indices")){
-//					indices_data[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
-					indices_data[pop_name][cid][gid][i.first] = std::stod(i.second.data());
-				}
-			}
-		}
-	}
-	for(auto& p : _simulated.get_child("populations")){
-		string pop_name = p.second.get<string>("name");
-		for(auto c : p.second.get_child("chromosomes")){
-			uint32_t cid = c.second.get<uint32_t>("id");
-			for(auto g : c.second.get_child("genes")){
-				uint32_t gid = g.second.get<uint32_t>("id");
-				for(auto i : g.second.get_child("indices")){
-//					indices_simulated[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
-					indices_simulated[pop_name][cid][gid][i.first] = std::stod(i.second.data());
-				}
-			}
-		}
-	}
+	parseIndices(_data, indices_data);
+	parseIndices(_simulated, indices_simulated);
+	
+//	for(auto& p : _data.get_child("populations")){
+//		string pop_name = p.second.get<string>("name");
+//		for(auto c : p.second.get_child("chromosomes")){
+//			uint32_t cid = c.second.get<uint32_t>("id");
+//			for(auto g : c.second.get_child("genes")){
+//				uint32_t gid = g.second.get<uint32_t>("id");
+//				for(auto i : g.second.get_child("indices")){
+////					indices_data[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
+//					indices_data[pop_name][cid][gid][i.first] = std::stod(i.second.data());
+//				}
+//			}
+//		}
+//	}
+//	
+//	for(auto& p : _simulated.get_child("populations")){
+//		string pop_name = p.second.get<string>("name");
+//		for(auto c : p.second.get_child("chromosomes")){
+//			uint32_t cid = c.second.get<uint32_t>("id");
+//			for(auto g : c.second.get_child("genes")){
+//				uint32_t gid = g.second.get<uint32_t>("id");
+//				for(auto i : g.second.get_child("indices")){
+////					indices_simulated[pop_name][cid][gid][i.first] = boost::lexical_cast<double>(i.second.data());
+//					indices_simulated[pop_name][cid][gid][i.first] = std::stod(i.second.data());
+//				}
+//			}
+//		}
+//	}
 
 	/*double d=0.0;
 	for(auto i : indices_data){
@@ -95,15 +117,15 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", _batch_size[id]: "<<_batch_size[id]<<", feedback: "<<feedback<<")\n";
 			
 			if(this->_accepted.count(id)==0) return(_frequest);
-
+			
 			this->_batch_size[id]++;
 			double dist = distance(this->_data[id].get_child("posterior"), _frequest.get_child("posterior"));
 			cout << dist << endl;
-
+			
 			//if(dist <= MAX_DIST){
 				this->_accepted[id]++;
 				_frequest.put("distance", dist);
-				this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.results"),_frequest);
+				this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.results"), _frequest);
 			//}
 			
 			// La idea aqui es que, cuando se tengan suficientes resultados para la simulacion id
