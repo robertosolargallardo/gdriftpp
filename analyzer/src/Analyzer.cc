@@ -1,6 +1,29 @@
 #include "Analyzer.h"
 Analyzer::Analyzer(boost::property_tree::ptree &_fhosts):Node(_fhosts){
 	this->_mongo = make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
+	
+	// Prueba de toma de resultados (para fase de entrenamiento)
+//	list<boost::property_tree::ptree> results;
+//	_mongo->readStatistics(results, "gdrift", "results", 0, 1, 3);
+//	
+//	unsigned int count = 0;
+//	for(auto &json : results){
+//		if(count >= 3) break;
+//		cout<<"Res["<<count++<<"]:\n";
+//		map<string, map<uint32_t, map<uint32_t, map<string, double>>>> statistics_map;
+//		parseIndices(json.get_child("posterior"), statistics_map);
+//		for(auto i : statistics_map){
+//			for(auto j : i.second){
+//				for(auto k : j.second){
+//					for(auto l : k.second){
+//						double value = statistics_map[i.first][j.first][k.first][l.first];
+//						cout<<"statistics_map["<<i.first<<"]["<<j.first<<"]["<<k.first<<"]["<<l.first<<"]: "<<value<<"\n";
+//					}
+//				}
+//			}
+//		}
+//	}
+	
 }
 Analyzer::~Analyzer(void){
 }
@@ -27,7 +50,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	
 	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_simulated;
 	parseIndices(_simulated, indices_simulated);
-
+	
 	/*
 	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
 	map<string, vector<double>> deltas;
@@ -49,7 +72,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 		}
 	}
 	*/
-
+	
 	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
 	map<string, vector<double>> deltas;
 	for(auto i : _data_indices[id]){
@@ -63,6 +86,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 					}
 					diff = (a>b)?(a-b):(b-a);
 					// Por ahora voy a calcular la distancia normalizando cada indice por el target
+					// Podria usarse la normalizacion del par, o por un maximo o varianza empirica, o idealmente por un maximo exacto (eso depende del estadistico)
 					diff /= a;
 					s += diff * diff;
 					++n;
@@ -79,7 +103,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
-
+	
 	uint32_t id = _frequest.get<uint32_t>("id");
 	
 	switch(util::hash(_frequest.get<string>("type"))){
@@ -149,6 +173,13 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //					this->next_feedback[id_pair] += feedback_size[id];
 					this->next_feedback[id] += feedback_size[id];
 					cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_feedback[id]<<")\n";
+					
+					// fresponse debe contener un documento completo de settings
+					// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
+					// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
+					// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
+					fresponse = _mongo->readSettings("gdrift", "settings", id, feedback);
+					
 					fresponse.put("type", "reload");
 					fresponse.put("feedback", 1 + feedback);
 					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
