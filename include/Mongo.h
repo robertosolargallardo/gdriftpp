@@ -100,9 +100,9 @@ class Mongo{
 				read_json(is, json);
 //				json = json.get_child("posterior");
 				
-				std::stringstream ss;
-				write_json(ss, json);
-				cout<<ss.str()<<"\n";
+//				std::stringstream ss;
+//				write_json(ss, json);
+//				cout<<ss.str()<<"\n";
 				
 				results.push_back(json);
 				++inserted;
@@ -123,9 +123,9 @@ class Mongo{
 				istringstream is(bsoncxx::to_json(doc));
 				read_json(is, json);
 				
-				std::stringstream ss;
-				write_json(ss, json);
-				cout<<ss.str()<<"\n";
+//				std::stringstream ss;
+//				write_json(ss, json);
+//				cout<<ss.str()<<"\n";
 				
 				break;
 			}
