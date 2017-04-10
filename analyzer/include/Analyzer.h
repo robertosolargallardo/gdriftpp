@@ -6,10 +6,10 @@
 #include <boost/optional/optional.hpp>
 #include <map>
 
-#include "Mongo.h"
 #include "Comm.h"
 #include "Node.h"
 #include "Const.h"
+#include "DBCommunication.h"
 
 using namespace std;
 
@@ -26,13 +26,15 @@ private:
 	map<uint32_t, uint32_t> next_feedback;
 	// cada simulacion puede definir su propio feedback_size (y su propio max_feedback)
 	map<uint32_t, uint32_t> feedback_size;
-
-	shared_ptr<util::Mongo> _mongo;
+	
+	DBCommunication db_comm;
 	enum Types{SIMULATED=416813159, DATA=1588979285};
 	
 	// Mapa de indices: <sample, chrid, genid, map<statistic, value>>
 	// Retorna el numero total de indices parseados
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
+	
+	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, boost::property_tree::ptree &fresponse);
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

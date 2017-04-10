@@ -1,6 +1,6 @@
 #include "Analyzer.h"
-Analyzer::Analyzer(boost::property_tree::ptree &_fhosts):Node(_fhosts){
-	this->_mongo = make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
+Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
+	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"));
 	
 	// Prueba de toma de resultados (para fase de entrenamiento)
 //	list<boost::property_tree::ptree> results;
@@ -102,6 +102,24 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	return sqrt(s/n);
 }
 
+void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, boost::property_tree::ptree &fresponse){
+	cout<<"Analyzer::trainModel - Inicio\n";
+	
+	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
+	cout<<"Analyzer::trainModel - Fields: \n";
+	for(unsigned int i = 0; i < fields.size(); ++i){
+		cout<<"\""<<fields[i]<<"\"\n";
+	}
+	
+	vector<string> id_events = db_comm.getEventsIds(id, scenario_id, feedback);
+	
+	vector<double> params;
+	vector<double> statistics;
+	db_comm.getResults(id, scenario_id, feedback, params, id_events, statistics);
+	
+	cout<<"Analyzer::trainModel - Fin\n";
+}
+
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
 	
 	uint32_t id = _frequest.get<uint32_t>("id");
@@ -137,7 +155,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			//if(dist <= MAX_DIST){
 				this->_accepted[id]++;
 				_frequest.put("distance", dist);
-				this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.results"), _frequest);
+				db_comm.writeResults(_frequest);
 			//}
 			
 			// La idea aqui es que, cuando se tengan suficientes resultados para la simulacion id
@@ -178,7 +196,12 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
 					// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
 					// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
-					fresponse = _mongo->readSettings("gdrift", "settings", id, feedback);
+					fresponse = db_comm.readSettings(id, feedback);
+					
+					// Creo que esto hay que hacerlo para CADA escenario del setting
+					// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
+					// Iterar por cada scenario_id de la simulacion
+					trainModel(id, scenario_id, feedback, fresponse);
 					
 					fresponse.put("type", "reload");
 					fresponse.put("feedback", 1 + feedback);
@@ -222,7 +245,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
 			parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
 
-			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.data"),_frequest);
+			db_comm.writeData(_frequest);
 
 			break;
 		};
