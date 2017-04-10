@@ -22,17 +22,35 @@ using bsoncxx::builder::stream::close_document;
 namespace util{
 class Mongo{
 	private:
-		mongocxx::client _client;
+		mongocxx::client client;
+		string uri_name;
 
 	public:
 		Mongo(){}
 
 		Mongo(const string &_uri_name){
-			mongocxx::uri uri(_uri_name);
-			_client = mongocxx::client(uri);
+			uri_name = _uri_name;
+			cout<<"Mongo - uri_name: \""<<uri_name<<"\"\n";
+			mongocxx::uri uri(uri_name);
+			client = mongocxx::client(uri);
+		}
+
+		Mongo(const Mongo &original){
+			uri_name = original.uri_name;
+			mongocxx::uri uri(uri_name);
+			client = mongocxx::client(uri);
 		}
 		
-		~Mongo(void){}
+		~Mongo(){}
+		
+		Mongo& operator=(const Mongo &original){
+			if (this != &original){
+				uri_name = original.uri_name;
+				mongocxx::uri uri(uri_name);
+				client = mongocxx::client(uri);
+			}
+			return *this;
+		}
 		
 		void write(const string &db_name, const string &collection_name, boost::property_tree::ptree &json){
 //			cout<<"Mongo::write\n";
@@ -45,7 +63,7 @@ class Mongo{
 			
 			write_json(ss, json);
 			bsoncxx::document::value doc = bsoncxx::from_json(ss.str().c_str());
-			auto r = _client[db_name][collection_name].insert_one(doc.view());
+			auto r = client[db_name][collection_name].insert_one(doc.view());
 		}
 		
 		list<boost::property_tree::ptree> read(const string &db_name, const string &collection_name, uint32_t id){
@@ -55,7 +73,7 @@ class Mongo{
 		}
 		
 		unsigned int read(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id){
-			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << finalize);
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << finalize);
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){
@@ -74,7 +92,7 @@ class Mongo{
 		}
 		
 		unsigned int read_all(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name){
-			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << finalize); 
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << finalize); 
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){
@@ -92,7 +110,7 @@ class Mongo{
 		}
 		
 		unsigned int readStatistics(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid, uint32_t feedback){
-			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << "distance" << open_document << "$ne" << "inf"<< close_document << finalize);
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << "distance" << open_document << "$ne" << "inf"<< close_document << finalize);
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){
@@ -117,7 +135,7 @@ class Mongo{
 		}
 		
 		boost::property_tree::ptree readSettings(const string &db_name, const string &collection_name, uint32_t id, uint32_t feedback){
-			mongocxx::cursor cursor = _client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "feedback" << std::to_string(feedback) << finalize);
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "feedback" << std::to_string(feedback) << finalize);
 			boost::property_tree::ptree json;
 			for(auto doc : cursor){
 				istringstream is(bsoncxx::to_json(doc));
@@ -133,7 +151,7 @@ class Mongo{
 			/*
 			// Aqui habria que usar find_one
 			// Desúes revisar como usarlo correctamente
-			mongocxx::stdx::optional<bsoncxx::document::value> maybe_result = _client[db_name][collection_name].find_one(document{} << "id" << std::to_string(id) <<  finalize);
+			mongocxx::stdx::optional<bsoncxx::document::value> maybe_result = client[db_name][collection_name].find_one(document{} << "id" << std::to_string(id) <<  finalize);
 			if(maybe_result) {
 				// Do something with *maybe_result;
 			}
