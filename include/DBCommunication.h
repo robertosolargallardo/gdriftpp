@@ -163,8 +163,37 @@ class DBCommunication{
 			
 			return id_events;
 		}
+		
+		map<uint32_t, vector<string>> getEventsParams(uint32_t id, uint32_t scenario_id){
+			map<uint32_t, vector<string>> events_params;
+			boost::property_tree::ptree settings = mongo.readSettings(db_name, collection_settings, id, 0);
 			
-		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<double> &params, vector<string> &id_events, vector<double> &statistics){
+			for(auto s : settings.get_child("scenarios")){
+				uint32_t s_id = s.second.get<uint32_t>("id");
+				if(s_id == scenario_id){
+					for(auto e : s.second.get_child("events")){
+						// En principio cada evento tiene timestamp y parametros
+						// Los parametros que tengan type random deben ser agregados
+						
+						uint32_t eid = e.second.get<uint32_t>("id");
+						string etype = e.second.get<string>("type");
+						
+						events_params[eid].push_back("timestamp");
+						if( etype.compare("create") == 0 ){
+							events_params[eid].push_back("params.population.size");
+						}
+						else if( etype.compare("endsim") != 0 && etype.compare("split") ){
+							events_params[eid].push_back("params.source.population.percentage");
+						}
+						
+					}
+				}
+			}
+			
+			return events_params;
+		}
+			
+		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, vector<vector<double>> &statistics){
 			
 			cout<<"DBCommunication::getResults - Inicio\n";
 			
@@ -174,53 +203,104 @@ class DBCommunication{
 			unsigned int inserts = 0;
 			unsigned int count = 0;
 			double value = 0;
+			boost::optional< boost::property_tree::ptree& > child;
+			map<string, double> params_res;
+			map<string, map<uint32_t, map<uint32_t, map<string, double>>>> stats_res;
+			
+			// Lo que sigue, incluyendo el numero de genes, puede extraesrse mas claramente del setting directamente
+			// Creo que los estadisticos tambien puede extraerse del setting
+//			unsigned int total_params = 0;
+//			for(map<uint32_t, vector<string>>::iterator it = events_params.begin(); it != events_params.end(); it++){
+//				total_params += it->second.size();
+//			}
+			
 			for(auto &json : results){
-				if(count >= 3) break;
-				cout<<"Res["<<count++<<"]:\n";
+//				if(count >= 3) break;
 				
-				std::stringstream ss;
-				write_json(ss, json);
-				cout<<ss.str()<<"\n";
+//				cout<<"Res["<<count++<<"]:\n";
+				
+//				std::stringstream ss;
+//				write_json(ss, json);
+//				cout<<ss.str()<<"\n";
 
 				// scenario.events.0.params.population.size
 				// scenario.events.2.params.source.population.percentage
-							
-				for(unsigned int i = 0; i < id_events.size(); ++i){
-					string field = "scenario.events.";
-					field += id_events[i];
-					
-					boost::property_tree::ptree::assoc_iterator it = json.find(field + ".params.population.size");
-					if( it != json.not_found() ){
-						value = json.get<double>(field + ".params.population.size");
-						cout<<field<<".params.population.size: "<<value<<"\n";
-					}
-					
-					it = json.find(field + ".source.population.percentage");
-					if( it != json.not_found() ){
-						value = json.get<double>(field + ".source.population.percentage");
-						cout<<field<<".source.population.percentage: "<<value<<"\n";
-					}
-					
+				
+				boost::property_tree::ptree scenario = json.get_child("scenario");
+				if( scenario.get<uint32_t>("id") != scenario_id ){
+//					cout<<"DBCommunication::getResults - Scenario with wrong id.\n";
+					continue;
 				}
 				
-				/*
-				map<string, map<uint32_t, map<uint32_t, map<string, double>>>> statistics_map;
-				parseIndices(json.get_child("posterior"), statistics_map);
-				for(auto i : statistics_map){
-					for(auto j : i.second){
-						for(auto k : j.second){
-							for(auto l : k.second){
-								double value = statistics_map[i.first][j.first][k.first][l.first];
-								cout<<"statistics_map["<<i.first<<"]["<<j.first<<"]["<<k.first<<"]["<<l.first<<"]: "<<value<<"\n";
+				// LLeno params_res con los parametros de este resultado
+				for(auto &event : scenario.get_child("events")){
+					uint32_t eid = event.second.get<uint32_t>("id");
+					for(unsigned int i = 0; i < events_params[eid].size(); ++i){
+						value = event.second.get<double>(events_params[eid][i]);
+						params_res[events_params[eid][i]] = value;
+//						cout<<"DBCommunication::getResults - Event: "<<eid<<", "<<events_params[eid][i]<<": "<<value<<"\n";
+					}
+				}
+				
+				// Tambien incluyo las mutaciones de cada gen
+				boost::property_tree::ptree individual = json.get_child("individual");
+				for(auto &c : individual.get_child("chromosomes")){
+					uint32_t cid = c.second.get<uint32_t>("id");
+					for(auto g : c.second.get_child("genes")){
+						uint32_t gid = g.second.get<uint32_t>("id");
+						value = g.second.get<double>("mutation.rate");
+						string param_name = "chromosomes.";
+						param_name += std::to_string(cid);
+						param_name += ".genes.";
+						param_name += std::to_string(gid);
+						param_name += ".mutation.rate";
+						params_res[param_name] = value;
+//						cout<<"DBCommunication::getResults - "<<param_name<<": "<<value<<"\n";
+					}
+				}
+				
+				// volcar params_res en vector
+				// Notar que NO estoy verificando el largo esperado en esta version
+//				vector<double> values(params_res.size(), 0.0);
+				vector<double> values;
+				for(map<string, double>::iterator it = params_res.begin(); it != params_res.end(); it++){
+					values.push_back(it->second);
+				}
+				params.push_back(values);
+				params_res.clear();
+				
+				for(auto &p : json.get_child("posterior.populations")){
+					string name = p.second.get<string>("name");
+					for(auto &c : p.second.get_child("chromosomes")){
+						uint32_t cid = c.second.get<uint32_t>("id");
+						for(auto &g : c.second.get_child("genes")){
+							uint32_t gid = g.second.get<uint32_t>("id");
+							for(auto i : g.second.get_child("indices")){
+								stats_res[name][cid][gid][i.first] = std::stod(i.second.data());
+//								cout<<"DBCommunication::getResults - stat["<<name<<"]["<<cid<<"]["<<gid<<"]["<<i.first<<"]: "<<i.second.data()<<"\n";
 							}
 						}
 					}
 				}
+				
+				// volcar statistics_map en vector
+				// Notar que NO estoy verificando el largo esperado en esta version
+				vector<double> stats;
+				for(auto p : stats_res){
+					for(auto c : p.second){
+						for(auto g : c.second){
+							for(auto i : g.second){
+								stats.push_back(i.second);
+							}
+						}
+					}
+				}
+				statistics.push_back(stats);
+				stats_res.clear();
+				
 				++inserts;
-				*/
+				
 			}
-			
-			
 			
 			cout<<"DBCommunication::getResults - Fin (inserts: "<<inserts<<")\n";
 			return count;

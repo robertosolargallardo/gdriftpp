@@ -111,11 +111,15 @@ void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		cout<<"\""<<fields[i]<<"\"\n";
 	}
 	
-	vector<string> id_events = db_comm.getEventsIds(id, scenario_id, feedback);
+	map<uint32_t, vector<string>> events_params = db_comm.getEventsParams(id, scenario_id);
 	
-	vector<double> params;
-	vector<double> statistics;
-	db_comm.getResults(id, scenario_id, feedback, params, id_events, statistics);
+	vector<vector<double>> params;
+	vector<vector<double>> statistics;
+	db_comm.getResults(id, scenario_id, feedback, params, events_params, statistics);
+	
+	// Por ahora, asumimos que las distribuciones son normales
+	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
+	
 	
 	cout<<"Analyzer::trainModel - Fin\n";
 }
@@ -170,7 +174,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			// Notar que feedback depende de simulacion Y ESCENARIO
 			// una opcion es indexar la informacion por [id][scenario_id] (o pair de ambos)
 			
-			cout<<"Analyzer::run - _batch_size[id]: "<<_batch_size[id]<<" vs "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<"\n";
+			cout<<"Analyzer::run - _batch_size[id]: "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<"\n";
 			if(this->_batch_size[id] == (BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 				boost::property_tree::ptree fresponse;
 				fresponse.put("id", id);
