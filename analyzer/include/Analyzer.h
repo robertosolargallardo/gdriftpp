@@ -1,10 +1,14 @@
 #ifndef _ANALYZER_H_
 #define _ANALYZER_H_
-#include <Simulator.h>
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional/optional.hpp>
+#include <Simulator.h>
+
 #include <map>
+#include <set>
+#include <vector>
 
 #include "Comm.h"
 #include "Node.h"
@@ -34,7 +38,14 @@ private:
 	// Retorna el numero total de indices parseados
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
-	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, boost::property_tree::ptree &fresponse);
+	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse);
+	
+	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
+	// Recibe los P parametros de las N simulaciones
+	// ...las E estadisticas de esas mismas N simulaciones
+	// ...las E estadsiticas target
+	// Entrega las P distribuciones como un par <media, varianza> para cada parametro
+	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

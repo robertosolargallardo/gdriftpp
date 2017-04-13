@@ -9,6 +9,7 @@
 #include <list>
 #include <vector>
 #include <map>
+#include <set>
 
 #include "Mongo.h"
 
@@ -138,33 +139,7 @@ class DBCommunication{
 			return res;
 		}
 		
-		vector<string> getEventsIds(uint32_t id, uint32_t scenario_id, uint32_t feedback){
-			vector<string> id_events;
-			boost::property_tree::ptree settings = mongo.readSettings(db_name, collection_settings, id, feedback);
-			
-			for(auto s : settings.get_child("scenarios")){
-				uint32_t s_id = s.second.get<uint32_t>("id");
-				if(s_id == scenario_id){
-					for(auto e : s.second.get_child("events")){
-						// En principio cada evento tiene timestamp y parametros
-						// Los parametros que tengan type random deben ser agregados
-						
-						string e_id = e.second.get<string>("id");
-						string e_type = e.second.get<string>("type");
-						
-						if( e_type.compare("endsim") != 0 && e_type.compare("split") ){
-							cout<<"DBCommunication::getEventsIds - id_events.push_back("<<e_id<<")\n";
-							id_events.push_back(e_id);
-						}
-						
-					}
-				}
-			}
-			
-			return id_events;
-		}
-		
-		map<uint32_t, vector<string>> getEventsParams(uint32_t id, uint32_t scenario_id){
+		map<uint32_t, vector<string>> getEventsParams(uint32_t id, uint32_t scenario_id, bool population_increase = false){
 			map<uint32_t, vector<string>> events_params;
 			boost::property_tree::ptree settings = mongo.readSettings(db_name, collection_settings, id, 0);
 			
@@ -179,10 +154,13 @@ class DBCommunication{
 						string etype = e.second.get<string>("type");
 						
 						events_params[eid].push_back("timestamp");
+						// Mientras se incrementa la poblacion, omito population.size de los parametros
 						if( etype.compare("create") == 0 ){
-							events_params[eid].push_back("params.population.size");
+							if( !population_increase ){
+								events_params[eid].push_back("params.population.size");
+							}
 						}
-						else if( etype.compare("endsim") != 0 && etype.compare("split") ){
+						else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 ){
 							events_params[eid].push_back("params.source.population.percentage");
 						}
 						
@@ -193,9 +171,9 @@ class DBCommunication{
 			return events_params;
 		}
 			
-		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, vector<vector<double>> &statistics){
+		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, uint32_t total_params, vector<vector<double>> &statistics){
 			
-			cout<<"DBCommunication::getResults - Inicio\n";
+			cout<<"DBCommunication::getResults - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<", total_params: "<<total_params<<")\n";
 			
 			list<boost::property_tree::ptree> results;
 			mongo.readStatistics(results, db_name, collection_results, id, scenario_id, feedback);
@@ -206,13 +184,6 @@ class DBCommunication{
 			boost::optional< boost::property_tree::ptree& > child;
 			map<string, double> params_res;
 			map<string, map<uint32_t, map<uint32_t, map<string, double>>>> stats_res;
-			
-			// Lo que sigue, incluyendo el numero de genes, puede extraesrse mas claramente del setting directamente
-			// Creo que los estadisticos tambien puede extraerse del setting
-//			unsigned int total_params = 0;
-//			for(map<uint32_t, vector<string>>::iterator it = events_params.begin(); it != events_params.end(); it++){
-//				total_params += it->second.size();
-//			}
 			
 			for(auto &json : results){
 //				if(count >= 3) break;
@@ -228,7 +199,7 @@ class DBCommunication{
 				
 				boost::property_tree::ptree scenario = json.get_child("scenario");
 				if( scenario.get<uint32_t>("id") != scenario_id ){
-//					cout<<"DBCommunication::getResults - Scenario with wrong id.\n";
+					cerr<<"DBCommunication::getResults - Scenario with wrong id.\n";
 					continue;
 				}
 				
@@ -236,9 +207,14 @@ class DBCommunication{
 				for(auto &event : scenario.get_child("events")){
 					uint32_t eid = event.second.get<uint32_t>("id");
 					for(unsigned int i = 0; i < events_params[eid].size(); ++i){
+//						cout<<"DBCommunication::getResults - get \""<<events_params[eid][i]<<"\" de evento "<<eid<<"\n";
 						value = event.second.get<double>(events_params[eid][i]);
-						params_res[events_params[eid][i]] = value;
-//						cout<<"DBCommunication::getResults - Event: "<<eid<<", "<<events_params[eid][i]<<": "<<value<<"\n";
+						string param_name = "events.";
+						param_name += std::to_string(eid);
+						param_name += ".";
+						param_name += events_params[eid][i];
+						params_res[param_name] = value;
+//						cout<<"DBCommunication::getResults - Event: "<<eid<<", "<<param_name<<": "<<value<<"\n";
 					}
 				}
 				
@@ -266,8 +242,20 @@ class DBCommunication{
 				for(map<string, double>::iterator it = params_res.begin(); it != params_res.end(); it++){
 					values.push_back(it->second);
 				}
-				params.push_back(values);
 				params_res.clear();
+				
+				if( values.size() != total_params){
+					continue;
+				}
+				
+				//test
+//				cout<<"DBCommunication::getResults - Agregando res ("<<values[0];
+//				for(unsigned int i = 1; i < values.size(); ++i){
+//					cout<<", "<<values[i];
+//				}
+//				cout<<")\n";
+
+				params.push_back(values);
 				
 				for(auto &p : json.get_child("posterior.populations")){
 					string name = p.second.get<string>("name");

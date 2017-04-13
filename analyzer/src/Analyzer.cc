@@ -102,24 +102,153 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	return sqrt(s/n);
 }
 
-void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, boost::property_tree::ptree &fresponse){
-	cout<<"Analyzer::trainModel - Inicio\n";
+bool Analyzer::computeDistributions(vector<vector<double>> &params, 
+									vector<vector<double>> &statistics, 
+									vector<double> &target, 
+									vector< pair<double, double> > &res_dist){
+	cout<<"Analyzer::computeDistributions - Inicio\n";
 	
-	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
-	cout<<"Analyzer::trainModel - Fields: \n";
-	for(unsigned int i = 0; i < fields.size(); ++i){
-		cout<<"\""<<fields[i]<<"\"\n";
+	return false;
+}
+
+void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse){
+	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
+	
+//	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
+//	cout<<"Analyzer::trainModel - Fields: \n";
+//	for(unsigned int i = 0; i < fields.size(); ++i){
+//		cout<<"\""<<fields[i]<<"\"\n";
+//	}
+	
+	// Los parametros del create (size de la poblacion inicial) deberia omitirse durante las fases de crecimiento de poblacion
+	map<uint32_t, vector<string>> events_params = db_comm.getEventsParams(id, scenario_id, (feedback < max_feedback));
+	
+	map<string, uint32_t> params_positions;
+	// parametros de eventos
+	for(map<uint32_t, vector<string>>::iterator it = events_params.begin(); it != events_params.end(); it++){
+		for(unsigned int i = 0; i < it->second.size(); ++i){
+			string param_name = "events.";
+			param_name += std::to_string(it->first);
+			param_name += ".";
+			param_name += it->second[i];
+			params_positions.emplace(param_name, 0);
+		}
 	}
-	
-	map<uint32_t, vector<string>> events_params = db_comm.getEventsParams(id, scenario_id);
+	// chromosomas
+	for(auto &c : fresponse.get_child("individual.chromosomes")){
+		uint32_t cid = c.second.get<uint32_t>("id");
+		for(auto g : c.second.get_child("genes")){
+			uint32_t gid = g.second.get<uint32_t>("id");
+			string param_name = "chromosomes.";
+			param_name += std::to_string(cid);
+			param_name += ".genes.";
+			param_name += std::to_string(gid);
+			param_name += ".mutation.rate";
+			params_positions.emplace(param_name, 0);
+		}
+	}
+	// Posiciones
+	unsigned int count = 0;
+	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
+		it->second = count++;
+//		cout<<"Analyzer::trainModel - ("<<it->first<<", "<<it->second<<")\n";
+	}
 	
 	vector<vector<double>> params;
 	vector<vector<double>> statistics;
-	db_comm.getResults(id, scenario_id, feedback, params, events_params, statistics);
+	db_comm.getResults(id, scenario_id, feedback, params, events_params, params_positions.size(), statistics);
 	
 	// Por ahora, asumimos que las distribuciones son normales
 	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
+	// El metodo entonces debe entregar exactamente params_positions.size() pares de valores
+	// Luego, itero por el escenario en fresponse
+	// En cada evento y chromosoma, genero el string absoluto de la ruta del parametro, y reemplazo los valores con los de la nueva distribucion
 	
+	vector< pair<double, double> > res_dist(params_positions.size());
+	
+	vector<double> target;
+	for(auto p : _data_indices[id]){
+		for(auto c : p.second){
+			for(auto g : c.second){
+				for(auto i : g.second){
+					target.push_back(i.second);
+				}
+			}
+		}
+	}
+	
+	// Generacion de nuevas distribuciones
+	bool finish = computeDistributions(params, statistics, target, res_dist);
+	
+	if(finish){
+		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
+	}
+	
+	cout<<"Analyzer::trainModel - Actualizando Genes\n";
+	for(auto &c : fresponse.get_child("individual.chromosomes")){
+		uint32_t cid = c.second.get<uint32_t>("id");
+		for(auto &g : c.second.get_child("genes")){
+			uint32_t gid = g.second.get<uint32_t>("id");
+			string param_name = "chromosomes.";
+			param_name += std::to_string(cid);
+			param_name += ".genes.";
+			param_name += std::to_string(gid);
+			param_name += ".mutation.rate";
+			cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<params_positions[param_name]<<")\n";
+//			g.second.get_child("mutation.rate.distribution").put<string>("type", "normal");
+//			g.second.get_child("mutation.rate.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
+//			g.second.get_child("mutation.rate.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+		}
+	}
+	
+	cout<<"Analyzer::trainModel - Actualizando Eventos\n";
+	for(auto s : fresponse.get_child("scenarios")){
+		uint32_t s_id = s.second.get<uint32_t>("id");
+		if(s_id == scenario_id){
+			for(auto e : s.second.get_child("events")){
+				// En principio cada evento tiene timestamp y parametros
+				// Los parametros que tengan type random deben ser agregados
+				uint32_t eid = e.second.get<uint32_t>("id");
+				string etype = e.second.get<string>("type");
+//				cout<<"Analyzer::trainModel - Evento "<<eid<<" ("<<etype<<")\n";
+				
+				string param_name = "events.";
+				param_name += std::to_string(eid);
+				param_name += ".timestamp";
+				map<string, uint32_t>::iterator it = params_positions.find(param_name);
+				if( it != params_positions.end() ){
+					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
+//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
+//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
+//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+				}
+				
+				param_name = "events.";
+				param_name += std::to_string(eid);
+				param_name += ".params.population.size";
+				it = params_positions.find(param_name);
+				if( it != params_positions.end() ){
+					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
+//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
+//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
+//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+				}
+				
+				param_name = "events.";
+				param_name += std::to_string(eid);
+				param_name += ".params.source.population.percentage";
+				it = params_positions.find(param_name);
+				if( it != params_positions.end() ){
+					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
+//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
+//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
+//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+				}
+				
+				
+			}
+		}
+	}
 	
 	cout<<"Analyzer::trainModel - Fin\n";
 }
@@ -205,7 +334,27 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					// Creo que esto hay que hacerlo para CADA escenario del setting
 					// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
 					// Iterar por cada scenario_id de la simulacion
-					trainModel(id, scenario_id, feedback, fresponse);
+					// Notar que dejo el ciclo aqui (en lugar de en trainModel) pues en la version final, deberia entrenarse solo el escenario actual
+					// trainModel PODRIA usar max_feedback para algo
+					// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
+					uint32_t max_feedback = 0;
+					boost::optional<boost::property_tree::ptree&> child = fresponse.get_child_optional("population-increase-phases");
+					if( child ){
+						max_feedback = fresponse.get<uint32_t>("population-increase-phases");
+					}
+					
+					// Por seguridad (del iterador) primero extraigo los scenario.id de fresponse
+					vector<uint32_t> s_ids;
+					for(auto s : fresponse.get_child("scenarios")){
+						uint32_t s_id = s.second.get<uint32_t>("id");
+						s_ids.push_back(s_id);
+					}
+					for(unsigned int i = 0; i < s_ids.size(); ++i){
+						// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
+						// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
+						// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
+						trainModel(id, s_ids[i], feedback, max_feedback, fresponse);
+					}
 					
 					fresponse.put("type", "reload");
 					fresponse.put("feedback", 1 + feedback);
