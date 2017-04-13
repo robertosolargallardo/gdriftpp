@@ -107,11 +107,10 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 									vector<double> &target, 
 									vector< pair<double, double> > &res_dist){
 	cout<<"Analyzer::computeDistributions - Inicio\n";
-	
 	return false;
 }
 
-void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -151,7 +150,6 @@ void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	unsigned int count = 0;
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		it->second = count++;
-//		cout<<"Analyzer::trainModel - ("<<it->first<<", "<<it->second<<")\n";
 	}
 	
 	vector<vector<double>> params;
@@ -182,6 +180,7 @@ void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
+		return true;
 	}
 	
 	cout<<"Analyzer::trainModel - Actualizando Genes\n";
@@ -251,6 +250,7 @@ void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	}
 	
 	cout<<"Analyzer::trainModel - Fin\n";
+	return false;
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
@@ -318,9 +318,6 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				else if( this->_accepted[id] >= this->next_feedback[id] ){
 					cout<<"Analyzer::run - Feedback iniciado\n";
 					// Codigo de feedback, preparacion de nuevos parametros
-//					Statistics st(id);
-//					st.run();
-//					res = st.getResults()
 //					this->next_feedback[id_pair] += feedback_size[id];
 					this->next_feedback[id] += feedback_size[id];
 					cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_feedback[id]<<")\n";
@@ -349,27 +346,36 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 						uint32_t s_id = s.second.get<uint32_t>("id");
 						s_ids.push_back(s_id);
 					}
-					for(unsigned int i = 0; i < s_ids.size(); ++i){
+					bool finish = false;
+					for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
 						// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
 						// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
 						// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
-						trainModel(id, s_ids[i], feedback, max_feedback, fresponse);
+						finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse);
 					}
 					
-					fresponse.put("type", "reload");
-					fresponse.put("feedback", 1 + feedback);
-					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
-					// Enviar nuevos parametros al scheduler
-					cout<<"Analyzer::run - Preparando continue\n";
-					this->_batch_size[id] = 0;
-					fresponse.put("type", "continue");
+					if(finish){
+						cout<<"Analyzer::run - Preparando finalize\n";
+						this->_accepted.erase(this->_accepted.find(id));
+						this->_batch_size.erase(this->_batch_size.find(id));
+						fresponse.put("type", "finalize");
+					}
+					else{
+						fresponse.put("type", "reload");
+						fresponse.put("feedback", 1 + feedback);
+						comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
+						// Enviar nuevos parametros al scheduler
+						cout<<"Analyzer::run - Preparando continue\n";
+						this->_batch_size[id] = 0;
+						fresponse.put("type", "continue");
+					}
 				}
 				else{
 					cout<<"Analyzer::run - Preparando continue\n";
 					this->_batch_size[id] = 0;
 					fresponse.put("type", "continue");
 				}
-
+				
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 			}
 			break;

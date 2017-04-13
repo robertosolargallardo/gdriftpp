@@ -38,7 +38,8 @@ private:
 	// Retorna el numero total de indices parseados
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
-	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse);
+	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse);
 	
 	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
 	// Recibe los P parametros de las N simulaciones
