@@ -122,7 +122,7 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 
 		switch(util::hash(fevent.second.get<string>("type"))){
 			case CREATE:{
-				boost::property_tree::ptree fsize=fevent.second.get_child("params.population.size");
+				boost::property_tree::ptree fsize = fevent.second.get_child("params.population.size");
 				fevent.second.get_child("params.population").erase("size");
 				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value");
 				
@@ -174,10 +174,14 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 		fjob.put("feedback_size", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
 		
 		unsigned int max_feedback = 0;
-		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("training-feedback-phases");
-		if( it != _fsettings.not_found() ){
-			max_feedback = this->_fsettings.get<uint32_t>("training-feedback-phases");
+		boost::optional<boost::property_tree::ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");
+		if( child ){
+			max_feedback = this->_fsettings.get<uint32_t>("population-increase-phases");
 		}
+//		boost::property_tree::ptree::assoc_iterator it = this->_fsettings.find("population-increase-phases");
+//		if( it != _fsettings.not_found() ){
+//			max_feedback = this->_fsettings.get<uint32_t>("population-increase-phases");
+//		}
 		
 //		double population_factor = 1.0
 //		if(max_feedback > 0){
