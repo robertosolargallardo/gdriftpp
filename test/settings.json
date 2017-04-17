@@ -1,8 +1,8 @@
 {
 	"id": "0",
 	"type": "init",
-	"max-number-of-simulations": "64",
-	"simulations-per-feedback": "8",
+	"max-number-of-simulations": "128",
+	"simulations-per-feedback": "16",
 	"population-increase-phases": "3",
 
 	"individual": {
