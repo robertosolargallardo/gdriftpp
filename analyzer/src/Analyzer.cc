@@ -106,8 +106,101 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 									vector<vector<double>> &statistics, 
 									vector<double> &target, 
 									vector< pair<double, double> > &res_dist){
-	cout<<"Analyzer::computeDistributions - Inicio\n";
+	cout<<"Analyzer::computeDistributions - Inicio (params: "<<params.size()<<", statistics: "<<statistics.size()<<", target: "<<target.size()<<")\n";
+	
+	// En esta primera implementacion almaceno los resultados parciales de los calculos
+	// Esto es por razones de claridad, despues se puede optimizar
+	
+	// Vector con las varianzas de los datos POR ESTADISTICO (es decir, la varianza de cada columna)
+	cout<<"Analyzer::computeDistributions - Calculando Varianzas\n";
+	vector<double> vars;
+	for(unsigned int s = 0; s < target.size(); ++s){
+		// Evaluar varianza de estadistico s
+		double mean = 0.0;
+		double mean2 = 0.0;
+		for(unsigned int d = 0; d < statistics.size(); ++d){
+			mean += statistics[d][s];
+			mean2 += statistics[d][s] * statistics[d][s];
+		}
+		mean /= statistics.size();
+		mean2 /= statistics.size();
+		double var = mean2 - mean*mean;
+		vars.push_back(var);
+	}
+	
+	// Vector de diferencias POR DATO, POR ESTADISTICO
+	// cada fila tiene statistics.size() columnas, con la diferencia con el target al cuadrado, normalizado con la varianza del estadistico
+	cout<<"Analyzer::computeDistributions - Calculando diferencias\n";
+	vector<vector<double>> diffs;
+	for(unsigned int d = 0; d < statistics.size(); ++d){
+		vector<double> diffs_dato;
+		for(unsigned int s = 0; s < target.size(); ++s){
+			diffs_dato.push_back( pow(statistics[d][s] - target[s], 2) / vars[s] );
+		}
+		diffs.push_back(diffs_dato);
+	}
+	
+	// vector de pares <distancia, posicion del dato>
+	// Asi es facil ordenarlos y saber cuales datos considerar
+	cout<<"Analyzer::computeDistributions - Evaluando distancias\n";
+	vector< pair<double, unsigned int> > distancias;
+	for(unsigned int d = 0; d < statistics.size(); ++d){
+		double dist = 0.0;
+		for(unsigned int s = 0; s < target.size(); ++s){
+			dist += diffs[d][s];
+		}
+		dist = pow(dist / target.size(), 0.5);
+		distancias.push_back(pair<double, unsigned int>(dist, d));
+	}
+	
+	unsigned int usar = (unsigned int)(0.1 * statistics.size());
+	if(usar < 10){
+		usar = statistics.size();
+	}
+	cout<<"Analyzer::computeDistributions - Ordenando para usar los "<<usar<<" mejores\n";
+	std::sort(distancias.begin(), distancias.end());
+	
+	for(unsigned int p = 0; p < params[0].size(); ++p){
+		vector<double> used_params;
+		for(unsigned int d = 0; d < usar; ++d){
+			used_params.push_back( params[d][p] );
+		}
+		cout<<"Analyzer::computeDistributions - Evaluando distribucion de parametro "<<p<<"\n";
+		pair<double, double> dist = evaluateDistribution( used_params );
+		res_dist.push_back(dist);
+		used_params.clear();
+	}
+	
+	
+	
+	
+	
+	
 	return false;
+}
+
+// Por ahora solo calculo la MEDIANA y la desviacion estandar para parametrizar la distribucion
+// Usamos la mediana pues la distribución puede estar desbalanceada, quizas podamos considerar otra medida de la esperanza
+pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
+	cout<<"Analyzer::evaluateDistribution - Inicio ("<<values.size()<<" valores)\n";
+	std::sort(values.begin(), values.end());
+	
+	double median = values[values.size()/2];
+	
+	// Evaluar varianza de estadistico s
+	double mean = 0.0;
+	double mean2 = 0.0;
+	for(unsigned int d = 0; d < values.size(); ++d){
+		mean += values[d];
+		mean2 += values[d] * values[d];
+	}
+	mean /= values.size();
+	mean2 /= values.size();
+	double var = mean2 - mean*mean;
+	var = pow(var, 0.5);
+	
+	cout<<"Analyzer::evaluateDistribution - Fin ("<<median<<", "<<var<<")\n";
+	return pair<double, double>(median, var);	
 }
 
 bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse){
@@ -266,9 +359,9 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			
 			uint32_t scenario_id = _frequest.get<uint32_t>("scenario.id");
 //			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
-			this->feedback_size[id] = _frequest.get<uint32_t>("feedback_size");
-			// Solo agrego feedback_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * feedback_size[i];
-			this->next_feedback.emplace(id, feedback_size[id]);
+//			this->feedback_size[id] = _frequest.get<uint32_t>("feedback_size");
+//			// Solo agrego feedback_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * feedback_size[i];
+//			this->next_feedback.emplace(id, feedback_size[id]);
 			
 			unsigned int feedback = 0;
 			boost::property_tree::ptree::assoc_iterator it = _frequest.find("feedback");
@@ -303,7 +396,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			// Notar que feedback depende de simulacion Y ESCENARIO
 			// una opcion es indexar la informacion por [id][scenario_id] (o pair de ambos)
 			
-			cout<<"Analyzer::run - _batch_size[id]: "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<"\n";
+			cout<<"Analyzer::run - Batch "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<", Accepted: "<<_accepted[id]<<" / "<<next_feedback[id]<<"\n";
 			if(this->_batch_size[id] == (BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
 				boost::property_tree::ptree fresponse;
 				fresponse.put("id", id);
@@ -316,7 +409,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				}
 //				else if( this->_accepted[id] >= this->next_feedback[id_pair] ){
 				else if( this->_accepted[id] >= this->next_feedback[id] ){
-					cout<<"Analyzer::run - Feedback iniciado\n";
+					cout<<"Analyzer::run - Feedback iniciado (feedback_size: "<<feedback_size[id]<<")\n";
 					// Codigo de feedback, preparacion de nuevos parametros
 //					this->next_feedback[id_pair] += feedback_size[id];
 					this->next_feedback[id] += feedback_size[id];
@@ -381,7 +474,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			break;
 		};
 		case DATA:  {
-			this->_accepted[id] = 0;	
+			this->_accepted[id] = 0;
 			this->_batch_size[id] = 0;
 			
 			boost::property_tree::ptree fposterior;

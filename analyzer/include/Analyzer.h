@@ -48,6 +48,8 @@ private:
 	// Entrega las P distribuciones como un par <media, varianza> para cada parametro
 	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
 	
+	pair<double, double> evaluateDistribution(vector<double> values);
+	
 public: 
 	Analyzer(boost::property_tree::ptree&);
 	~Analyzer(void);
