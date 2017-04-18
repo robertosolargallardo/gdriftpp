@@ -29,7 +29,7 @@ private:
 	// Por ahora lo dejo dependiendo de la simulacion, pues accepted cuanta por simulacion
 	map<uint32_t, uint32_t> next_feedback;
 	// cada simulacion puede definir su propio feedback_size (y su propio max_feedback)
-	map<uint32_t, uint32_t> feedback_size;
+//	map<uint32_t, uint32_t> feedback_size;
 	
 	DBCommunication db_comm;
 	enum Types{SIMULATED=416813159, DATA=1588979285};

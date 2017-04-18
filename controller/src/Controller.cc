@@ -36,7 +36,7 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	fresponse.put("max-number-of-simulations", _frequest.get<string>("max-number-of-simulations"));
 	
 	fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
-	fresponse.put("feedback_size", _frequest.get<uint32_t>("feedback_size"));
+	fresponse.put("simulations-per-feedback", _frequest.get<uint32_t>("simulations-per-feedback"));
 
 	Simulator sim(_frequest);
 	

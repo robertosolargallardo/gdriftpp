@@ -171,7 +171,7 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 		fjob.put("batch", this->_batch);
 		fjob.put("feedback", this->_feedback);
 		
-		fjob.put("feedback_size", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
+		fjob.put("simulations-per-feedback", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
 		
 		unsigned int max_feedback = 0;
 		boost::optional<boost::property_tree::ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");

@@ -359,9 +359,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			
 			uint32_t scenario_id = _frequest.get<uint32_t>("scenario.id");
 //			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
-//			this->feedback_size[id] = _frequest.get<uint32_t>("feedback_size");
+//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
+			uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
 //			// Solo agrego feedback_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * feedback_size[i];
-//			this->next_feedback.emplace(id, feedback_size[id]);
+			this->next_feedback.emplace(id, feedback_size);
 			
 			unsigned int feedback = 0;
 			boost::property_tree::ptree::assoc_iterator it = _frequest.find("feedback");
@@ -409,10 +410,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				}
 //				else if( this->_accepted[id] >= this->next_feedback[id_pair] ){
 				else if( this->_accepted[id] >= this->next_feedback[id] ){
-					cout<<"Analyzer::run - Feedback iniciado (feedback_size: "<<feedback_size[id]<<")\n";
+//					uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
+					cout<<"Analyzer::run - Feedback iniciado (feedback_size: "<<feedback_size<<")\n";
 					// Codigo de feedback, preparacion de nuevos parametros
-//					this->next_feedback[id_pair] += feedback_size[id];
-					this->next_feedback[id] += feedback_size[id];
+//					this->next_feedback[id_pair] += feedback_size;
+					this->next_feedback[id] += feedback_size;
 					cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_feedback[id]<<")\n";
 					
 					// fresponse debe contener un documento completo de settings
@@ -476,6 +478,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 		case DATA:  {
 			this->_accepted[id] = 0;
 			this->_batch_size[id] = 0;
+			// Notar que samples.json (el iniciador del proceso) NO TIENE simulations-per-feedback
+			// No es valido tomar este valor aca, debera tomarse siempre en la simulacion
+//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
+//			cout<<"Analyzer::run - Seteando feedback_size["<<id<<"]: "<<feedback_size[id]<<"\n";
 			
 			boost::property_tree::ptree fposterior;
 			fposterior.put("id", _frequest.get<string>("id"));
