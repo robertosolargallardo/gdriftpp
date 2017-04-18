@@ -2,7 +2,7 @@
 	"id": "0",
 	"type": "init",
 	"max-number-of-simulations": "20000",
-	"simulations-per-feedback": "512",
+	"simulations-per-feedback": "128",
 	"population-increase-phases": "10",
 
 	"individual": {

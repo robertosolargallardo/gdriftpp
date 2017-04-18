@@ -20,12 +20,6 @@
 			"host" : "citiaps2.diinf.usach.cl",
 			"port" : "1985",
 			"resource" : "/controller"
-		},
-		{
-			"id"   : "1",
-			"host" : "citiaps1.diinf.usach.cl",
-			"port" : "1985",
-			"resource" : "/controller"
 		}
 	],
 	"database" : {
