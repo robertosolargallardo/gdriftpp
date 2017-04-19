@@ -84,14 +84,17 @@ T generate(const boost::property_tree::ptree &_fdistribution){
 	//exit(0);
 
 	uint32_t type = util::hash(_fdistribution.get<string>("type"));
-
+	
 	switch(type){
 		case UNIFORM:{
 			std::uniform_real_distribution<> uniform(_fdistribution.get<double>("params.a"), _fdistribution.get<double>("params.b"));
 			return(static_cast<T>(uniform(rng)));
 		}
 		case NORMAL:{
-			std::normal_distribution<> normal(_fdistribution.get<double>("params.mean"), _fdistribution.get<double>("params.stddev"));
+			double mean = _fdistribution.get<double>("params.mean");
+			double stddev = _fdistribution.get<double>("params.stddev");
+			cout<<"Scheduler::generate - Normal ("<<mean<<", "<<stddev<<")\n";
+			std::normal_distribution<> normal(mean, stddev);
 			return(static_cast<T>(normal(rng)));
 		}
 		case GAMMA:{
@@ -120,10 +123,21 @@ boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findiv
 boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
 //boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario, float population_factor){
 //boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenario){
+	uint32_t last_timestamp = 0;
+	// TODO: Este limite de seguridad al tamaño de la poblacion es arbitrario
+	// Necesitamos una mejor manera de validar que el numero sea correcto
+	// Lo dejo activado pues el generador retorno 2^32 por alguna razon
+	uint32_t max_population = 100000000;
 	for(auto &fevent : _fscenario.get_child("events")){
-		boost::property_tree::ptree ftimestamp=fevent.second.get_child("timestamp");
+		boost::property_tree::ptree ftimestamp = fevent.second.get_child("timestamp");
 		fevent.second.erase("timestamp");
-		fevent.second.put<uint32_t>("timestamp",util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution")):ftimestamp.get<uint32_t>("value"));
+		uint32_t timestamp = util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution")):ftimestamp.get<uint32_t>("value");
+		if(timestamp <= last_timestamp){
+			timestamp = last_timestamp + 1;
+		}
+		last_timestamp = timestamp;
+//		cout<<"Scheduler::parse_scenario - Event timestamp: "<<timestamp<<"\n";
+		fevent.second.put<uint32_t>("timestamp", timestamp);
 
 		switch(util::hash(fevent.second.get<string>("type"))){
 			case CREATE:{
@@ -138,9 +152,11 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 				if( feedback < max_feedback ){
 					cout<<"Scheduler::parse_scenario - Reduciendo population_size ("<<population_size<<", min_pop: "<<min_pop<<", feedback: "<<feedback<<", max_feedback: "<<max_feedback<<")\n";
 					population_size = (unsigned int)((double)(population_size - min_pop) * feedback / max_feedback + min_pop);
-					cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<"\n";
 				}
-
+				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<"\n";
+				if( population_size > max_population){
+					population_size = max_population;
+				}
 				fevent.second.get_child("params.population").put<uint32_t>("size", population_size);
 				
 				break;

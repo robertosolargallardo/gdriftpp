@@ -163,7 +163,10 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 	for(unsigned int p = 0; p < params[0].size(); ++p){
 		vector<double> used_params;
 		for(unsigned int d = 0; d < usar; ++d){
-			used_params.push_back( params[d][p] );
+			// TODO: esta condicion de seguridad es temporal, buscar una mejor forma de validar valores
+			if( params[d][p] < 2000000000.0 ){
+				used_params.push_back( params[d][p] );
+			}
 		}
 		cout<<"Analyzer::computeDistributions - Evaluando distribucion de parametro "<<p<<"\n";
 		pair<double, double> dist = evaluateDistribution( used_params );
@@ -193,11 +196,14 @@ pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
 	for(unsigned int d = 0; d < values.size(); ++d){
 		mean += values[d];
 		mean2 += values[d] * values[d];
+		cout<<"Analyzer::evaluateDistribution - values["<<d<<"]: "<<values[d]<<" ("<<mean<<", "<<mean2<<")\n";
 	}
 	mean /= values.size();
 	mean2 /= values.size();
 	double var = mean2 - mean*mean;
+	cout<<"Analyzer::evaluateDistribution - var: "<<var<<"\n";
 	var = pow(var, 0.5);
+	cout<<"Analyzer::evaluateDistribution - var final: "<<var<<"\n";
 	
 	cout<<"Analyzer::evaluateDistribution - Fin ("<<median<<", "<<var<<")\n";
 	return pair<double, double>(median, var);	
