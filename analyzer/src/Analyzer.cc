@@ -243,6 +243,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	unsigned int count = 0;
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		it->second = count++;
+		cout<<"Analyzer::trainModel - params_positions["<<it->first<<"]: "<<it->second<<"\n";
 	}
 	
 	vector<vector<double>> params;
@@ -255,7 +256,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	// Luego, itero por el escenario en fresponse
 	// En cada evento y chromosoma, genero el string absoluto de la ruta del parametro, y reemplazo los valores con los de la nueva distribucion
 	
-	vector< pair<double, double> > res_dist(params_positions.size());
+	vector< pair<double, double> > res_dist;
 	
 	vector<double> target;
 	for(auto p : _data_indices[id]){
@@ -270,6 +271,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	// Generacion de nuevas distribuciones
 	bool finish = computeDistributions(params, statistics, target, res_dist);
+	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
+	for(unsigned int i = 0; i < res_dist.size(); ++i){
+		cout<<"res_dist["<<i<<"]: ("<<res_dist[i].first<<", "<<res_dist[i].second<<")\n";
+	}
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
@@ -287,17 +292,20 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			param_name += std::to_string(gid);
 			param_name += ".mutation.rate";
 			cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<params_positions[param_name]<<")\n";
-//			g.second.get_child("mutation.rate.distribution").put<string>("type", "normal");
-//			g.second.get_child("mutation.rate.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
-//			g.second.get_child("mutation.rate.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+			g.second.get_child("mutation.rate.distribution").put<string>("type", "normal");
+			// Elimino parametros previos
+			g.second.get_child("mutation.rate.distribution").erase("params");
+			g.second.get_child("mutation.rate.distribution").put_child("params", boost::property_tree::ptree());
+			g.second.get_child("mutation.rate.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
+			g.second.get_child("mutation.rate.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
 		}
 	}
 	
 	cout<<"Analyzer::trainModel - Actualizando Eventos\n";
-	for(auto s : fresponse.get_child("scenarios")){
+	for(auto &s : fresponse.get_child("scenarios")){
 		uint32_t s_id = s.second.get<uint32_t>("id");
 		if(s_id == scenario_id){
-			for(auto e : s.second.get_child("events")){
+			for(auto &e : s.second.get_child("events")){
 				// En principio cada evento tiene timestamp y parametros
 				// Los parametros que tengan type random deben ser agregados
 				uint32_t eid = e.second.get<uint32_t>("id");
@@ -310,9 +318,12 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 				map<string, uint32_t>::iterator it = params_positions.find(param_name);
 				if( it != params_positions.end() ){
 					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
-//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
-//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
+					// Elimino parametros previos
+					e.second.get_child("timestamp.distribution").erase("params");
+					e.second.get_child("timestamp.distribution").put_child("params", boost::property_tree::ptree());
+					e.second.get_child("timestamp.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
+					e.second.get_child("timestamp.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
 				}
 				
 				param_name = "events.";
@@ -321,9 +332,12 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 				it = params_positions.find(param_name);
 				if( it != params_positions.end() ){
 					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
-//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
-//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+					e.second.get_child("params.population.size.distribution").put<string>("type", "normal");
+					// Elimino parametros previos
+					e.second.get_child("params.population.size.distribution").erase("params");
+					e.second.get_child("params.population.size.distribution").put_child("params", boost::property_tree::ptree());
+					e.second.get_child("params.population.size.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
+					e.second.get_child("params.population.size.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
 				}
 				
 				param_name = "events.";
@@ -332,11 +346,18 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 				it = params_positions.find(param_name);
 				if( it != params_positions.end() ){
 					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-//					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
-//					e.second.get_child("timestamp.distribution.params").put<double>("a", ret_values[params_positions[param_name]].first);
-//					e.second.get_child("timestamp.distribution.params").put<double>("b", ret_values[params_positions[param_name]].second);
+					e.second.get_child("params.source.population.percentage.distribution").put<string>("type", "normal");
+					// Elimino parametros previos
+					e.second.get_child("params.source.population.percentage.distribution").erase("params");
+					e.second.get_child("params.source.population.percentage.distribution").put_child("params", boost::property_tree::ptree());
+					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
+					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
 				}
 				
+//				cout<<"Analyzer::trainModel - Evento resultante:\n";
+//				std::stringstream ss;
+//				write_json(ss, e.second);
+//				cout<<ss.str()<<"\n";
 				
 			}
 		}
@@ -458,6 +479,12 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					else{
 						fresponse.put("type", "reload");
 						fresponse.put("feedback", 1 + feedback);
+						
+//						cout<<"Analyzer::run - Enviando settings a scehduler\n";
+//						std::stringstream ss;
+//						write_json(ss, fresponse);
+//						cout << ss.str() << endl;
+						
 						comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 						// Enviar nuevos parametros al scheduler
 						cout<<"Analyzer::run - Preparando continue\n";

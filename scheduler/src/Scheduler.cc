@@ -45,7 +45,12 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			// Aqui hay que guardar _frequest nuevamente en settings, pues trae nuevos parametros para el propio scheduler
 			// Tambien hay que recrear settings (con los nuevos parametros)
 			// Hay que asegurar entonces, que en reload el analizer envie el ptree de settings !!!
-			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			
+			std::stringstream ss;
+			write_json(ss, _frequest);
+			cout << ss.str() << endl;
+			
+			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			this->_semaphore->lock();
 			this->_settings[id].reset(new Settings(_frequest));
 			this->_semaphore->unlock();
