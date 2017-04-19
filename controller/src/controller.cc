@@ -19,9 +19,14 @@ mt19937 rng(seed());
 shared_ptr<util::Semaphore>  semaphore;
 shared_ptr<Controller> controller;
 
+static unsigned int id_controller = 0;
+
 void run(boost::property_tree::ptree _frequest){
 	semaphore->lock();
+	unsigned int id = id_controller++;
+	cout<<"controller - Inicio ("<<id<<")\n";
 	controller->run(_frequest);
+	cout<<"controller - Fin ("<<id<<")\n";
 	semaphore->unlock();
 }
 
@@ -36,8 +41,8 @@ int main(int argc, char **argv){
 	uint32_t id = atoi(argv[2]);
 	
 	unsigned MAX_THREADS = std::thread::hardware_concurrency();
-	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
-//	semaphore = make_shared<util::Semaphore>(1);
+//	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
+	semaphore = make_shared<util::Semaphore>(1);
 	
 	controller = make_shared<Controller>(fhosts, id);
 	

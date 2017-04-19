@@ -20,7 +20,7 @@ boost::property_tree::ptree indices(map<string,Sample*> _samples){
 
 boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_frequest){
 
-//	cout<<"Controller::run - Inicio (sim "<<_frequest.get<string>("id")<<", scenario: "<<_frequest.get_child("scenario").get<uint32_t>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
+	cout<<"Controller::run - Inicio (sim "<<_frequest.get<string>("id")<<", scenario: "<<_frequest.get_child("scenario").get<uint32_t>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
 	
 	boost::property_tree::ptree findividual = _frequest.get_child("individual");
 	boost::property_tree::ptree fscenario = _frequest.get_child("scenario");
@@ -37,7 +37,8 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	
 	fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
 	fresponse.put("simulations-per-feedback", _frequest.get<uint32_t>("simulations-per-feedback"));
-
+	
+	cout<<"Controller::run - Creando Simulatior\n";
 	Simulator sim(_frequest);
 	
 	//std::stringstream ss;
@@ -49,7 +50,10 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	//fprior.push_back(std::make_pair("populations", indices(sim.populations())));
 	
 	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
+	cout<<"Controller::run - Lanzando sim.run...\n";
 	sim.run();
+	cout<<"Controller::run - Ok\n";
+	
 	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
 	
 	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
@@ -68,6 +72,7 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	
 //	cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
 	
+	cout<<"Controller::run - Fin\n";
 	return(_frequest);
 }
 
