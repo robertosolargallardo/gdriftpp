@@ -156,12 +156,16 @@ class DBCommunication{
 						events_params[eid].push_back("timestamp");
 						// Mientras se incrementa la poblacion, omito population.size de los parametros
 						if( etype.compare("create") == 0 ){
-							if( !population_increase ){
+							string dist_type = e.second.get<string>("params.population.size.type");
+							if( dist_type.compare("random") == 0 && !population_increase ){
 								events_params[eid].push_back("params.population.size");
 							}
 						}
 						else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 ){
-							events_params[eid].push_back("params.source.population.percentage");
+							string dist_type = e.second.get<string>("params.source.population.percentage.type");
+							if( dist_type.compare("random") == 0 ){
+								events_params[eid].push_back("params.source.population.percentage");
+							}
 						}
 						
 					}
