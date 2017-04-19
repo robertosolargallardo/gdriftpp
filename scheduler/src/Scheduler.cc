@@ -76,7 +76,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 
 //TODO This function parse the distributions. Now only works with uniform.
 template<class T>
-T generate(const boost::property_tree::ptree &_fdistribution){
+T generate(const boost::property_tree::ptree &_fdistribution, bool force_positive = false){
 
 	//std::stringstream ss;
 	//write_json(ss,_fdistribution);
@@ -87,19 +87,35 @@ T generate(const boost::property_tree::ptree &_fdistribution){
 	
 	switch(type){
 		case UNIFORM:{
-			std::uniform_real_distribution<> uniform(_fdistribution.get<double>("params.a"), _fdistribution.get<double>("params.b"));
-			return(static_cast<T>(uniform(rng)));
+			double a = _fdistribution.get<double>("params.a");
+			double b = _fdistribution.get<double>("params.b");
+			std::uniform_real_distribution<> uniform(a, b);
+			double value = uniform(rng);
+			if(force_positive && value < 0.0){
+				value = 0.0;
+			}
+			return(static_cast<T>(value));
 		}
 		case NORMAL:{
 			double mean = _fdistribution.get<double>("params.mean");
 			double stddev = _fdistribution.get<double>("params.stddev");
-			cout<<"Scheduler::generate - Normal ("<<mean<<", "<<stddev<<")\n";
 			std::normal_distribution<> normal(mean, stddev);
-			return(static_cast<T>(normal(rng)));
+			double value = normal(rng);
+			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
+			if(force_positive && value < 0.0){
+				value = 0.0;
+			}
+			return(static_cast<T>(value));
 		}
 		case GAMMA:{
-			std::gamma_distribution<double> gamma(_fdistribution.get<double>("params.alpha"), _fdistribution.get<double>("params.beta"));
-			return(static_cast<T>(gamma(rng)));
+			double alpha = _fdistribution.get<double>("params.alpha");
+			double beta = _fdistribution.get<double>("params.beta");
+			std::gamma_distribution<double> gamma(alpha, beta);
+			double value = gamma(rng);
+			if(force_positive && value < 0.0){
+				value = 0.0;
+			}
+			return(static_cast<T>(value));
 		}
 		default:{
 			cout << "Error::Unknown Distribution Type::" << type << endl;
@@ -131,7 +147,7 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 	for(auto &fevent : _fscenario.get_child("events")){
 		boost::property_tree::ptree ftimestamp = fevent.second.get_child("timestamp");
 		fevent.second.erase("timestamp");
-		uint32_t timestamp = util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution")):ftimestamp.get<uint32_t>("value");
+		uint32_t timestamp = util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution"), true):ftimestamp.get<uint32_t>("value");
 		if(timestamp <= last_timestamp){
 			timestamp = last_timestamp + 1;
 		}
@@ -143,7 +159,7 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 			case CREATE:{
 				boost::property_tree::ptree fsize = fevent.second.get_child("params.population.size");
 				fevent.second.get_child("params.population").erase("size");
-				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution")):fsize.get<uint32_t>("value");
+				unsigned int population_size = (util::hash(fsize.get<string>("type"))==RANDOM)?generate<uint32_t>(fsize.get_child("distribution"), true):fsize.get<uint32_t>("value");
 				
 //				std::ostringstream oss;
 //				boost::property_tree::ini_parser::write_ini(oss, fsize.get_child("distribution"));
@@ -166,7 +182,7 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 			case MIGRATION:{
 				boost::property_tree::ptree fpercentage=fevent.second.get_child("params.source.population.percentage");
 				fevent.second.get_child("params.source.population").erase("percentage");
-				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution")):fpercentage.get<double>("value"));
+				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true):fpercentage.get<double>("value"));
 				break;
 			}
 			default:
