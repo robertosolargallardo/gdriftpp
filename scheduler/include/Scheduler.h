@@ -37,7 +37,7 @@ class Scheduler:public Node{
 								Settings(boost::property_tree::ptree &_fsettings);
 
 								template<class T>
-								friend T generate(const boost::property_tree::ptree&);
+								friend T generate(const boost::property_tree::ptree&, bool force_limits = false, double forced_min = 0.0, double forced_max = 100000000);
 								friend boost::property_tree::ptree parse_individual(boost::property_tree::ptree);
 								friend boost::property_tree::ptree parse_scenario(boost::property_tree::ptree);
 								void send(const uint32_t&,const boost::property_tree::ptree&);

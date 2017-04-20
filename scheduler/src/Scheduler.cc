@@ -76,7 +76,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 
 //TODO This function parse the distributions. Now only works with uniform.
 template<class T>
-T generate(const boost::property_tree::ptree &_fdistribution, bool force_positive = false){
+T generate(const boost::property_tree::ptree &_fdistribution, bool force_limits, double forced_min, double forced_max){
 
 	//std::stringstream ss;
 	//write_json(ss,_fdistribution);
@@ -91,8 +91,13 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_positiv
 			double b = _fdistribution.get<double>("params.b");
 			std::uniform_real_distribution<> uniform(a, b);
 			double value = uniform(rng);
-			if(force_positive && value < 0.0){
-				value = 0.0;
+			if(force_limits){
+				if(value < forced_min){
+					value = forced_min;
+				}
+				else if(value > forced_max){
+					value = forced_max;
+				}
 			}
 			return(static_cast<T>(value));
 		}
@@ -102,8 +107,13 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_positiv
 			std::normal_distribution<> normal(mean, stddev);
 			double value = normal(rng);
 			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
-			if(force_positive && value < 0.0){
-				value = 0.0;
+			if(force_limits){
+				if(value < forced_min){
+					value = forced_min;
+				}
+				else if(value > forced_max){
+					value = forced_max;
+				}
 			}
 			return(static_cast<T>(value));
 		}
@@ -112,8 +122,13 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_positiv
 			double beta = _fdistribution.get<double>("params.beta");
 			std::gamma_distribution<double> gamma(alpha, beta);
 			double value = gamma(rng);
-			if(force_positive && value < 0.0){
-				value = 0.0;
+			if(force_limits){
+				if(value < forced_min){
+					value = forced_min;
+				}
+				else if(value > forced_max){
+					value = forced_max;
+				}
 			}
 			return(static_cast<T>(value));
 		}
@@ -129,7 +144,7 @@ boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findiv
 		for(auto &fgene: fchromosome.second.get_child("genes")){
 			boost::property_tree::ptree frate=fgene.second.get_child("mutation.rate");
 			fgene.second.get_child("mutation").erase("rate");
-			fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution")):frate.get<double>("value"));
+			fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution"), true, 0, 1.0):frate.get<double>("value"));
 		}
 	}
 	return(_findividual);
@@ -182,7 +197,7 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 			case MIGRATION:{
 				boost::property_tree::ptree fpercentage=fevent.second.get_child("params.source.population.percentage");
 				fevent.second.get_child("params.source.population").erase("percentage");
-				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true):fpercentage.get<double>("value"));
+				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true, 0.0, 1.0):fpercentage.get<double>("value"));
 				break;
 			}
 			default:
