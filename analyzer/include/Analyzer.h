@@ -15,6 +15,8 @@
 #include "Const.h"
 #include "DBCommunication.h"
 
+#include "simEvaluation.h"
+
 using namespace std;
 
 class Analyzer : public Node{

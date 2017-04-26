@@ -15,6 +15,7 @@ Funciones de densidad de probabilidad
 #include <map>
 //Libs extras
 #include "stats.h"
+//#include "loadFiles.h"
 #define END_OF_STREAM 999999999
 using namespace std;
 
@@ -39,7 +40,11 @@ public:
     //Distribución de probabilidad Normal
     vector<double> distProbabilityNormal; 
 
-
+    //Para graficas
+    int dimInterpolacion;
+ 
+    double maximoV;
+    double minimoV;
 
     //Mediana, promedio, Std y Varianza
     double sampleMediana;
@@ -68,11 +73,15 @@ public:
         
     }
 
-    void computeFuncionDensidad(vector<double> sampleIn){
+    void computeFuncionDensidad(vector<double> sampleIn,int opcion){
     //Sort para distribuciones y uso posterior sin necesidad de ordenar más de una vez     
     sort(sampleIn.begin(), sampleIn.end()); 
     sample = sampleIn;
-    sampleNormalized = normalizedData(sampleIn);
+    normalizedData(sampleIn,sampleNormalized);
+        
+    //Datos de limites
+    maximoV = maximoValor(sampleIn);
+    minimoV = minimoValor(sampleIn);
         
     //Valores de entrada
     sampleMediana = mediana(sampleIn);
@@ -86,13 +95,45 @@ public:
     sampleStdNormalized = sqrt(sampleVarianceNormalized);
     samplePromedioNormalized = promedio(sampleNormalized);
 
+    selectDist(opcion);
+    
     //Obención vector distribución normal
-    outPostNormal();
+    //outPostNormal();
     //Obención vector probabilidad
-    outProbabilidadNormal();
+  //  outProbabilidadNormal();
     }
 
   
+    void selectDist(int opcion)
+    {
+
+        switch(opcion)
+        {
+            case 0://Normal
+            {
+                //Obención vector distribución normal
+                outPostNormal();
+                //Obención vector probabilidad
+                outProbabilidadNormal();
+                
+       
+              break;   
+            }
+            case 1://
+            {
+
+              break;   
+            }
+
+       
+            break; 
+       default: 
+       cout<<"Debe indicar una opcion valida para el uso de funciones de densidad!!!"<<endl;
+     }
+       
+
+    }
+
 
     /**** Distribution Normal y funciones asociadas****/
     void outPostNormal()
@@ -111,6 +152,21 @@ public:
 
     }
 
+    void outPostNormalVectorIn(vector<double> dataIn, vector<double> &dataOutNormalizadoEscala,vector<double> &dataOutNormalizado)
+    {
+    double zTmp,value;
+
+    for (std::vector<double>::iterator it = dataIn.begin() ; it != dataIn.end(); ++it)
+    {
+        zTmp = zValue((*it),sampleMedianaNormalized,sampleStdNormalized);
+        value = kernelNormal(zTmp);
+        dataOutNormalizadoEscala.push_back(value/sampleStdNormalized);
+        dataOutNormalizado.push_back(value);
+    }
+
+
+    }
+
     void outProbabilidadNormal()
     {
     double Pr;
@@ -120,8 +176,23 @@ public:
             distProbabilityNormal.push_back(Pr);
         }
     }
+    
+    void outVectorGrafico1(int dimInterpolacion,vector<double> &interpoladoOut)
+    {
+        vector<double> interpoladoTmp;
+		interpolarDistribucion(samplePostNormalized,dimInterpolacion,interpoladoTmp);
+		int dim = interpoladoTmp.size();
+		double tmp,value;
+		for(int i=0;i<dim;i++)
+	    {
+			tmp = zValue(interpoladoTmp[i],sampleMedianaNormalized,sampleStdNormalized);
+			value = kernelNormal(tmp);
+            interpoladoOut.push_back(value/sampleStdNormalized);			
+		}
+    }
+    
 
-
+    
 
     //Kernel que retorna la Probabilidad de  Pr(X<x) 
     //sobre una distribución de densidad Normal 
@@ -134,7 +205,7 @@ public:
     //sobre una distribución de densidad Normal 
     double probabilidadNormalAB(double medianaIn, double desviationStd, double a, double b)
     {
-        double intA = probabilidadNormal(a, medianaIn, desviationStd) ;
+//        double intA = probabilidadNormal(a, medianaIn, desviationStd) ;
         double intB = probabilidadNormal(b, medianaIn, desviationStd) ;
         return (intB - intB);
     }
@@ -149,14 +220,52 @@ public:
     //Valor Z usado en distribución Normal
     double zValue(double x, double medianaIn, double desviationStn)
     {return (x - medianaIn)/desviationStn;}
-
+    
+     //Valor x usado en el calculo de z
+    double xValue(double z)
+    {return (z*sampleStd + sampleMediana);}
+    
+    //Valor x usado en el calculo de z normalizado
+    double xValueNorm(double z)
+    {return (z*sampleStdNormalized + sampleMedianaNormalized);}
+    
+     
+    //recuperacion de x desde valor normalizado
+    double xValueOrigenNorm(double z)
+    {return xValueNorm(z)*(maximoV-minimoV) + minimoV;}
+    
+    
     //Kernel Normal para mapeo de valores en función de distribucion
     //phi=@(x)(exp(-.5*x.^2)/sqrt(2*pi));
     double kernelNormal(double x){
-    return (exp( (-0.5)*pow(x,2.0) )/sqrtOf2Pi);
+    return (exp( (-0.5)*pow(x,2.0) )/(sqrtOf2Pi));
     }
-     /**************************************/
+    
+    //kernel para K-Density
+    double ksden(vector<double> dataNormIn, int i, int h)
+    {		
+	double tmp = 0.0;
+	vector<double> valTmp;
+	for(unsigned int j=0;j<dataNormIn.size();j++){
+	tmp = tmp + kernelNormal( (dataNormIn[i] - dataNormIn[j])/h )/h;
+	}		
+    return tmp/dataNormIn.size();
+	}
+    
+    //K-Density
+    void distKDensidad(vector<double> xIn,vector<double> salidas)
+    {
+   vector<double> dataNorm;
+   normalizedData(xIn,dataNorm);
+   double h=sqrt(varianza(dataNorm));
+   sort(dataNorm.begin(), dataNorm.end()); //revisar a futuro
+   
+     for(unsigned int i=1;i<dataNorm.size();i++)
+     salidas.push_back(ksden(dataNorm,i,h));
 
+
+}
+    
 
     /****** Function Epanechnikov *********/ 
     //Kernel Epanechnikov 
@@ -174,6 +283,8 @@ public:
     return 0.5;
     }
 
+
+    
 
 };
 

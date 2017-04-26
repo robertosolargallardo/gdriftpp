@@ -275,6 +275,23 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		}
 	}
 	
+	// Prueba de objeto estadistico
+	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
+	
+	/**** Comienzo analisis *****/ 
+	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/ 
+	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
+	statsAnalisis.cargaDataStats(statistics, params); /*Almacena estadisticos y parametros*/ 
+	int medidaDistancia = 0;
+	int opcionNormalizar = 1;
+	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
+	statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	int tipoDistribucion = 0;
+	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
+	/**** Fin analisis *****/ 
+	
+	
+	
 	// Generacion de nuevas distribuciones
 	bool finish = computeDistributions(params, statistics, target, res_dist);
 	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
