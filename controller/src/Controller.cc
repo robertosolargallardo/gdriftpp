@@ -54,21 +54,14 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	sim.run();
 	cout<<"Controller::run - Ok\n";
 	
-	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-	
-	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-	fposterior.push_back(std::make_pair("populations", indices(sim.samples())));
-	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-	
-	//sprintf(filename, "err-%s-%s-%s.json", _frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-	//write_json(filename, fposterior);
-	
-	fresponse.push_back(make_pair("prior", fprior));
-	fresponse.push_back(make_pair("posterior", fposterior));
-	fresponse.push_back(make_pair("individual", findividual));
-	fresponse.push_back(make_pair("scenario", fscenario));
-
-	comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.resource"), fresponse);
+	if( sim.detectedErrors() == 0 ){
+		fposterior.push_back(std::make_pair("populations", indices(sim.samples())));
+		fresponse.push_back(make_pair("prior", fprior));
+		fresponse.push_back(make_pair("posterior", fposterior));
+		fresponse.push_back(make_pair("individual", findividual));
+		fresponse.push_back(make_pair("scenario", fscenario));
+		comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.resource"), fresponse);
+	}
 	
 //	cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
 	
