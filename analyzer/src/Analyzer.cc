@@ -112,7 +112,7 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 	// Esto es por razones de claridad, despues se puede optimizar
 	
 	// Vector con las varianzas de los datos POR ESTADISTICO (es decir, la varianza de cada columna)
-	cout<<"Analyzer::computeDistributions - Calculando Varianzas\n";
+//	cout<<"Analyzer::computeDistributions - Calculando Varianzas\n";
 	vector<double> vars;
 	for(unsigned int s = 0; s < target.size(); ++s){
 		// Evaluar varianza de estadistico s
@@ -130,7 +130,7 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 	
 	// Vector de diferencias POR DATO, POR ESTADISTICO
 	// cada fila tiene statistics.size() columnas, con la diferencia con el target al cuadrado, normalizado con la varianza del estadistico
-	cout<<"Analyzer::computeDistributions - Calculando diferencias\n";
+//	cout<<"Analyzer::computeDistributions - Calculando diferencias\n";
 	vector<vector<double>> diffs;
 	for(unsigned int d = 0; d < statistics.size(); ++d){
 		vector<double> diffs_dato;
@@ -142,7 +142,7 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 	
 	// vector de pares <distancia, posicion del dato>
 	// Asi es facil ordenarlos y saber cuales datos considerar
-	cout<<"Analyzer::computeDistributions - Evaluando distancias\n";
+//	cout<<"Analyzer::computeDistributions - Evaluando distancias\n";
 	vector< pair<double, unsigned int> > distancias;
 	for(unsigned int d = 0; d < statistics.size(); ++d){
 		double dist = 0.0;
@@ -196,14 +196,14 @@ pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
 	for(unsigned int d = 0; d < values.size(); ++d){
 		mean += values[d];
 		mean2 += values[d] * values[d];
-		cout<<"Analyzer::evaluateDistribution - values["<<d<<"]: "<<values[d]<<" ("<<mean<<", "<<mean2<<")\n";
+//		cout<<"Analyzer::evaluateDistribution - values["<<d<<"]: "<<values[d]<<" ("<<mean<<", "<<mean2<<")\n";
 	}
 	mean /= values.size();
 	mean2 /= values.size();
 	double var = mean2 - mean*mean;
-	cout<<"Analyzer::evaluateDistribution - var: "<<var<<"\n";
+//	cout<<"Analyzer::evaluateDistribution - var: "<<var<<"\n";
 	var = pow(var, 0.5);
-	cout<<"Analyzer::evaluateDistribution - var final: "<<var<<"\n";
+//	cout<<"Analyzer::evaluateDistribution - var final: "<<var<<"\n";
 	
 	cout<<"Analyzer::evaluateDistribution - Fin ("<<median<<", "<<var<<")\n";
 	return pair<double, double>(median, var);	
