@@ -106,7 +106,6 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_limits,
 			double stddev = _fdistribution.get<double>("params.stddev");
 			std::normal_distribution<> normal(mean, stddev);
 			double value = normal(rng);
-			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
 			if(force_limits){
 				if(value < forced_min){
 					value = forced_min;
@@ -115,6 +114,7 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_limits,
 					value = forced_max;
 				}
 			}
+			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
 			return(static_cast<T>(value));
 		}
 		case GAMMA:{
@@ -144,7 +144,7 @@ boost::property_tree::ptree parse_individual(boost::property_tree::ptree _findiv
 		for(auto &fgene: fchromosome.second.get_child("genes")){
 			boost::property_tree::ptree frate=fgene.second.get_child("mutation.rate");
 			fgene.second.get_child("mutation").erase("rate");
-			fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution"), true, 0, 1.0):frate.get<double>("value"));
+			fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution"), true, 0.0, 1.0):frate.get<double>("value"));
 		}
 	}
 	return(_findividual);
