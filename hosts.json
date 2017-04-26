@@ -23,7 +23,7 @@
 		}
 	],
 	"database" : {
-		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
+		"uri"  : "mongodb://localhost:27017",
 		"name" : "gdrift",
 		"collections" : {
 			"data"     : "data",
