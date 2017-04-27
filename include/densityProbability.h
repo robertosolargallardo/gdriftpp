@@ -185,6 +185,10 @@ public:
 		double tmp,value;
 		for(int i=0;i<dim;i++)
 	    {
+	    	if(sampleStdNormalized == 0){
+	    		interpoladoOut.push_back(1.0);
+	    		continue;
+	    	}
 			tmp = zValue(interpoladoTmp[i],sampleMedianaNormalized,sampleStdNormalized);
 			value = kernelNormal(tmp);
             interpoladoOut.push_back(value/sampleStdNormalized);			
