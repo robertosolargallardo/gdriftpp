@@ -42,6 +42,12 @@ using namespace std;
    //Normaliza vector entre [0,1]
     static void normalizedData(vector<double> dataIn, vector<double> &dataOut)
     {
+    
+//    cout<<"normalizedData - Inicio ("<<dataIn.size()<<" datos)\n";
+//    for(unsigned int i = 0; i < dataIn.size(); ++i){
+//    	cout<<"dataIn["<<i<<"]: "<<dataIn[i]<<"\n";
+//    }
+    
       double tmp;
       double maximo = maximoValor(dataIn);
       double minimo = minimoValor(dataIn);
@@ -55,7 +61,7 @@ using namespace std;
 	      else
 	      {
 	      dataOut.push_back(1.0);  
-	      cout<<"Calculo raro:"<<endl;
+//	      cout<<"Calculo raro:"<<endl;
 	      }
 	    }
     }
