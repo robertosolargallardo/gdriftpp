@@ -102,6 +102,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	return sqrt(s/n);
 }
 
+/*
 bool Analyzer::computeDistributions(vector<vector<double>> &params, 
 									vector<vector<double>> &statistics, 
 									vector<double> &target, 
@@ -181,7 +182,9 @@ bool Analyzer::computeDistributions(vector<vector<double>> &params,
 	
 	return false;
 }
+*/
 
+/*
 // Por ahora solo calculo la MEDIANA y la desviacion estandar para parametrizar la distribucion
 // Usamos la mediana pues la distribución puede estar desbalanceada, quizas podamos considerar otra medida de la esperanza
 pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
@@ -208,8 +211,9 @@ pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
 	cout<<"Analyzer::evaluateDistribution - Fin ("<<median<<", "<<var<<")\n";
 	return pair<double, double>(median, var);	
 }
+*/
 
-bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -262,6 +266,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	// Luego, itero por el escenario en fresponse
 	// En cada evento y chromosoma, genero el string absoluto de la ruta del parametro, y reemplazo los valores con los de la nueva distribucion
 	
+	bool finish = false;
 	vector< pair<double, double> > res_dist;
 	
 	vector<double> target;
@@ -285,19 +290,38 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	int medidaDistancia = 0;
 	int opcionNormalizar = 1;
 	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
+//	statsAnalisis.selectSample(1.0);
 	statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
 	int tipoDistribucion = 0;
 	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
-	/**** Fin analisis *****/ 
+	/**** Fin analisis *****/
 	
-	
+	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
+		unsigned int opcionGraficoOut = it->second;
+		string nombre = it->first;
+		vector<double> dataGrafica;
+		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana<<", std: "<<statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd<<")\n";
+		unsigned int dimG = statsAnalisis.setDistPosterior[opcionGraficoOut].samplePostNormalized.size(); //Por ahora se usa el mismo numero de puntos que muestra, lunes os comento
+		statsAnalisis.setDistPosterior[opcionGraficoOut].outVectorGrafico1(dimG, dataGrafica); //Parametro con numeracion:opcionGraficoOut
+//		for(unsigned int i = 0; i < dataGrafica.size(); ++i){
+//			cout<<"grafico["<<i<<"]: "<<dataGrafica[i]<<"\n";
+//		}
+		estimations_map[nombre] = dataGrafica;
+		
+		res_dist.push_back( pair<double, double>(
+			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana,
+			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
+		);
+		
+//		cout<<"-----     -----\n";
+	}
 	
 	// Generacion de nuevas distribuciones
-	bool finish = computeDistributions(params, statistics, target, res_dist);
-	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
-	for(unsigned int i = 0; i < res_dist.size(); ++i){
-		cout<<"res_dist["<<i<<"]: ("<<res_dist[i].first<<", "<<res_dist[i].second<<")\n";
-	}
+//	finish = computeDistributions(params, statistics, target, res_dist);
+//	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
+//	for(unsigned int i = 0; i < res_dist.size(); ++i){
+//		cout<<"res_dist["<<i<<"]: ("<<res_dist[i].first<<", "<<res_dist[i].second<<")\n";
+//	}
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
@@ -486,12 +510,64 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 						s_ids.push_back(s_id);
 					}
 					bool finish = false;
+					
+					boost::property_tree::ptree scenarios;
 					for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
 						// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
 						// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
 						// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
-						finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse);
+						map<string, vector<double>> estimations_map;
+						finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map);
+						
+						// Agregar estimations_map al json de resultados de entrenamiento
+						boost::property_tree::ptree scenario;
+						string name = "Scenario " + std::to_string(s_ids[i]);
+						scenario.put("name", name);
+						scenario.put("id", s_ids[i]);
+						boost::property_tree::ptree estimations;
+						
+						for(map<string, vector<double>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
+						
+							boost::property_tree::ptree estimation;
+							estimation.put("parameter", it->first);
+							boost::property_tree::ptree fvalue;
+							boost::property_tree::ptree fvalues;
+							for( unsigned int j = 0; j < it->second.size(); ++j ){
+								fvalue.put("y", it->second[j]);
+								fvalues.push_back(make_pair("", fvalue));
+							}
+							estimation.add_child("values", fvalues);
+							estimations.push_back(make_pair("", estimation));
+						}
+						scenario.add_child("estimations", estimations);
+						scenarios.push_back(make_pair("", scenario));
+						
+//						for(auto k : h2){
+//							fvalue.put("x",k.first);
+//							fvalue.put("y1",h1[k.first]);
+//							fvalue.put("y2",k.second);
+//							fvalues.push_back(make_pair("",fvalue));
+//						}
+						
+//						estimations.push_back(make_pair("", estimation));
+						
+						scenario.add_child("estimations", estimations);
+						
+						estimations_map.clear();
 					}
+					
+					boost::property_tree::ptree estimations;
+					estimations.add_child("scenarios", scenarios);
+					
+					boost::property_tree::ptree training_results;
+					training_results.put("id", id);
+					training_results.add_child("estimations", estimations);
+					
+					
+					db_comm.storeTrainingResults(training_results);
+					
+					
+					// Almacenar el json de resultados de entrenamiento
 					
 					if(finish){
 						cout<<"Analyzer::run - Preparando finalize\n";
