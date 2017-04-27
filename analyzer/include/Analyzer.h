@@ -15,6 +15,8 @@
 #include "Const.h"
 #include "DBCommunication.h"
 
+#include "simEvaluation.h"
+
 using namespace std;
 
 class Analyzer : public Node{
@@ -39,16 +41,16 @@ private:
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
 	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
-	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse);
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map);
 	
 	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
 	// Recibe los P parametros de las N simulaciones
 	// ...las E estadisticas de esas mismas N simulaciones
 	// ...las E estadsiticas target
 	// Entrega las P distribuciones como un par <media, varianza> para cada parametro
-	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
+//	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
 	
-	pair<double, double> evaluateDistribution(vector<double> values);
+//	pair<double, double> evaluateDistribution(vector<double> values);
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

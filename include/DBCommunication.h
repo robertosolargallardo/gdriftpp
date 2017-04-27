@@ -27,6 +27,7 @@ class DBCommunication{
 		string collection_data;
 		string collection_results;
 		string collection_settings;
+		string collection_statistics;
 
 	public:
 		DBCommunication(){
@@ -34,8 +35,10 @@ class DBCommunication{
 			collection_data = "data";
 			collection_results = "results";
 			collection_settings = "settings";
+			collection_statistics = "statistics";
 		}
 		
+		// TODO: agregar collection_statistics a los parametros (para eso hay que agregarlo tambien a hosts.json)
 		DBCommunication(string _uri, string _db_name, string _collection_data, string _collection_results, string _collection_settings){
 			uri = _uri;
 			mongo = util::Mongo(uri);
@@ -43,6 +46,7 @@ class DBCommunication{
 			collection_data = _collection_data;
 			collection_results = _collection_results;
 			collection_settings = _collection_settings;
+			collection_statistics = "statistics";
 			cout<<"DBCommunication - db_name: \""<<db_name<<"\", collections: \""<<collection_data<<"\", \""<<collection_results<<"\", \""<<collection_settings<<"\"\n";
 		}
 		
@@ -298,6 +302,22 @@ class DBCommunication{
 			return count;
 		}
 		
+		void storeTrainingResults(boost::property_tree::ptree &result){
+			
+			cout<<"DBCommunication::storeTrainingResults - Inicio\n";
+			
+			cout<<"Analyzer::run - Resultados de entrenamiento: \n";
+			std::stringstream ss;
+			write_json(ss, result);
+			cout << ss.str() << endl;
+			
+			// Quizas sea necesario crear una coleccion adicional
+//			mongo.write(db_name, collection_statistics, json);
+			
+			
+			cout<<"DBCommunication::storeTrainingResults - Fin\n";
+			
+		}
 		
 		
 		
