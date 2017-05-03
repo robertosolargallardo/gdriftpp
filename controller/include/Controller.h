@@ -27,7 +27,21 @@ public:
 	// El programa debe iniciarlos con "Controller::thread_started = Controller::startThreads(n_threads, queue, mutex);" antes del main
 	static bool thread_started;
 	// Proceso de inicio de los threads
-	static bool startThreads(unsigned int n_threads){ return true; }
+	static bool startThreads(unsigned int n_threads, list<shared_ptr<boost::property_tree::ptree>> *work_list, std::mutex *list_mutex);
+	
+class ThreadData{
+	public:
+		unsigned int id;
+		list<shared_ptr<boost::property_tree::ptree>> *work_list;
+		std::mutex *list_mutex;
+		
+		ThreadData(){
+			id = 0;
+			work_list = NULL;
+			list_mutex = NULL;
+		}
+		~ThreadData(){}
+};
 	
 };
 #endif

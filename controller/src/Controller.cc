@@ -21,37 +21,58 @@ boost::property_tree::ptree indices(map<string,Sample*> _samples){
 	return(fpopulations);
 }
 
-void controller_thread(unsigned int id, list<shared_ptr<boost::property_tree::ptree>> *work_list, std::mutex *list_mutex){
+//void controller_thread(unsigned int id, list<shared_ptr<boost::property_tree::ptree>> *work_list, std::mutex *list_mutex){
+bool controller_thread(Controller::ThreadData *data){
 	
 	unsigned int sleep_time = 1;
 	shared_ptr<boost::property_tree::ptree> ptr_json;
 	
 	while(true){
-		list_mutex->lock();
-		if(work_list->empty()){
-			list_mutex->unlock();
-			cout<<"controller_thread["<<id<<"] - Durmiendo\n";
+		data->list_mutex->lock();
+		if(data->work_list->empty()){
+			data->list_mutex->unlock();
+			cout<<"controller_thread["<<data->id<<"] - Durmiendo\n";
 			std::this_thread::sleep_for (std::chrono::seconds(sleep_time));
 			continue;
 		}
 		else{
-			ptr_json = work_list->front();
-			work_list->pop_front();
-			list_mutex->unlock();
+			ptr_json = data->work_list->front();
+			data->work_list->pop_front();
+			data->list_mutex->unlock();
 		}
 		
 		// Procesar el json
-		cout<<"controller_thread["<<id<<"] - Procesando json\n";
+		cout<<"controller_thread["<<data->id<<"] - Procesando json\n";
 		
 		std::stringstream ss;
 		write_json(ss, *ptr_json);
 		cout<<ss.str()<<"\n";
 		
-		cout<<"controller_thread["<<id<<"] - -----------------------\n";
+		cout<<"controller_thread["<<data->id<<"] - -----------------------\n";
 		
 		
 	}
 	
+}
+
+bool Controller::startThreads(unsigned int n_threads, list<shared_ptr<boost::property_tree::ptree>> *work_list, std::mutex *list_mutex){
+	
+	cout<<"Controller::startThreads - Preparando datos\n";
+	ThreadData threads_data[n_threads];
+	for(unsigned int i = 0; i < n_threads; ++i){
+		threads_data[i].id = i;
+		threads_data[i].work_list = work_list;
+		threads_data[i].list_mutex = list_mutex;
+		
+	}
+	
+	cout<<"Controller::startThreads - Lanzando threads\n";
+	for(unsigned int i = 0; i < n_threads; ++i){
+		std::thread(controller_thread, &(threads_data[i]) ).detach();
+	}
+	
+	cout<<"Controller::startThreads - Fin\n";
+	return true;
 }
 
 boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_frequest){
