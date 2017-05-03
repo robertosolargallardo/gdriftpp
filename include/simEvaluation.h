@@ -243,10 +243,9 @@ public:
 //		size_t sizeStas  = setDistancias.size();
 		sortDistances();
 		int posSelect;
-		for(size_t k=0;k<dim;k++)
-		{ 
+		for(size_t k = 0; k < dim; ++k){ 
 			posSelect = setDistancias[k].first;
-			setSample.push_back( pair<int, vector<double> > (posSelect,setSimulaciones[posSelect].outParametros()));
+			setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].outParametros()));
 		}	
 	}
      

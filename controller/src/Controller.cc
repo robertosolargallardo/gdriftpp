@@ -1,4 +1,7 @@
 #include "Controller.h"
+
+unsigned int Controller::total_errores = 0;
+
 Controller::Controller(const boost::property_tree::ptree &_fhosts, const uint32_t &_id) : Node(_fhosts) {
 	this->_id = _id;
 }
@@ -16,6 +19,39 @@ boost::property_tree::ptree indices(map<string,Sample*> _samples){
 	fpopulations.push_back(std::make_pair("", all.indices()));
 
 	return(fpopulations);
+}
+
+void controller_thread(unsigned int id, list<shared_ptr<boost::property_tree::ptree>> *work_list, std::mutex *list_mutex){
+	
+	unsigned int sleep_time = 1;
+	shared_ptr<boost::property_tree::ptree> ptr_json;
+	
+	while(true){
+		list_mutex->lock();
+		if(work_list->empty()){
+			list_mutex->unlock();
+			cout<<"controller_thread["<<id<<"] - Durmiendo\n";
+			std::this_thread::sleep_for (std::chrono::seconds(sleep_time));
+			continue;
+		}
+		else{
+			ptr_json = work_list->front();
+			work_list->pop_front();
+			list_mutex->unlock();
+		}
+		
+		// Procesar el json
+		cout<<"controller_thread["<<id<<"] - Procesando json\n";
+		
+		std::stringstream ss;
+		write_json(ss, *ptr_json);
+		cout<<ss.str()<<"\n";
+		
+		cout<<"controller_thread["<<id<<"] - -----------------------\n";
+		
+		
+	}
+	
 }
 
 boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_frequest){
@@ -41,12 +77,6 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	cout<<"Controller::run - Creando Simulatior\n";
 	Simulator sim(_frequest);
 	
-	//std::stringstream ss;
-	//char filename[256];
-	//sprintf(filename,"out-%s-%s-%s.json", _frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-	//write_json(filename,_frequest);
-	//cout << ss.str() << endl;
-	
 	//fprior.push_back(std::make_pair("populations", indices(sim.populations())));
 	
 	//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
@@ -60,12 +90,19 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 		fresponse.push_back(make_pair("posterior", fposterior));
 		fresponse.push_back(make_pair("individual", findividual));
 		fresponse.push_back(make_pair("scenario", fscenario));
-		comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.resource"), fresponse);
 	}
+	else{
+		cout<<"Controller::run - Error durante simulacion, resultados no usables.\n";
+		// Aqui habria que mandarle igual un mensaje al analyzer, que diga que OCURRIO una simulacion pero no produjo resultados
+		// Esto debe aumentar el contador de simulaciones aceptadas igual, para seguir el proceso, o pedir mas al scheduler
+		fresponse.put("error", sim.detectedErrors());
+		++total_errores;
+	}
+	comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.resource"), fresponse);
 	
 //	cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
 	
-	cout<<"Controller::run - Fin\n";
+	cout<<"Controller::run - Fin (total_errores: "<<total_errores<<")\n";
 	return(_frequest);
 }
 
