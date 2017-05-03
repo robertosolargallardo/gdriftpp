@@ -40,9 +40,9 @@ int main(int argc, char **argv){
 	read_json(argv[1], fhosts);
 	uint32_t id = atoi(argv[2]);
 	
-	unsigned MAX_THREADS = std::thread::hardware_concurrency();
-	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
-//	semaphore = make_shared<util::Semaphore>(1);
+	// unsigned MAX_THREADS = std::thread::hardware_concurrency();
+	// semaphore = make_shared<util::Semaphore>(MAX_THREADS);
+	semaphore = make_shared<util::Semaphore>(1);
 	
 	controller = make_shared<Controller>(fhosts, id);
 	

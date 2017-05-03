@@ -284,18 +284,24 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
 	
 	/**** Comienzo analisis *****/ 
-	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/ 
+	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/
+	cout<<"Analyzer::trainModel - almacenarTarget...\n";
 	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
+	cout<<"Analyzer::trainModel - cargaDataStats...\n";
 	statsAnalisis.cargaDataStats(statistics, params); /*Almacena estadisticos y parametros*/ 
 	int medidaDistancia = 0;
 	int opcionNormalizar = 1;
+	cout<<"Analyzer::trainModel - computeDistancia...\n";
 	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
 //	statsAnalisis.selectSample(1.0);
+	cout<<"Analyzer::trainModel - selectSample...\n";
 	statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
 	int tipoDistribucion = 0;
+	cout<<"Analyzer::trainModel - distPosterior...\n";
 	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
 	/**** Fin analisis *****/
 	
+	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		unsigned int opcionGraficoOut = it->second;
 		string nombre = it->first;
