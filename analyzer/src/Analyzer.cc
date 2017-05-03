@@ -258,7 +258,9 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	vector<vector<double>> params;
 	vector<vector<double>> statistics;
-	db_comm.getResults(id, scenario_id, feedback, params, events_params, params_positions.size(), statistics);
+	// POR AHORA ESTOY FIJANDO EL NUMERO DE ESTADISTICOS EN 15
+	// Obviamente eso hay que decidirlo de mejor manera
+	db_comm.getResults(id, scenario_id, feedback, params, events_params, params_positions.size(), statistics, 15);
 	
 	// Por ahora, asumimos que las distribuciones son normales
 	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
@@ -439,8 +441,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			this->next_feedback.emplace(id, feedback_size);
 			
 			unsigned int feedback = 0;
-			boost::property_tree::ptree::assoc_iterator it = _frequest.find("feedback");
-			if( it != _frequest.not_found() ){
+			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("feedback");
+			if( test_child ){
 				feedback = _frequest.get<uint32_t>("feedback");
 			}
 			
@@ -449,15 +451,25 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			if(this->_accepted.count(id)==0) return(_frequest);
 			
 			this->_batch_size[id]++;
-//			double dist = distance(this->_data[id].get_child("posterior"), _frequest.get_child("posterior"));
-			double dist = distance(id, _frequest.get_child("posterior"));
-			cout << dist << endl;
+			this->_accepted[id]++;
 			
-			//if(dist <= MAX_DIST){
-				this->_accepted[id]++;
+			// Solo calcular distancia y guardar resultado si NO hay error
+			
+			uint32_t error = 0;
+			test_child = _frequest.get_child_optional("error");
+			if( test_child ){
+				error = _frequest.get<uint32_t>("error");
+			}
+			
+			if(error == 0){
+				double dist = distance(id, _frequest.get_child("posterior"));
+				cout<<"Analyzer::run - dist: "<<dist<<"\n";
 				_frequest.put("distance", dist);
 				db_comm.writeResults(_frequest);
-			//}
+			}
+			else{
+				cout<<"Analyzer::run - Error en simulacion detectado (error: "<<error<<")\n";
+			}
 			
 			// La idea aqui es que, cuando se tengan suficientes resultados para la simulacion id
 			// ...se ejecute el algoritmo de entrenamiento y ajuste de parametros
@@ -504,8 +516,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					// trainModel PODRIA usar max_feedback para algo
 					// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
 					uint32_t max_feedback = 0;
-					boost::optional<boost::property_tree::ptree&> child = fresponse.get_child_optional("population-increase-phases");
-					if( child ){
+					test_child = fresponse.get_child_optional("population-increase-phases");
+					if( test_child ){
 						max_feedback = fresponse.get<uint32_t>("population-increase-phases");
 					}
 					
