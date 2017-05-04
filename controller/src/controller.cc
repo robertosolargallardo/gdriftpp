@@ -25,8 +25,9 @@ static unsigned int id_controller = 0;
 // Variables para nuevo modelo de threads
 list<shared_ptr<boost::property_tree::ptree>> work_list;
 std::mutex list_mutex;
-//unsigned n_threads = std::thread::hardware_concurrency();
-unsigned n_threads = 4;
+unsigned MAX_THREADS = std::thread::hardware_concurrency();
+unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
+//unsigned n_threads = 4;
 
 // Inicializacion de los threads (Lo dejo EN el main por ahora para agregar hosts)
 //bool Controller::thread_started = Controller::startThreads(n_threads, &work_list, &list_mutex);
@@ -57,7 +58,6 @@ int main(int argc, char **argv){
 	read_json(argv[1], fhosts);
 	uint32_t id = atoi(argv[2]);
 	
-	// unsigned MAX_THREADS = std::thread::hardware_concurrency();
 	// semaphore = make_shared<util::Semaphore>(MAX_THREADS);
 	semaphore = make_shared<util::Semaphore>(1);
 	
