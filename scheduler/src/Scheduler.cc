@@ -43,7 +43,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			break;
 		}
 		case CONTINUE:{
-			cout<<"Scheduler::run - CONTINUE\n";
+			cout<<"Scheduler::run - CONTINUE ("<<this->_settings[id]->_training_size<<")\n";
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
 			break;
@@ -60,7 +60,12 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			
 			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			this->_semaphore->lock();
+			// Antes de resetear settings, guardo cualquier cosa que pudiera necesitar
+			unsigned int training_size = this->_settings[id]->_training_size;
+			// Recreo settings
 			this->_settings[id].reset(new Settings(_frequest));
+			// Reestablezco valores antiguos
+			this->_settings[id]->_training_size = training_size;
 			this->_semaphore->unlock();
 			// Asigno independientemente el feedback, quzas podria definirse en el constructo si se encuentra (para ser resistente al init)
 			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
@@ -215,6 +220,9 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 	return(_fscenario);
 }
 void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::property_tree::ptree &_fhosts){
+
+	cout<<"Settings::send - Inicio (_batch_length: "<<_batch_length<<")\n";
+	
 	vector<boost::property_tree::ptree> controllers;
 	for(auto &fcontroller: _fhosts.get_child("controller"))
 	controllers.push_back(fcontroller.second);
@@ -224,6 +232,7 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 	scenarios.push_back(fscenario.second);
 	
 	vector<boost::property_tree::ptree> fjobs;
+	cout<<"Settings::send - Iterando "<<(_batch_length*controllers.size())<<" veces\n";
 	for(uint32_t i = 0; i < (_batch_length*controllers.size()); i++){
 		boost::property_tree::ptree fjob;
 		fjob.put("id", this->_fsettings.get<uint32_t>("id"));
@@ -265,6 +274,7 @@ void Scheduler::Settings::send(const uint32_t &_batch_length, const boost::prope
 	random_shuffle(fjobs.begin(), fjobs.end());
 
 	for(uint32_t i = 0; i < fjobs.size(); i++){
+		cout<<"Settings::send - Enviando trabajo "<<i<<"\n";
 		comm::send(controllers[i%controllers.size()].get<string>("host"),controllers[i%controllers.size()].get<string>("port"),controllers[i%controllers.size()].get<string>("resource"), fjobs[i]);
 	}
 
