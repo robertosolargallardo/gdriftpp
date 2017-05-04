@@ -5,6 +5,7 @@ Scheduler::Settings::Settings(boost::property_tree::ptree &_fsettings){
 	this->_run = 0;
 	this->_batch = 0;
 	this->_feedback = 0;
+	this->_training_size = 0;
 }
 
 Scheduler::Settings::~Settings(void){
@@ -23,7 +24,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	uint32_t id = _frequest.get<uint32_t>("id");
 	uint32_t type = util::hash(_frequest.get<string>("type"));
 	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
-
+	
 	switch(type){
 		case INIT:{
 			cout<<"Scheduler::run - INIT\n";
@@ -32,12 +33,19 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<Settings>(_frequest);
 			this->_semaphore->unlock();
-			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
+			this->_settings[id]->_training_size = BATCH_LENGTH;
+			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("simulations-per-feedback");
+			if( test_child ){
+				this->_settings[id]->_training_size = _frequest.get<uint32_t>("simulations-per-feedback");
+			}
+//			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
+			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
 			break;
 		}
 		case CONTINUE:{
 			cout<<"Scheduler::run - CONTINUE\n";
-			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
+//			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
+			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
 			break;
 		}
 		case RELOAD:{
@@ -114,7 +122,7 @@ T generate(const boost::property_tree::ptree &_fdistribution, bool force_limits,
 					value = forced_max;
 				}
 			}
-			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
+//			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
 			return(static_cast<T>(value));
 		}
 		case GAMMA:{
@@ -181,10 +189,10 @@ boost::property_tree::ptree parse_scenario(boost::property_tree::ptree _fscenari
 //				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<" ("<<oss.str()<<")\n";
 				
 				if( feedback < max_feedback ){
-					cout<<"Scheduler::parse_scenario - Reduciendo population_size ("<<population_size<<", min_pop: "<<min_pop<<", feedback: "<<feedback<<", max_feedback: "<<max_feedback<<")\n";
+//					cout<<"Scheduler::parse_scenario - Reduciendo population_size ("<<population_size<<", min_pop: "<<min_pop<<", feedback: "<<feedback<<", max_feedback: "<<max_feedback<<")\n";
 					population_size = (unsigned int)((double)(population_size - min_pop) * feedback / max_feedback + min_pop);
 				}
-				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<"\n";
+//				cout<<"Scheduler::parse_scenario - population_size: "<<population_size<<"\n";
 				if( population_size > max_population){
 					population_size = max_population;
 				}

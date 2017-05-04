@@ -33,6 +33,7 @@ class Scheduler:public Node{
 								uint32_t _run;
 								uint32_t _batch;
 								uint32_t _feedback;
+								uint32_t _training_size;
 						
 								Settings(boost::property_tree::ptree &_fsettings);
 
