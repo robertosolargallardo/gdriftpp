@@ -29,12 +29,14 @@ bool controller_thread(Controller::ThreadData *data){
 	cout<<"controller_thread["<<data->id<<"] - Inicio\n";
 	data->list_mutex->unlock();
 	
-	unsigned int sleep_time = 3;
+	unsigned int sleep_time = 5;
 	shared_ptr<boost::property_tree::ptree> ptr_json;
 	
 	while(true){
 		data->list_mutex->lock();
 		cout<<"controller_thread["<<data->id<<"] - Largo de lista: "<<data->work_list->size()<<"\n";
+		// NOTAR QUE ESTA ES SOLO LA SOLUCION MAS SIMPLE (dormir N segundos si la cola esta vacia)
+		// TODO: Cambiar sleep de N segundos por un sistema de señales apropiado
 		if(data->work_list->empty()){
 			cout<<"controller_thread["<<data->id<<"] - Durmiendo\n";
 			data->list_mutex->unlock();
