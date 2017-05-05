@@ -1,8 +1,8 @@
 {
 	"id": "0",
 	"type": "init",
-	"max-number-of-simulations": "20000",
-	"batch-size": "100",
+	"max-number-of-simulations": "100000",
+	"batch-size": "2000",
 	"population-increase-phases": "0",
 
 	"individual": {
