@@ -302,10 +302,9 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			
 			uint32_t scenario_id = _frequest.get<uint32_t>("scenario.id");
 //			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
-//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
-			uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
-//			// Solo agrego feedback_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * feedback_size[i];
-			this->next_feedback.emplace(id, feedback_size);
+			uint32_t batch_size = _frequest.get<uint32_t>("batch-size");
+//			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * batch_size[i];
+			this->next_batch.emplace(id, batch_size);
 			
 			unsigned int feedback = 0;
 			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("feedback");
@@ -313,12 +312,12 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				feedback = _frequest.get<uint32_t>("feedback");
 			}
 			
-			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", _batch_size[id]: "<<_batch_size[id]<<", feedback: "<<feedback<<")\n";
+//			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", _batch_size[id]: "<<_batch_size[id]<<", feedback: "<<feedback<<")\n";
+			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", feedback: "<<feedback<<")\n";
 			
-			if(this->_accepted.count(id)==0) return(_frequest);
+			if(finished.count(id)==0) return(_frequest);
 			
-			this->_batch_size[id]++;
-			this->_accepted[id]++;
+			finished[id]++;
 			
 			// Solo calcular distancia y guardar resultado si NO hay error
 			
@@ -350,26 +349,26 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			// Notar que feedback depende de simulacion Y ESCENARIO
 			// una opcion es indexar la informacion por [id][scenario_id] (o pair de ambos)
 			
-			cout<<"Analyzer::run - Batch "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<", Accepted: "<<_accepted[id]<<" / "<<next_feedback[id]<<"\n";
+//			cout<<"Analyzer::run - Batch "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<", Finished: "<<finished[id]<<" / "<<next_batch[id]<<"\n";
+			cout<<"Analyzer::run - Finished: "<<finished[id]<<" / "<<next_batch[id]<<"\n";
 			
 			
 			boost::property_tree::ptree fresponse;
 			fresponse.put("id", id);
 			
-			if(this->_accepted[id] >= uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
+			if(finished[id] >= uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
 				cout<<"Analyzer::run - Preparando finalize\n";
-				this->_accepted.erase(this->_accepted.find(id));
-				this->_batch_size.erase(this->_batch_size.find(id));
+				finished.erase(finished.find(id));
+//				this->_batch_size.erase(this->_batch_size.find(id));
 				fresponse.put("type", "finalize");
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 			}
-			else if( this->_accepted[id] >= this->next_feedback[id] ){
-//				uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
-				cout<<"Analyzer::run - Feedback iniciado (feedback_size: "<<feedback_size<<")\n";
+			else if( finished[id] >= this->next_batch[id] ){
+				cout<<"Analyzer::run - Feedback iniciado (batch_size: "<<batch_size<<")\n";
 				// Codigo de feedback, preparacion de nuevos parametros
-//				this->next_feedback[id_pair] += feedback_size;
-				this->next_feedback[id] += feedback_size;
-				cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_feedback[id]<<")\n";
+//				this->next_batch[id_pair] += batch_size;
+				this->next_batch[id] += batch_size;
+				cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_batch[id]<<")\n";
 				
 				// fresponse debe contener un documento completo de settings
 				// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
@@ -446,8 +445,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				
 				if(finish){
 					cout<<"Analyzer::run - Preparando finalize\n";
-					this->_accepted.erase(this->_accepted.find(id));
-					this->_batch_size.erase(this->_batch_size.find(id));
+					finished.erase(finished.find(id));
 					fresponse.put("type", "finalize");
 				}// if... simulacion terminada
 				else{
@@ -462,7 +460,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 					// Enviar nuevos parametros al scheduler
 					cout<<"Analyzer::run - Preparando continue\n";
-					this->_batch_size[id] = 0;
+//					this->_batch_size[id] = 0;
 					fresponse.put("type", "continue");
 				}// else... Continue
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
@@ -470,12 +468,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			break;
 		};
 		case DATA:  {
-			this->_accepted[id] = 0;
-			this->_batch_size[id] = 0;
-			// Notar que samples.json (el iniciador del proceso) NO TIENE simulations-per-feedback
-			// No es valido tomar este valor aca, debera tomarse siempre en la simulacion
-//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
-//			cout<<"Analyzer::run - Seteando feedback_size["<<id<<"]: "<<feedback_size[id]<<"\n";
+			finished[id] = 0;
 			
 			boost::property_tree::ptree fposterior;
 			fposterior.put("id", _frequest.get<string>("id"));
