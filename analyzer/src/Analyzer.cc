@@ -170,7 +170,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	double threshold = statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
 	
 	ofstream escritor(log_file, ofstream::app);
-	escritor<<"threshold "<<feedback<<": "<<threshold<<"\n";
+	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", threshold "<<threshold<<"\n";
 	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
