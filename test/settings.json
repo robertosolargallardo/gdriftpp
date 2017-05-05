@@ -3,7 +3,7 @@
 	"type": "init",
 	"max-number-of-simulations": "20000",
 	"batch-size": "100",
-	"population-increase-phases": "10",
+	"population-increase-phases": "0",
 
 	"individual": {
 		"ploidy": "1",
