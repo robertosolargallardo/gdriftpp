@@ -4,11 +4,14 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional/optional.hpp>
-#include <Simulator.h>
+#include <iostream>
+#include <fstream>
 
 #include <map>
 #include <set>
 #include <vector>
+
+#include <Simulator.h>
 
 #include "Comm.h"
 #include "Node.h"
@@ -48,6 +51,8 @@ private:
 //	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
 	
 //	pair<double, double> evaluateDistribution(vector<double> values);
+	
+	static string log_file;
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

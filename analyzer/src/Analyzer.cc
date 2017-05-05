@@ -1,4 +1,7 @@
 #include "Analyzer.h"
+
+string Analyzer::log_file = "analyzer.log";
+
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
 	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
@@ -164,7 +167,11 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
 //	statsAnalisis.selectSample(1.0);
 	cout<<"Analyzer::trainModel - selectSample...\n";
-	statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	double threshold = statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	
+	ofstream escritor(log_file, ofstream::app);
+	escritor<<"threshold "<<feedback<<": "<<threshold<<"\n";
+	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
 	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
@@ -188,15 +195,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
 		);
 		
-//		cout<<"-----     -----\n";
 	}
 	
 	// Generacion de nuevas distribuciones
 //	finish = computeDistributions(params, statistics, target, res_dist);
-//	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
-//	for(unsigned int i = 0; i < res_dist.size(); ++i){
-//		cout<<"res_dist["<<i<<"]: ("<<res_dist[i].first<<", "<<res_dist[i].second<<")\n";
-//	}
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
@@ -356,7 +358,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			boost::property_tree::ptree fresponse;
 			fresponse.put("id", id);
 			
-			if(finished[id] >= uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
+			if( finished[id] >= _frequest.get<uint32_t>("max-number-of-simulations") ){
 				cout<<"Analyzer::run - Preparando finalize\n";
 				finished.erase(finished.find(id));
 //				this->_batch_size.erase(this->_batch_size.find(id));
