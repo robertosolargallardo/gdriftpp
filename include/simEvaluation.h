@@ -235,18 +235,21 @@ public:
 
  
     //Se selecciona un % de la muestra de las top-dim distancias  
-    void selectSample(double percentage)
-    {
+    double selectSample(double percentage)  {
 	  cout<<"SimStadistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
 		unsigned int dim = (unsigned int) ( floor (setDistancias.size()*percentage) );
 		cout<<"SimStadistics::selectSample - dim: "<<dim<<"\n";
 //		size_t sizeStas  = setDistancias.size();
 		sortDistances();
 		int posSelect;
+		double threshold = 0;
 		for(size_t k = 0; k < dim; ++k){ 
 			posSelect = setDistancias[k].first;
+			threshold = setDistancias[k].second;
+			cout<<"SimStadistics::selectSample - threshold: "<<threshold<<"\n";
 			setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].outParametros()));
-		}	
+		}
+		return threshold;	
 	}
      
     //Se almacena la traspuesta de la matriz setSample 
