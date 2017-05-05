@@ -24,9 +24,9 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			this->_settings[id] = make_shared<SimulationSettings>(_frequest);
 			this->_semaphore->unlock();
 			this->_settings[id]->_training_size = BATCH_LENGTH;
-			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("simulations-per-feedback");
+			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("batch-size");
 			if( test_child ){
-				this->_settings[id]->_training_size = _frequest.get<uint32_t>("simulations-per-feedback");
+				this->_settings[id]->_training_size = _frequest.get<uint32_t>("batch-size");
 			}
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);

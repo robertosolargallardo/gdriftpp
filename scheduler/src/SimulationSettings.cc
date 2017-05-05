@@ -165,7 +165,7 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 		fjob.put("batch", this->_batch);
 		fjob.put("feedback", this->_feedback);
 		
-		fjob.put("simulations-per-feedback", this->_fsettings.get<uint32_t>("simulations-per-feedback"));
+		fjob.put("batch-size", this->_fsettings.get<uint32_t>("batch-size"));
 		
 		unsigned int max_feedback = 0;
 		boost::optional<ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");

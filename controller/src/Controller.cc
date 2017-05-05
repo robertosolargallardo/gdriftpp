@@ -72,7 +72,7 @@ bool controller_thread(Controller::ThreadData *data){
 		fresponse.put("max-number-of-simulations", _frequest.get<string>("max-number-of-simulations"));
 	
 		fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
-		fresponse.put("simulations-per-feedback", _frequest.get<uint32_t>("simulations-per-feedback"));
+		fresponse.put("batch-size", _frequest.get<uint32_t>("batch-size"));
 	
 //		cout<<"Controller::run - Creando Simulatior\n";
 		Simulator sim(_frequest);
@@ -162,7 +162,7 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	fresponse.put("max-number-of-simulations", _frequest.get<string>("max-number-of-simulations"));
 	
 	fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
-	fresponse.put("simulations-per-feedback", _frequest.get<uint32_t>("simulations-per-feedback"));
+	fresponse.put("batch-size", _frequest.get<uint32_t>("batch-size"));
 	
 	cout<<"Controller::run - Creando Simulatior\n";
 	Simulator sim(_frequest);
