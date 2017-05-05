@@ -1,6 +1,6 @@
 #include "Analyzer.h"
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
-	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"));
+	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
 	// Prueba de toma de resultados (para fase de entrenamiento)
 //	list<boost::property_tree::ptree> results;
