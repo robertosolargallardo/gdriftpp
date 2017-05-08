@@ -1,6 +1,6 @@
 #include "Analyzer.h"
 
-string Analyzer::log_file = "analyzer.log";
+string Analyzer::log_file = "logs/analyzer.log";
 
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
 	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
