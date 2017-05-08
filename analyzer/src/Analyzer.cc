@@ -302,14 +302,27 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //			write_json(ss, _frequest);
 //			cout<<ss.str()<<"\n";
 			
-			uint32_t scenario_id = _frequest.get<uint32_t>("scenario.id");
-//			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
-			uint32_t batch_size = _frequest.get<uint32_t>("batch-size");
+			// Nodo de prueba para buscar atributos
+			boost::optional<boost::property_tree::ptree&> test_child;
+			
+			uint32_t scenario_id = 0;
+			test_child = _frequest.get_child_optional("scenario.id");
+			if( test_child ){
+				scenario_id = _frequest.get<uint32_t>("scenario.id");
+//			}
+			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
+			
+			uint32_t batch_size = 0;
+			test_child = _frequest.get_child_optional("batch-size");
+			if( test_child ){
+				batch_size = _frequest.get<uint32_t>("batch-size");
+//			}
+			
 //			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * batch_size[i];
 			this->next_batch.emplace(id, batch_size);
 			
 			unsigned int feedback = 0;
-			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("feedback");
+			test_child = _frequest.get_child_optional("feedback");
 			if( test_child ){
 				feedback = _frequest.get<uint32_t>("feedback");
 			}
