@@ -27,7 +27,7 @@ class DBCommunication{
 		string collection_data;
 		string collection_results;
 		string collection_settings;
-		string collection_statistics;
+		string collection_training;
 
 	public:
 		DBCommunication(){
@@ -35,18 +35,17 @@ class DBCommunication{
 			collection_data = "data";
 			collection_results = "results";
 			collection_settings = "settings";
-			collection_statistics = "statistics";
+			collection_training = "training";
 		}
 		
-		// TODO: agregar collection_statistics a los parametros (para eso hay que agregarlo tambien a hosts.json)
-		DBCommunication(string _uri, string _db_name, string _collection_data, string _collection_results, string _collection_settings){
+		DBCommunication(string _uri, string _db_name, string _collection_data, string _collection_results, string _collection_settings, string _collection_training){
 			uri = _uri;
 			mongo = util::Mongo(uri);
 			db_name = _db_name;
 			collection_data = _collection_data;
 			collection_results = _collection_results;
 			collection_settings = _collection_settings;
-			collection_statistics = "statistics";
+			collection_training = _collection_training;
 			cout<<"DBCommunication - db_name: \""<<db_name<<"\", collections: \""<<collection_data<<"\", \""<<collection_results<<"\", \""<<collection_settings<<"\"\n";
 		}
 		
@@ -179,9 +178,9 @@ class DBCommunication{
 			return events_params;
 		}
 			
-		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, uint32_t total_params, vector<vector<double>> &statistics){
+		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, uint32_t total_params, vector<vector<double>> &statistics, uint32_t total_statistics){
 			
-			cout<<"DBCommunication::getResults - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<", total_params: "<<total_params<<")\n";
+			cout<<"DBCommunication::getResults - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<", total_params: "<<total_params<<", total_statistics: "<<total_statistics<<")\n";
 			
 			list<boost::property_tree::ptree> results;
 			mongo.readStatistics(results, db_name, collection_results, id, scenario_id, feedback);
@@ -193,6 +192,10 @@ class DBCommunication{
 			map<string, double> params_res;
 			map<string, map<uint32_t, map<uint32_t, map<string, double>>>> stats_res;
 			
+			// Minimos y maximos por seguridad para valores aceptables
+			double min_value = -20000000;
+			double max_value = 20000000;
+			
 			for(auto &json : results){
 //				if(count >= 3) break;
 				
@@ -201,9 +204,6 @@ class DBCommunication{
 //				std::stringstream ss;
 //				write_json(ss, json);
 //				cout<<ss.str()<<"\n";
-
-				// scenario.events.0.params.population.size
-				// scenario.events.2.params.source.population.percentage
 				
 				boost::property_tree::ptree scenario = json.get_child("scenario");
 				if( scenario.get<uint32_t>("id") != scenario_id ){
@@ -245,25 +245,12 @@ class DBCommunication{
 				
 				// volcar params_res en vector
 				// Notar que NO estoy verificando el largo esperado en esta version
-//				vector<double> values(params_res.size(), 0.0);
+				// Dejo los parametros en values, los verifico y agrego al final
 				vector<double> values;
 				for(map<string, double>::iterator it = params_res.begin(); it != params_res.end(); it++){
 					values.push_back(it->second);
 				}
 				params_res.clear();
-				
-				if( values.size() != total_params){
-					continue;
-				}
-				
-				//test
-//				cout<<"DBCommunication::getResults - Agregando res ("<<values[0];
-//				for(unsigned int i = 1; i < values.size(); ++i){
-//					cout<<", "<<values[i];
-//				}
-//				cout<<")\n";
-
-				params.push_back(values);
 				
 				for(auto &p : json.get_child("posterior.populations")){
 					string name = p.second.get<string>("name");
@@ -281,6 +268,7 @@ class DBCommunication{
 				
 				// volcar statistics_map en vector
 				// Notar que NO estoy verificando el largo esperado en esta version
+				// Al final verifico y agrego
 				vector<double> stats;
 				for(auto p : stats_res){
 					for(auto c : p.second){
@@ -291,9 +279,32 @@ class DBCommunication{
 						}
 					}
 				}
-				statistics.push_back(stats);
 				stats_res.clear();
 				
+				// Verifico y agrego los valores
+				
+				if( values.size() != total_params || stats.size() != total_statistics ){
+					continue;
+				}
+				bool omitir = false;
+				for(unsigned int i = 0; i < total_params; ++i){
+					if( values[i] < min_value || values[i] > max_value ){
+						omitir = true;
+						break;
+					}
+				}
+				for(unsigned int i = 0; i < total_statistics; ++i){
+					if( stats[i] < min_value || stats[i] > max_value ){
+						omitir = true;
+						break;
+					}
+				}
+				if(omitir){
+					continue;
+				}
+				
+				params.push_back(values);
+				statistics.push_back(stats);
 				++inserts;
 				
 			}
@@ -312,8 +323,7 @@ class DBCommunication{
 			cout << ss.str() << endl;
 			
 			// Quizas sea necesario crear una coleccion adicional
-//			mongo.write(db_name, collection_statistics, json);
-			
+			mongo.write(db_name, collection_training, result);
 			
 			cout<<"DBCommunication::storeTrainingResults - Fin\n";
 			

@@ -1,9 +1,9 @@
 {
 	"id": "0",
 	"type": "init",
-	"max-number-of-simulations": "20000",
-	"simulations-per-feedback": "128",
-	"population-increase-phases": "10",
+	"max-number-of-simulations": "100000",
+	"batch-size": "2000",
+	"population-increase-phases": "0",
 
 	"individual": {
 		"ploidy": "1",

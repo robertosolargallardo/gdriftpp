@@ -145,7 +145,7 @@ public:
     void cargaDataStats(vector< vector<double> > dataStats, 
                         vector< vector<double> > dataParams) 
     {
-	  
+	  cout<<"SimStadistics::cargaDataStats - Inicio (dataStats: "<<dataStats.size()<<", dataParams: "<<dataParams.size()<<")\n";
 	  //Se almacena como matriz - creo que asi lo tienes o algo parecido
 	  almacenarSetStatsSim(dataStats);		
 	  
@@ -187,8 +187,9 @@ public:
 	}
 
     /*Calcula distancias <medida de distancia,normalizar (no=0, o si=1)>*/ 
-    void computeDistancia(int medidaDistancia,int opcionNormalizar)
-    {		
+    void computeDistancia(int medidaDistancia, int opcionNormalizar)
+    {
+	  cout<<"SimStadistics::computeDistancia - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
 	   switch(opcionNormalizar)
        {	   
 		   //Sin Normalizar	
@@ -234,17 +235,21 @@ public:
 
  
     //Se selecciona un % de la muestra de las top-dim distancias  
-    void selectSample(double percentage)
-    {
+    double selectSample(double percentage)  {
+	  cout<<"SimStadistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
 		unsigned int dim = (unsigned int) ( floor (setDistancias.size()*percentage) );
+		cout<<"SimStadistics::selectSample - dim: "<<dim<<"\n";
 //		size_t sizeStas  = setDistancias.size();
 		sortDistances();
 		int posSelect;
-		for(size_t k=0;k<dim;k++)
-		{ 
+		double threshold = 0;
+		for(size_t k = 0; k < dim; ++k){ 
 			posSelect = setDistancias[k].first;
-			setSample.push_back( pair<int, vector<double> > (posSelect,setSimulaciones[posSelect].outParametros()));
-		}	
+			threshold = setDistancias[k].second;
+			cout<<"SimStadistics::selectSample - threshold: "<<threshold<<"\n";
+			setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].outParametros()));
+		}
+		return threshold;	
 	}
      
     //Se almacena la traspuesta de la matriz setSample 

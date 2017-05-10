@@ -1,6 +1,9 @@
 #include "Analyzer.h"
+
+string Analyzer::log_file = "logs/analyzer.log";
+
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
-	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"));
+	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
 	// Prueba de toma de resultados (para fase de entrenamiento)
 //	list<boost::property_tree::ptree> results;
@@ -51,28 +54,6 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices_simulated;
 	parseIndices(_simulated, indices_simulated);
 	
-	/*
-	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
-	map<string, vector<double>> deltas;
-	for(auto i : _data_indices[id]){
-		for(auto j : i.second){
-			for(auto k : j.second){
-				for(auto l : k.second){
-					a = _data_indices[id][i.first][j.first][k.first][l.first];
-					b = indices_simulated[i.first][j.first][k.first][l.first];
-					if(a == 0 && b == 0){
-						continue;
-					}
-					diff = (a - b) / max(a, b);
-					s += diff * diff;
-					n += 1.0;
-					cout<<"Analyzer::distance - s: "<<s<<", diff: "<<diff<<" (a: "<<a<<", b: "<<b<<", "<<l.first<<")\n";
-				}
-			}
-		}
-	}
-	*/
-	
 	double a=0.0, b=0.0, s=0.0, n=0.0, diff=0.0;
 	map<string, vector<double>> deltas;
 	for(auto i : _data_indices[id]){
@@ -101,117 +82,6 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	// En ese caso, la distancia no deberia ser considerada en lo absoluto (por lo que ES correcto retornar inf u otra marca)
 	return sqrt(s/n);
 }
-
-/*
-bool Analyzer::computeDistributions(vector<vector<double>> &params, 
-									vector<vector<double>> &statistics, 
-									vector<double> &target, 
-									vector< pair<double, double> > &res_dist){
-	cout<<"Analyzer::computeDistributions - Inicio (params: "<<params.size()<<", statistics: "<<statistics.size()<<", target: "<<target.size()<<")\n";
-	
-	// En esta primera implementacion almaceno los resultados parciales de los calculos
-	// Esto es por razones de claridad, despues se puede optimizar
-	
-	// Vector con las varianzas de los datos POR ESTADISTICO (es decir, la varianza de cada columna)
-//	cout<<"Analyzer::computeDistributions - Calculando Varianzas\n";
-	vector<double> vars;
-	for(unsigned int s = 0; s < target.size(); ++s){
-		// Evaluar varianza de estadistico s
-		double mean = 0.0;
-		double mean2 = 0.0;
-		for(unsigned int d = 0; d < statistics.size(); ++d){
-			mean += statistics[d][s];
-			mean2 += statistics[d][s] * statistics[d][s];
-		}
-		mean /= statistics.size();
-		mean2 /= statistics.size();
-		double var = mean2 - mean*mean;
-		vars.push_back(var);
-	}
-	
-	// Vector de diferencias POR DATO, POR ESTADISTICO
-	// cada fila tiene statistics.size() columnas, con la diferencia con el target al cuadrado, normalizado con la varianza del estadistico
-//	cout<<"Analyzer::computeDistributions - Calculando diferencias\n";
-	vector<vector<double>> diffs;
-	for(unsigned int d = 0; d < statistics.size(); ++d){
-		vector<double> diffs_dato;
-		for(unsigned int s = 0; s < target.size(); ++s){
-			diffs_dato.push_back( pow(statistics[d][s] - target[s], 2) / vars[s] );
-		}
-		diffs.push_back(diffs_dato);
-	}
-	
-	// vector de pares <distancia, posicion del dato>
-	// Asi es facil ordenarlos y saber cuales datos considerar
-//	cout<<"Analyzer::computeDistributions - Evaluando distancias\n";
-	vector< pair<double, unsigned int> > distancias;
-	for(unsigned int d = 0; d < statistics.size(); ++d){
-		double dist = 0.0;
-		for(unsigned int s = 0; s < target.size(); ++s){
-			dist += diffs[d][s];
-		}
-		dist = pow(dist / target.size(), 0.5);
-		distancias.push_back(pair<double, unsigned int>(dist, d));
-	}
-	
-	unsigned int usar = (unsigned int)(0.1 * statistics.size());
-	if(usar < 10){
-		usar = statistics.size();
-	}
-	cout<<"Analyzer::computeDistributions - Ordenando para usar los "<<usar<<" mejores\n";
-	std::sort(distancias.begin(), distancias.end());
-	
-	for(unsigned int p = 0; p < params[0].size(); ++p){
-		vector<double> used_params;
-		for(unsigned int d = 0; d < usar; ++d){
-			// TODO: esta condicion de seguridad es temporal, buscar una mejor forma de validar valores
-			if( params[d][p] < 2000000000.0 ){
-				used_params.push_back( params[d][p] );
-			}
-		}
-		cout<<"Analyzer::computeDistributions - Evaluando distribucion de parametro "<<p<<"\n";
-		pair<double, double> dist = evaluateDistribution( used_params );
-		res_dist.push_back(dist);
-		used_params.clear();
-	}
-	
-	
-	
-	
-	
-	
-	return false;
-}
-*/
-
-/*
-// Por ahora solo calculo la MEDIANA y la desviacion estandar para parametrizar la distribucion
-// Usamos la mediana pues la distribución puede estar desbalanceada, quizas podamos considerar otra medida de la esperanza
-pair<double, double> Analyzer::evaluateDistribution(vector<double> values){
-	cout<<"Analyzer::evaluateDistribution - Inicio ("<<values.size()<<" valores)\n";
-	std::sort(values.begin(), values.end());
-	
-	double median = values[values.size()/2];
-	
-	// Evaluar varianza de estadistico s
-	double mean = 0.0;
-	double mean2 = 0.0;
-	for(unsigned int d = 0; d < values.size(); ++d){
-		mean += values[d];
-		mean2 += values[d] * values[d];
-//		cout<<"Analyzer::evaluateDistribution - values["<<d<<"]: "<<values[d]<<" ("<<mean<<", "<<mean2<<")\n";
-	}
-	mean /= values.size();
-	mean2 /= values.size();
-	double var = mean2 - mean*mean;
-//	cout<<"Analyzer::evaluateDistribution - var: "<<var<<"\n";
-	var = pow(var, 0.5);
-//	cout<<"Analyzer::evaluateDistribution - var final: "<<var<<"\n";
-	
-	cout<<"Analyzer::evaluateDistribution - Fin ("<<median<<", "<<var<<")\n";
-	return pair<double, double>(median, var);	
-}
-*/
 
 bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
@@ -258,7 +128,9 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	vector<vector<double>> params;
 	vector<vector<double>> statistics;
-	db_comm.getResults(id, scenario_id, feedback, params, events_params, params_positions.size(), statistics);
+	// POR AHORA ESTOY FIJANDO EL NUMERO DE ESTADISTICOS EN 15
+	// Obviamente eso hay que decidirlo de mejor manera
+	db_comm.getResults(id, scenario_id, feedback, params, events_params, params_positions.size(), statistics, 15);
 	
 	// Por ahora, asumimos que las distribuciones son normales
 	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
@@ -284,18 +156,28 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
 	
 	/**** Comienzo analisis *****/ 
-	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/ 
+	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/
+	cout<<"Analyzer::trainModel - almacenarTarget...\n";
 	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
+	cout<<"Analyzer::trainModel - cargaDataStats...\n";
 	statsAnalisis.cargaDataStats(statistics, params); /*Almacena estadisticos y parametros*/ 
 	int medidaDistancia = 0;
 	int opcionNormalizar = 1;
+	cout<<"Analyzer::trainModel - computeDistancia...\n";
 	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
 //	statsAnalisis.selectSample(1.0);
-	statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	cout<<"Analyzer::trainModel - selectSample...\n";
+	double threshold = statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	
+	ofstream escritor(log_file, ofstream::app);
+	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", threshold "<<threshold<<"\n";
+	
 	int tipoDistribucion = 0;
+	cout<<"Analyzer::trainModel - distPosterior...\n";
 	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
 	/**** Fin analisis *****/
 	
+	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		unsigned int opcionGraficoOut = it->second;
 		string nombre = it->first;
@@ -313,15 +195,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
 		);
 		
-//		cout<<"-----     -----\n";
 	}
 	
 	// Generacion de nuevas distribuciones
 //	finish = computeDistributions(params, statistics, target, res_dist);
-//	cout<<"Analyzer::trainModel - Distribuciones resultantes:\n";
-//	for(unsigned int i = 0; i < res_dist.size(); ++i){
-//		cout<<"res_dist["<<i<<"]: ("<<res_dist[i].first<<", "<<res_dist[i].second<<")\n";
-//	}
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
@@ -425,33 +302,55 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //			write_json(ss, _frequest);
 //			cout<<ss.str()<<"\n";
 			
-			uint32_t scenario_id = _frequest.get<uint32_t>("scenario.id");
-//			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
-//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
-			uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
-//			// Solo agrego feedback_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * feedback_size[i];
-			this->next_feedback.emplace(id, feedback_size);
+			// Nodo de prueba para buscar atributos
+			boost::optional<boost::property_tree::ptree&> test_child;
+			
+			uint32_t scenario_id = 0;
+			test_child = _frequest.get_child_optional("scenario.id");
+			if( test_child ){
+				scenario_id = _frequest.get<uint32_t>("scenario.id");
+			}
+			pair<uint32_t, uint32_t> id_pair(id, scenario_id);
+			
+			uint32_t batch_size = 0;
+			test_child = _frequest.get_child_optional("batch-size");
+			if( test_child ){
+				batch_size = _frequest.get<uint32_t>("batch-size");
+			}
+			
+//			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * batch_size[i];
+			this->next_batch.emplace(id, batch_size);
 			
 			unsigned int feedback = 0;
-			boost::property_tree::ptree::assoc_iterator it = _frequest.find("feedback");
-			if( it != _frequest.not_found() ){
+			test_child = _frequest.get_child_optional("feedback");
+			if( test_child ){
 				feedback = _frequest.get<uint32_t>("feedback");
 			}
 			
-			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", _batch_size[id]: "<<_batch_size[id]<<", feedback: "<<feedback<<")\n";
+//			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", _batch_size[id]: "<<_batch_size[id]<<", feedback: "<<feedback<<")\n";
+			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", feedback: "<<feedback<<")\n";
 			
-			if(this->_accepted.count(id)==0) return(_frequest);
+			if(finished.count(id)==0) return(_frequest);
 			
-			this->_batch_size[id]++;
-//			double dist = distance(this->_data[id].get_child("posterior"), _frequest.get_child("posterior"));
-			double dist = distance(id, _frequest.get_child("posterior"));
-			cout << dist << endl;
+			finished[id]++;
 			
-			//if(dist <= MAX_DIST){
-				this->_accepted[id]++;
+			// Solo calcular distancia y guardar resultado si NO hay error
+			
+			uint32_t error = 0;
+			test_child = _frequest.get_child_optional("error");
+			if( test_child ){
+				error = _frequest.get<uint32_t>("error");
+			}
+			
+			if(error == 0){
+				double dist = distance(id, _frequest.get_child("posterior"));
+				cout<<"Analyzer::run - dist: "<<dist<<"\n";
 				_frequest.put("distance", dist);
 				db_comm.writeResults(_frequest);
-			//}
+			}
+			else{
+				cout<<"Analyzer::run - Error en simulacion detectado (error: "<<error<<")\n";
+			}
 			
 			// La idea aqui es que, cuando se tengan suficientes resultados para la simulacion id
 			// ...se ejecute el algoritmo de entrenamiento y ajuste de parametros
@@ -465,149 +364,126 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			// Notar que feedback depende de simulacion Y ESCENARIO
 			// una opcion es indexar la informacion por [id][scenario_id] (o pair de ambos)
 			
-			cout<<"Analyzer::run - Batch "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<", Accepted: "<<_accepted[id]<<" / "<<next_feedback[id]<<"\n";
-			if(this->_batch_size[id] == (BATCH_LENGTH*this->_fhosts.get_child("controller").size())){
-				boost::property_tree::ptree fresponse;
-				fresponse.put("id", id);
+//			cout<<"Analyzer::run - Batch "<<_batch_size[id]<<" / "<<BATCH_LENGTH*this->_fhosts.get_child("controller").size()<<", Finished: "<<finished[id]<<" / "<<next_batch[id]<<"\n";
+			cout<<"Analyzer::run - Finished: "<<finished[id]<<" / "<<next_batch[id]<<"\n";
+			
+			
+			boost::property_tree::ptree fresponse;
+			fresponse.put("id", id);
+			
+			if( finished[id] >= _frequest.get<uint32_t>("max-number-of-simulations") ){
+				cout<<"Analyzer::run - Preparando finalize\n";
+				finished.erase(finished.find(id));
+//				this->_batch_size.erase(this->_batch_size.find(id));
+				fresponse.put("type", "finalize");
+				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
+			}
+			else if( finished[id] >= this->next_batch[id] ){
+				cout<<"Analyzer::run - Feedback iniciado (batch_size: "<<batch_size<<")\n";
+				// Codigo de feedback, preparacion de nuevos parametros
+//				this->next_batch[id_pair] += batch_size;
+				this->next_batch[id] += batch_size;
+				cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_batch[id]<<")\n";
 				
-				if(this->_accepted[id] >= uint32_t(_frequest.get<double>("max-number-of-simulations")*PERCENT)){
-					cout<<"Analyzer::run - Preparando finalize\n";
-					this->_accepted.erase(this->_accepted.find(id));
-					this->_batch_size.erase(this->_batch_size.find(id));
-					fresponse.put("type", "finalize");
+				// fresponse debe contener un documento completo de settings
+				// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
+				// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
+				// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
+				fresponse = db_comm.readSettings(id, feedback);
+				
+				// Creo que esto hay que hacerlo para CADA escenario del setting
+				// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
+				// Iterar por cada scenario_id de la simulacion
+				// Notar que dejo el ciclo aqui (en lugar de en trainModel) pues en la version final, deberia entrenarse solo el escenario actual
+				// trainModel PODRIA usar max_feedback para algo
+				// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
+				uint32_t max_feedback = 0;
+				test_child = fresponse.get_child_optional("population-increase-phases");
+				if( test_child ){
+					max_feedback = fresponse.get<uint32_t>("population-increase-phases");
 				}
-//				else if( this->_accepted[id] >= this->next_feedback[id_pair] ){
-				else if( this->_accepted[id] >= this->next_feedback[id] ){
-//					uint32_t feedback_size = _frequest.get<uint32_t>("simulations-per-feedback");
-					cout<<"Analyzer::run - Feedback iniciado (feedback_size: "<<feedback_size<<")\n";
-					// Codigo de feedback, preparacion de nuevos parametros
-//					this->next_feedback[id_pair] += feedback_size;
-					this->next_feedback[id] += feedback_size;
-					cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_feedback[id]<<")\n";
+				
+				// Por seguridad (del iterador) primero extraigo los scenario.id de fresponse
+				vector<uint32_t> s_ids;
+				for(auto s : fresponse.get_child("scenarios")){
+					uint32_t s_id = s.second.get<uint32_t>("id");
+					s_ids.push_back(s_id);
+				}
+				bool finish = false;
+				
+				boost::property_tree::ptree scenarios;
+				for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
+					// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
+					// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
+					// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
+					map<string, vector<double>> estimations_map;
+					finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map);
 					
-					// fresponse debe contener un documento completo de settings
-					// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
-					// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
-					// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
-					fresponse = db_comm.readSettings(id, feedback);
-					
-					// Creo que esto hay que hacerlo para CADA escenario del setting
-					// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
-					// Iterar por cada scenario_id de la simulacion
-					// Notar que dejo el ciclo aqui (en lugar de en trainModel) pues en la version final, deberia entrenarse solo el escenario actual
-					// trainModel PODRIA usar max_feedback para algo
-					// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
-					uint32_t max_feedback = 0;
-					boost::optional<boost::property_tree::ptree&> child = fresponse.get_child_optional("population-increase-phases");
-					if( child ){
-						max_feedback = fresponse.get<uint32_t>("population-increase-phases");
-					}
-					
-					// Por seguridad (del iterador) primero extraigo los scenario.id de fresponse
-					vector<uint32_t> s_ids;
-					for(auto s : fresponse.get_child("scenarios")){
-						uint32_t s_id = s.second.get<uint32_t>("id");
-						s_ids.push_back(s_id);
-					}
-					bool finish = false;
-					
-					boost::property_tree::ptree scenarios;
-					for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
-						// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
-						// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
-						// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
-						map<string, vector<double>> estimations_map;
-						finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map);
-						
-						// Agregar estimations_map al json de resultados de entrenamiento
-						boost::property_tree::ptree scenario;
-						string name = "Scenario " + std::to_string(s_ids[i]);
-						scenario.put("name", name);
-						scenario.put("id", s_ids[i]);
-						boost::property_tree::ptree estimations;
-						
-						for(map<string, vector<double>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
-						
-							boost::property_tree::ptree estimation;
-							estimation.put("parameter", it->first);
-							boost::property_tree::ptree fvalue;
-							boost::property_tree::ptree fvalues;
-							for( unsigned int j = 0; j < it->second.size(); ++j ){
-								fvalue.put("y", it->second[j]);
-								fvalues.push_back(make_pair("", fvalue));
-							}
-							estimation.add_child("values", fvalues);
-							estimations.push_back(make_pair("", estimation));
-						}
-						scenario.add_child("estimations", estimations);
-						scenarios.push_back(make_pair("", scenario));
-						
-//						for(auto k : h2){
-//							fvalue.put("x",k.first);
-//							fvalue.put("y1",h1[k.first]);
-//							fvalue.put("y2",k.second);
-//							fvalues.push_back(make_pair("",fvalue));
-//						}
-						
-//						estimations.push_back(make_pair("", estimation));
-						
-						scenario.add_child("estimations", estimations);
-						
-						estimations_map.clear();
-					}
-					
+					// Agregar estimations_map al json de resultados de entrenamiento
+					boost::property_tree::ptree scenario;
+					string name = "Scenario " + std::to_string(s_ids[i]);
+					scenario.put("name", name);
+					scenario.put("id", s_ids[i]);
 					boost::property_tree::ptree estimations;
-					estimations.add_child("scenarios", scenarios);
 					
-					boost::property_tree::ptree training_results;
-					training_results.put("id", id);
-					training_results.add_child("estimations", estimations);
+					for(map<string, vector<double>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
 					
-					
-					db_comm.storeTrainingResults(training_results);
-					
-					
-					// Almacenar el json de resultados de entrenamiento
-					
-					if(finish){
-						cout<<"Analyzer::run - Preparando finalize\n";
-						this->_accepted.erase(this->_accepted.find(id));
-						this->_batch_size.erase(this->_batch_size.find(id));
-						fresponse.put("type", "finalize");
+						boost::property_tree::ptree estimation;
+						estimation.put("parameter", it->first);
+						boost::property_tree::ptree fvalue;
+						boost::property_tree::ptree fvalues;
+						for( unsigned int j = 0; j < it->second.size(); ++j ){
+							fvalue.put("y", it->second[j]);
+							fvalues.push_back(make_pair("", fvalue));
+						}
+						estimation.add_child("values", fvalues);
+						estimations.push_back(make_pair("", estimation));
 					}
-					else{
-						fresponse.put("type", "reload");
-						fresponse.put("feedback", 1 + feedback);
-						
-//						cout<<"Analyzer::run - Enviando settings a scehduler\n";
-//						std::stringstream ss;
-//						write_json(ss, fresponse);
-//						cout << ss.str() << endl;
-						
-						comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
-						// Enviar nuevos parametros al scheduler
-						cout<<"Analyzer::run - Preparando continue\n";
-						this->_batch_size[id] = 0;
-						fresponse.put("type", "continue");
-					}
-				}
-				else{
-					cout<<"Analyzer::run - Preparando continue\n";
-					this->_batch_size[id] = 0;
-					fresponse.put("type", "continue");
+					scenario.add_child("estimations", estimations);
+					scenarios.push_back(make_pair("", scenario));
+					
+					scenario.add_child("estimations", estimations);
+					
+					estimations_map.clear();
 				}
 				
+				boost::property_tree::ptree estimations;
+				estimations.add_child("scenarios", scenarios);
+				
+				boost::property_tree::ptree training_results;
+				training_results.put("id", id);
+				training_results.add_child("estimations", estimations);
+				
+				db_comm.storeTrainingResults(training_results);
+				
+				// Almacenar el json de resultados de entrenamiento
+				
+				if(finish){
+					cout<<"Analyzer::run - Preparando finalize\n";
+					finished.erase(finished.find(id));
+					fresponse.put("type", "finalize");
+				}// if... simulacion terminada
+				else{
+					fresponse.put("type", "reload");
+					fresponse.put("feedback", 1 + feedback);
+					
+//					cout<<"Analyzer::run - Enviando settings a scehduler\n";
+//					std::stringstream ss;
+//					write_json(ss, fresponse);
+//					cout << ss.str() << endl;
+					
+					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
+					// Enviar nuevos parametros al scheduler
+					cout<<"Analyzer::run - Preparando continue\n";
+//					this->_batch_size[id] = 0;
+					fresponse.put("type", "continue");
+				}// else... Continue
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 			}
 			break;
 		};
 		case DATA:  {
-			this->_accepted[id] = 0;
-			this->_batch_size[id] = 0;
-			// Notar que samples.json (el iniciador del proceso) NO TIENE simulations-per-feedback
-			// No es valido tomar este valor aca, debera tomarse siempre en la simulacion
-//			this->feedback_size[id] = _frequest.get<uint32_t>("simulations-per-feedback");
-//			cout<<"Analyzer::run - Seteando feedback_size["<<id<<"]: "<<feedback_size[id]<<"\n";
+			finished[id] = 0;
 			
 			boost::property_tree::ptree fposterior;
 			fposterior.put("id", _frequest.get<string>("id"));

@@ -4,11 +4,14 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional/optional.hpp>
-#include <Simulator.h>
+#include <iostream>
+#include <fstream>
 
 #include <map>
 #include <set>
 #include <vector>
+
+#include <Simulator.h>
 
 #include "Comm.h"
 #include "Node.h"
@@ -23,15 +26,12 @@ class Analyzer : public Node{
 private: 
 	map<uint32_t, boost::property_tree::ptree> _data;
 	map<uint32_t, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> > _data_indices;
-	map<uint32_t, uint32_t> _accepted;
-	map<uint32_t, uint32_t> _batch_size;
+	map<uint32_t, uint32_t> finished;
 	
 	// next feedback es para cada escenario (por eso el indice, <sim, scen>)
-//	map<pair<uint32_t, uint32_t>, uint32_t> next_feedback;
-	// Por ahora lo dejo dependiendo de la simulacion, pues accepted cuanta por simulacion
-	map<uint32_t, uint32_t> next_feedback;
-	// cada simulacion puede definir su propio feedback_size (y su propio max_feedback)
-//	map<uint32_t, uint32_t> feedback_size;
+//	map<pair<uint32_t, uint32_t>, uint32_t> next_batch;
+	// Por ahora lo dejo dependiendo de la simulacion, pues finished cuanta por simulacion
+	map<uint32_t, uint32_t> next_batch;
 	
 	DBCommunication db_comm;
 	enum Types{SIMULATED=416813159, DATA=1588979285};
@@ -51,6 +51,8 @@ private:
 //	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
 	
 //	pair<double, double> evaluateDistribution(vector<double> values);
+	
+	static string log_file;
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

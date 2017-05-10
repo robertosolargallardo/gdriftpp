@@ -6,8 +6,10 @@
 #include <Logger.h>
 #include <Controller.h>
 
-#include <thread>
 #include <mutex>
+#include <thread>         // std::this_thread::sleep_for
+#include <chrono>         // std::chrono::seconds
+#include <list>
 
 using namespace std;
 using namespace restbed;
@@ -18,16 +20,32 @@ mt19937 rng(seed());
 
 shared_ptr<util::Semaphore>  semaphore;
 shared_ptr<Controller> controller;
-
 static unsigned int id_controller = 0;
 
+// Variables para nuevo modelo de threads
+list<shared_ptr<boost::property_tree::ptree>> work_list;
+std::mutex list_mutex;
+unsigned MAX_THREADS = std::thread::hardware_concurrency();
+//unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
+unsigned n_threads = 1;
+
+// Inicializacion de los threads (Lo dejo EN el main por ahora para agregar hosts)
+//bool Controller::thread_started = Controller::startThreads(n_threads, &work_list, &list_mutex);
+
 void run(boost::property_tree::ptree _frequest){
-	semaphore->lock();
+	
+	lock_guard<mutex> lock(list_mutex);
 	unsigned int id = id_controller++;
-	cout<<"controller - Inicio ("<<id<<")\n";
-	controller->run(_frequest);
-	cout<<"controller - Fin ("<<id<<")\n";
-	semaphore->unlock();
+	cout<<"controller - Agregando trabajo "<<id<<"\n";
+	work_list.push_back(make_shared<boost::property_tree::ptree>(_frequest));
+	cout<<"controller - Fin "<<id<<"\n";
+	
+//	semaphore->lock();
+//	unsigned int id = id_controller++;
+//	cout<<"controller - Inicio ("<<id<<")\n";
+//	controller->run(_frequest);
+//	cout<<"controller - Fin ("<<id<<")\n";
+//	semaphore->unlock();
 }
 
 int main(int argc, char **argv){
@@ -40,11 +58,11 @@ int main(int argc, char **argv){
 	read_json(argv[1], fhosts);
 	uint32_t id = atoi(argv[2]);
 	
-	unsigned MAX_THREADS = std::thread::hardware_concurrency();
-	semaphore = make_shared<util::Semaphore>(MAX_THREADS);
-//	semaphore = make_shared<util::Semaphore>(1);
+	// semaphore = make_shared<util::Semaphore>(MAX_THREADS);
+	semaphore = make_shared<util::Semaphore>(1);
 	
 	controller = make_shared<Controller>(fhosts, id);
+	Controller::startThreads(n_threads, &work_list, &list_mutex, fhosts);
 	
 	auto myself = std::find_if(
 						fhosts.get_child("controller").begin(), 

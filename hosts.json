@@ -28,7 +28,8 @@
 		"collections" : {
 			"data"     : "data",
 			"settings" : "settings",
-			"results"  : "results"
+			"results"  : "results",
+			"training"  : "training"
 		}
 	}
 }
