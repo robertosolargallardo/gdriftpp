@@ -71,18 +71,18 @@ bool controller_thread(Controller::ThreadData *data){
 		fresponse.put("type","simulated");
 		fresponse.put("max-number-of-simulations", _frequest.get<string>("max-number-of-simulations"));
 	
-		fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
+		uint32_t feedback = _frequest.get<uint32_t>("feedback");
+		fresponse.put("feedback", feedback);
 		fresponse.put("batch-size", _frequest.get<uint32_t>("batch-size"));
 	
-//		cout<<"Controller::run - Creando Simulatior\n";
+		cout<<"Controller::run - Creando Simulatior (feedback: "<<feedback<<")\n";
 		Simulator sim(_frequest);
 	
 		//fprior.push_back(std::make_pair("populations", indices(sim.populations())));
 	
-		//printf("%s %s %s\n",_frequest.get<string>("id").c_str(), _frequest.get<string>("run").c_str(), _frequest.get<string>("batch").c_str());
-//		cout<<"Controller::run - Lanzando sim.run...\n";
+		cout<<"Controller::run - Lanzando sim.run...\n";
 		sim.run();
-//		cout<<"Controller::run - Ok\n";
+		cout<<"Controller::run - Ok\n";
 	
 		if( sim.detectedErrors() == 0 ){
 			fposterior.push_back(std::make_pair("populations", indices(sim.samples())));
@@ -102,7 +102,7 @@ bool controller_thread(Controller::ThreadData *data){
 		}
 		comm::send(data->analyzer_host, data->analyzer_port, data->analyzer_resource, fresponse);
 		
-		// cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
+		cout<<"Controller::run - Fin (sim "<<_frequest.get<string>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
 		
 //		data->list_mutex->lock();
 //		cout<<"Controller::run - Fin (total_errores: "<<Controller::total_errores<<")\n";
@@ -161,10 +161,11 @@ boost::property_tree::ptree Controller::run(boost::property_tree::ptree &_freque
 	fresponse.put("type","simulated");
 	fresponse.put("max-number-of-simulations", _frequest.get<string>("max-number-of-simulations"));
 	
-	fresponse.put("feedback", _frequest.get<uint32_t>("feedback"));
+	uint32_t feedback = _frequest.get<uint32_t>("feedback");
+	fresponse.put("feedback", feedback);
 	fresponse.put("batch-size", _frequest.get<uint32_t>("batch-size"));
 	
-	cout<<"Controller::run - Creando Simulatior\n";
+	cout<<"Controller::run - Creando Simulatior (feedback: "<<feedback<<")\n";
 	Simulator sim(_frequest);
 	
 	//fprior.push_back(std::make_pair("populations", indices(sim.populations())));
