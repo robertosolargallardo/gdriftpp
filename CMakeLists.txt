@@ -65,6 +65,9 @@ include_directories(results ${CMAKE_SOURCE_DIR}/results/include)
 add_executable(results ${results_SOURCES})
 target_link_libraries(results mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl armadillo)
 
+add_executable(test_statistics  "${CMAKE_SOURCE_DIR}/test/statistics/test.cc")
+target_link_libraries(test_statistics mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
+
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "default install path" FORCE )
 endif()
