@@ -14,6 +14,7 @@
 #include "Mongo.h"
 
 using namespace std;
+using boost::property_tree::ptree;
 //using bsoncxx::builder::stream::document;
 //using bsoncxx::builder::stream::finalize;
 //using bsoncxx::builder::stream::open_document;
@@ -130,7 +131,7 @@ class DBCommunication{
 							field += ".params.population.size";
 							res.push_back(field);
 						}
-						else if( e_type.compare("endsim") != 0 && e_type.compare("split") ){
+						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
 							field += ".params.source.population.percentage";
 							res.push_back(field);
 						}
@@ -328,6 +329,287 @@ class DBCommunication{
 			cout<<"DBCommunication::storeTrainingResults - Fin\n";
 			
 		}
+		
+		bool alreadyTrained(uint32_t id, uint32_t scenario_id, uint32_t feedback){
+			
+			
+			
+			return false;
+		}
+		
+		void storeResults(uint32_t id, uint32_t scenario_id, string out_file){
+			
+			cout<<"DBCommunication::storeResults - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<")\n";
+			
+			// Tomar TODOS los resultados de id/scenario_id, agruparlas por feedback en map< feedback, vector<result> >
+			map<uint32_t, vector< vector<double> > > results;
+			list<ptree> results_list;
+			mongo.readResults(results_list, db_name, collection_results, id, scenario_id);
+			
+			unsigned int contador = 0;
+			unsigned int feedback = 0;
+			boost::optional<ptree&> test_child;
+			unsigned int n_stats = 0;
+			unsigned int n_params = 0;
+			for(list<ptree>::iterator it = results_list.begin(); it != results_list.end(); it++){
+				
+//				std::stringstream ss;
+//				write_json(ss, *it);
+//				cout<<ss.str()<<"\n";
+				
+				// feedback
+				feedback = 0;
+				test_child = it->get_child_optional("feedback");
+				if( test_child ){
+					feedback = it->get<uint32_t>("feedback");
+				}
+//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<"\n";
+				
+				// Extraer estadisticos
+				// Primero los extraigo a la estructura de mapa para que queden con el mismo orden
+				map<string, map<uint32_t, map<uint32_t, map<string, double>>>> indices;
+				for(auto& p : it->get_child("posterior.populations")){
+					string pop_name = p.second.get<string>("name");
+					for(auto c : p.second.get_child("chromosomes")){
+						uint32_t cid = c.second.get<uint32_t>("id");
+						for(auto g : c.second.get_child("genes")){
+							uint32_t gid = g.second.get<uint32_t>("id");
+							for(auto i : g.second.get_child("indices")){
+								indices[pop_name][cid][gid][i.first] = std::stod(i.second.data());
+							}
+						}
+					}
+				}
+				vector<double> values;
+				for(auto i : indices){
+					for(auto j : i.second){
+						for(auto k : j.second){
+							for(auto l : k.second){
+								values.push_back(l.second);
+								if(contador == 0){ ++n_stats; }
+							}
+						}
+					}
+				}
+				
+//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<", ";
+//				for(unsigned int i = 0; i < values.size(); ++i){
+//					cout<<values[i]<<" ";
+//				}
+//				cout<<"\n";
+				
+				// Extraer parametros
+				// Primero los extraigo en un mapa para que queden con el mismo orden
+				map<string, double> params;
+				
+				// Genes
+				for(auto &c : it->get_child("individual.chromosomes")){
+					uint32_t cid = c.second.get<uint32_t>("id");
+					for(auto g : c.second.get_child("genes")){
+						uint32_t gid = g.second.get<uint32_t>("id");
+						double value = g.second.get<double>("mutation.rate");
+						string param_name = "chromosomes.";
+						param_name += std::to_string(cid);
+						param_name += ".genes.";
+						param_name += std::to_string(gid);
+						param_name += ".mutation.rate";
+						params[param_name] = value;
+//						cout<<"DBCommunication::storeResults - params["<<param_name<<"] = "<<params[param_name]<<"\n";
+					}
+				}
+				
+				// Eventos
+				for(auto e : it->get_child("scenario.events")){
+					// En principio cada evento tiene timestamp y parametros
+					// Los parametros que tengan type random deben ser agregados
+					string e_id = e.second.get<string>("id");
+					string e_type = e.second.get<string>("type");
+					string param_base = "scenario.events.";
+					param_base += e_id;
+					uint32_t timestamp = e.second.get<uint32_t>("timestamp");
+					string param_name = param_base + ".timestamp";
+					params[param_name] = timestamp;
+//					cout<<"DBCommunication::storeResults - params["<<param_name<<"] = "<<params[param_name]<<"\n";
+					
+					if( e_type.compare("create") == 0 ){
+						uint32_t size = e.second.get<uint32_t>("params.population.size");
+						string param_name = param_base + ".params.population.size";
+						params[param_name] = size;
+//						cout<<"DBCommunication::storeResults - params["<<param_name<<"] = "<<params[param_name]<<"\n";
+					}
+					else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+						double percentage = e.second.get<double>("params.source.population.percentage");
+						string param_name = param_base + ".params.source.population.percentage";
+						params[param_name] = percentage;
+//						cout<<"DBCommunication::storeResults - params["<<param_name<<"] = "<<params[param_name]<<"\n";
+					}
+				
+				}
+				
+				// Verificar el tamaño de params?
+				// Para eso habria que recibir externamente (leer al inicio) el tamaño del escenario
+				// Por ahora los agrego directamente a values
+				for(map<string, double>::iterator i = params.begin(); i != params.end(); i++){
+					values.push_back(i->second);
+					if(contador == 0){ ++n_params; }
+				}
+				results[feedback].push_back(values);
+				
+				++contador;
+			}
+			
+			cout<<"DBCommunication::storeResults - Total resultados: "<<contador<<"\n";
+			
+			fstream escritor(out_file, fstream::trunc | fstream::out);
+			char buff[1024*1024];
+			contador = 0;
+			for(map<uint32_t, vector< vector<double> > >::iterator it = results.begin(); it != results.end(); it++ ){
+				feedback = it->first;
+				vector< vector<double> > results = it->second;
+				for(unsigned int i = 0; i < results.size(); ++i){
+					vector<double> values = results[i];
+					sprintf(buff, "%u\t%u\t", contador, feedback);
+					for(unsigned int j = 0; j < values.size(); ++j){
+						sprintf(buff + strlen(buff), "%f\t", values[j]);
+					}
+					sprintf(buff + strlen(buff), "\n");
+					escritor.write(buff, strlen(buff));
+					++contador;
+				}
+			}
+//			sprintf(buff + strlen(buff), "%u\t%u\t", contador, );
+			escritor.close();
+			
+			cout<<"DBCommunication::storeResults - Fin (pos, feedback, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
+		}
+		
+		void storeTraining(uint32_t id, uint32_t scenario_id, string out_file){
+			
+			
+		}
+		
+		pair< string, pair<double, double> > parseDistribution(ptree dist){
+			double param1 = 0;
+			double param2 = 0;
+			string type = dist.get<string>("type");
+			if( type.compare("normal") == 0 ){
+				param1 = dist.get<double>("params.mean");
+				param2 = dist.get<double>("params.stddev");
+			}
+			else if( type.compare("uniform") == 0 ){
+				param1 = dist.get<double>("params.a");
+				param2 = dist.get<double>("params.b");
+			}
+			else{
+				cout<<"DBCommunication::parseDistribution - Error, distribucion no soportada ("<<type<<")\n";
+			}
+			return pair<string, pair<double, double> >(type, pair<double, double>(param1, param2));
+		}
+		
+		// Este metodo de prueba extrae todos los settings de una simulacion
+		// Guarda los parametros de las distribuciones por cada feedback
+		// Notar que feedback 0 partira con distribuciones uniformes
+		void storeDistributions(uint32_t id, uint32_t scenario_id, string out_file){
+			
+			cout<<"DBCommunication::storeDistributions - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<")\n";
+			
+			list<ptree> results;
+			mongo.readSettings(results, db_name, collection_settings, id);
+			cout<<"DBCommunication::storeDistributions - Total results: "<<results.size()<<"\n";
+			// Guardar: feedback, genes, params (ordenados por mapa de nombre)
+			uint32_t feedback = 0;
+			boost::optional<ptree&> test_child;
+			// Mapa <feedback, vector <dist_type, <param1, param2> > >
+			map<uint32_t, vector< pair<string, pair<double, double> > > > distributions;
+			for(list<ptree>::iterator it = results.begin(); it != results.end(); it++){
+				
+				// feedback
+				feedback = 0;
+				test_child = it->get_child_optional("feedback");
+				if( test_child ){
+					feedback = it->get<uint32_t>("feedback");
+				}
+				
+				cout<<"DBCommunication::storeDistributions - Agregando parametros de feedback: "<<feedback<<"\n";
+				
+				// Mapa para ordenar los parametros
+				map<string, pair<string, pair<double, double> > > params;
+				
+				// genes
+				for(auto &c : it->get_child("individual.chromosomes")){
+					uint32_t cid = c.second.get<uint32_t>("id");
+					for(auto g : c.second.get_child("genes")){
+						uint32_t gid = g.second.get<uint32_t>("id");
+//						double value = g.second.get<double>("mutation.rate");
+						string type = g.second.get<string>("mutation.rate.type");
+						pair< string, pair<double, double> > dist = parseDistribution(g.second.get_child("mutation.rate.distribution"));
+						string param_name = "chromosomes.";
+						param_name += std::to_string(cid);
+						param_name += ".genes.";
+						param_name += std::to_string(gid);
+						param_name += ".mutation.rate";
+						params[param_name] = dist;
+						cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+					}
+				}
+				
+				// eventos (del escenario correcto)
+				for(auto s : it->get_child("scenarios")){
+					uint32_t s_id = s.second.get<uint32_t>("id");
+					if(s_id == scenario_id){
+						for(auto e : s.second.get_child("events")){
+							// En principio cada evento tiene timestamp y parametros
+							// Los parametros que tengan type random deben ser agregados
+						
+							string e_id = e.second.get<string>("id");
+							string e_type = e.second.get<string>("type");
+							string param_base = "scenario.events.";
+							param_base += e_id;
+							string param_name = param_base + ".timestamp";
+							pair< string, pair<double, double> > dist = parseDistribution(e.second.get_child("timestamp.distribution"));
+							params[param_name] = dist;
+							cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+							if( e_type.compare("create") == 0 ){
+								dist = parseDistribution(e.second.get_child("params.population.size.distribution"));
+								string param_name = param_base + ".params.population.size";
+								params[param_name] = dist;
+								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+							}
+							else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+								dist = parseDistribution(e.second.get_child("params.source.population.percentage.distribution"));
+								string param_name = param_base + ".params.source.population.percentage";
+								params[param_name] = dist;
+								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+							}
+							
+							
+						}
+					}
+				}
+				
+				// Volcar resultados en distributions
+				distributions.erase(feedback);
+				for( map<string, pair<string, pair<double, double> > >::iterator it_params = params.begin(); it_params != params.end(); it_params++ ){
+					distributions[feedback].push_back(it_params->second);
+				}
+				
+			}
+			
+			// Escribir resultados
+			fstream escritor(out_file, fstream::trunc | fstream::out);
+			char buff[1024*1024];
+			
+			escritor.close();
+			
+			cout<<"DBCommunication::storeDistributions - Fin\n";
+			
+		}
+		
+		
+		
+		
+		
+		
 		
 		
 		

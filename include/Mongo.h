@@ -158,6 +158,41 @@ class Mongo{
 			*/
 		}
 		
+		unsigned int readSettings(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id){
+			cout<<"Mongo::readSettings - Inicio ("<<db_name<<", "<<collection_name<<", "<<id<<")\n";
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << finalize);
+			boost::property_tree::ptree json;
+			unsigned int inserted = 0;
+			for(auto doc : cursor){
+				istringstream is(bsoncxx::to_json(doc));
+				read_json(is, json);
+				
+//				std::stringstream ss;
+//				write_json(ss, json);
+//				cout<<ss.str()<<"\n";
+
+				results.push_back(json);
+				++inserted;
+			}
+			cout<<"Mongo::readSettings - Fin ("<<inserted<<")\n";
+			return inserted;
+			
+		}
+		
+		unsigned int readResults(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid){
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << finalize);
+			boost::property_tree::ptree json;
+			unsigned int inserted = 0;
+			for(auto doc : cursor){
+				istringstream is(bsoncxx::to_json(doc));
+				read_json(is, json);
+				
+				results.push_back(json);
+				++inserted;
+			}
+			return inserted;
+		}
+		
 		
 };
 }
