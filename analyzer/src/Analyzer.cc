@@ -161,7 +161,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
 	cout<<"Analyzer::trainModel - cargaDataStats...\n";
 	statsAnalisis.cargaDataStats(statistics, params); /*Almacena estadisticos y parametros*/ 
-	int medidaDistancia = 0;
+	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
 	cout<<"Analyzer::trainModel - computeDistancia...\n";
 	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
@@ -195,10 +195,13 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
 		);
 		
+		// Estos datos tambien podrian retornarse al llamador (para agregarlos al resultado de training)
+//		distribution_map[nombre] = pair<double, double>(
+//			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana,
+//			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd
+//			);
+		
 	}
-	
-	// Generacion de nuevas distribuciones
-//	finish = computeDistributions(params, statistics, target, res_dist);
 	
 	if(finish){
 		cout<<"Analyzer::trainModel - Señal de parada, preparando mensaje y saliendo\n";
@@ -341,6 +344,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			if( test_child ){
 				error = _frequest.get<uint32_t>("error");
 			}
+			
+			// Verificar si este feedback ya fue entrenado, quizas sea mejor descartar esos resultados
+			// if( db_comm.alreadyTrained(id, scenario_id, feedback) ){
+			// 	error = 10;
+			// }
 			
 			if(error == 0){
 				double dist = distance(id, _frequest.get_child("posterior"));

@@ -235,7 +235,7 @@ public:
 
  
     //Se selecciona un % de la muestra de las top-dim distancias  
-    double selectSample(double percentage)  {
+    double selectSample(double percentage){
 	  cout<<"SimStadistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
 		unsigned int dim = (unsigned int) ( floor (setDistancias.size()*percentage) );
 		cout<<"SimStadistics::selectSample - dim: "<<dim<<"\n";
