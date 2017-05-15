@@ -253,18 +253,29 @@ class DBCommunication{
 				}
 				params_res.clear();
 				
+				// Aqui se pueden verificar los estadisticos en busca de valores invalidos
+				// Una opcion es eliminar los resultados si no hay ningun valor valido
+				// El proceso deberia ser por poblacion, pero no es evidente cuando los valores SON validos
+				// Mientras realizamos pruebas, asumo solo 1 gen, de modo que el set de indices mapea directamente a poblacion
 				for(auto &p : json.get_child("posterior.populations")){
 					string name = p.second.get<string>("name");
+//					bool valid = false;
 					for(auto &c : p.second.get_child("chromosomes")){
 						uint32_t cid = c.second.get<uint32_t>("id");
 						for(auto &g : c.second.get_child("genes")){
 							uint32_t gid = g.second.get<uint32_t>("id");
 							for(auto i : g.second.get_child("indices")){
 								stats_res[name][cid][gid][i.first] = std::stod(i.second.data());
+//								if(stats_res[name][cid][gid][i.first] != 0.0){
+//									valid = true;
+//								}
 //								cout<<"DBCommunication::getResults - stat["<<name<<"]["<<cid<<"]["<<gid<<"]["<<i.first<<"]: "<<i.second.data()<<"\n";
 							}
 						}
 					}
+//					if(!valid){
+//						stats_res.erase(name);
+//					}
 				}
 				
 				// volcar statistics_map en vector
@@ -598,7 +609,19 @@ class DBCommunication{
 			// Escribir resultados
 			fstream escritor(out_file, fstream::trunc | fstream::out);
 			char buff[1024*1024];
-			
+			// map<uint32_t, vector< pair<string, pair<double, double> > > > distributions;
+			for(auto feed_data : distributions){
+				unsigned int feedback = feed_data.first;
+				vector< pair<string, pair<double, double> > > dists = feed_data.second;
+				sprintf(buff, "%u\t", feedback);
+				for(unsigned int i = 0; i < dists.size(); ++i){
+					string type = dists[i].first;
+					pair<double, double> params = dists[i].second;
+					sprintf(buff + strlen(buff), "%s\t%f\t%f\t", type.c_str(), params.first, params.second);
+				}
+				sprintf(buff + strlen(buff), "\n");
+				escritor.write(buff, strlen(buff));
+			}
 			escritor.close();
 			
 			cout<<"DBCommunication::storeDistributions - Fin\n";
