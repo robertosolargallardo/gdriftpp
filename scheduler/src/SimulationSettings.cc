@@ -182,8 +182,9 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 	random_shuffle(fjobs.begin(), fjobs.end());
 
 	for(uint32_t i = 0; i < fjobs.size(); i++){
-		cout<<"SimulationSettings::send - Enviando trabajo "<<i<<"\n";
-		comm::send(controllers[i%controllers.size()].get<string>("host"),controllers[i%controllers.size()].get<string>("port"),controllers[i%controllers.size()].get<string>("resource"), fjobs[i]);
+		uint32_t pos = i%controllers.size();
+		cout<<"SimulationSettings::send - Enviando trabajo "<<i<<" a controler "<<pos<<"\n";
+		comm::send(controllers[pos].get<string>("host"),controllers[pos].get<string>("port"),controllers[pos].get<string>("resource"), fjobs[i]);
 	}
 
 	fjobs.clear();
