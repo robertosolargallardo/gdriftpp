@@ -18,7 +18,7 @@
 #include "Const.h"
 #include "DBCommunication.h"
 
-#include "simEvaluation.h"
+#include "SimulationStatistics.h"
 
 using namespace std;
 

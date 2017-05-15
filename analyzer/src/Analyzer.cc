@@ -156,7 +156,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
 	
 	/**** Comienzo analisis *****/ 
-	SimStadistics statsAnalisis(id);/*Declaracion de Objeto statsAnalisis*/
+	SimulationStatistics statsAnalisis;/*Declaracion de Objeto statsAnalisis*/
 	cout<<"Analyzer::trainModel - almacenarTarget...\n";
 	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
 	cout<<"Analyzer::trainModel - cargaDataStats...\n";
@@ -182,24 +182,21 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		unsigned int opcionGraficoOut = it->second;
 		string nombre = it->first;
 		vector<double> dataGrafica;
-		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana<<", std: "<<statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd<<")\n";
-		unsigned int dimG = statsAnalisis.setDistPosterior[opcionGraficoOut].samplePostNormalized.size(); //Por ahora se usa el mismo numero de puntos que muestra, lunes os comento
-		statsAnalisis.setDistPosterior[opcionGraficoOut].outVectorGrafico1(dimG, dataGrafica); //Parametro con numeracion:opcionGraficoOut
+		FuncionDensidad dist = statsAnalisis.getDistribution(opcionGraficoOut);
+		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<dist.sampleMediana<<", std: "<<dist.sampleStd<<")\n";
+		//Por ahora se usa el mismo numero de puntos que muestra, lunes os comento
+		unsigned int dimG = dist.samplePostNormalized.size();
+		//Parametro con numeracion:opcionGraficoOut
+		dist.outVectorGrafico1(dimG, dataGrafica);
 //		for(unsigned int i = 0; i < dataGrafica.size(); ++i){
 //			cout<<"grafico["<<i<<"]: "<<dataGrafica[i]<<"\n";
 //		}
 		estimations_map[nombre] = dataGrafica;
 		
-		res_dist.push_back( pair<double, double>(
-			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana,
-			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
-		);
+		res_dist.push_back( pair<double, double>(dist.sampleMediana, dist.sampleStd) );
 		
 		// Estos datos tambien podrian retornarse al llamador (para agregarlos al resultado de training)
-//		distribution_map[nombre] = pair<double, double>(
-//			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana,
-//			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd
-//			);
+//		distribution_map[nombre] = pair<double, double>( dist.sampleMediana, dist.sampleStd );
 		
 	}
 	
