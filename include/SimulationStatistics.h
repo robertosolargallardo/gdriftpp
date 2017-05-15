@@ -1,10 +1,6 @@
-/*
-Evaluation of evolution models
-La programacion POO no aplica herencia, por tanto se remite al 
-llamados de funciones y extraccion de info
-*/
-#if !defined(_SIMEVALUATION_H)
-#define _SIMEVALUATION_H
+#if !defined(_SIMULATION_STATISTICS_H)
+#define _SIMULATION_STATISTICS_H
+
 //Libs C
 #include <stdio.h>
 #include <math.h>	  
@@ -71,7 +67,6 @@ private:
 	//Data-params for fase of training
 	vector<pair<double, double> > medianVar;
 
-
 public:
 
 	SimulationStatistics(){}
@@ -97,29 +92,33 @@ public:
 	/*Almacena vector de distancias*/
 	void loadData(vector< vector<double> > &dataStats, vector< vector<double> > &dataParams){
 		cout<<"SimulationStatistics::loadData - Inicio (dataStats: "<<dataStats.size()<<", dataParams: "<<dataParams.size()<<")\n";
+		if( dataStats.size() != dataParams.size() ){
+			cerr<<"SimulationStatistics::loadData - Error, estadisticos y parametros no coinciden\n";
+			exit(EXIT_FAILURE);
+		}
 		//Se almacena como matriz - creo que asi lo tienes o algo parecido
 		storeSetSimulationStats(dataStats);		
 		//En lo que sigue se utilizan objetos, el proceso es tan rapido que puede que no necesite optimizacion
 		//en el sentido de solo usar vectores y matrices
 		//Se usan objetos, en caso de usar multiples simulaciones para distintos identificadores
 		int contId = 0;
-		size_t sizeStas  = dataStats.size();
-		size_t sizeStasCols  = dataStats[0].size();
+		size_t sizeStas = dataStats.size();
+		size_t sizeStasCols = dataStats[0].size();
 		size_t sizeParamsCols = dataParams[0].size();
-		for(size_t i=0;i<sizeStas;i++){
+		for(size_t i = 0; i < sizeStas; ++i){
 			SimulationData simTmp;
 			simTmp.simId = contId;
-			for(size_t j=0;j<sizeStasCols;j++){
+			for(size_t j = 0; j < sizeStasCols; ++j){
 				//Como objetos
 				// simTmp.agregarStadistics(dataStats[i][j]);
 				simTmp.stadistics.push_back(dataStats[i][j]);
 			}
-			for(size_t k=0;k<sizeParamsCols;k++){ 
+			for(size_t k = 0; k < sizeParamsCols; ++k){ 
 				// simTmp.agregarParams(dataParams[i][k]);	
 				simTmp.params.push_back(dataParams[i][k]);
 			}
 			addSimulation(simTmp);
-			contId++; 		
+			++contId;
 		}
 	}
 
