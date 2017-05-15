@@ -155,26 +155,30 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	// Prueba de objeto estadistico
 	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
 	
-	/**** Comienzo analisis *****/ 
-	SimulationStatistics statsAnalisis;/*Declaracion de Objeto statsAnalisis*/
+	/**** Comienzo analisis *****/
+	SimulationStatistics statsAnalisis;
 	cout<<"Analyzer::trainModel - storeTarget...\n";
-	statsAnalisis.storeTarget(target);/*Almacena target*/ 
+	statsAnalisis.storeTarget(target);
 	cout<<"Analyzer::trainModel - loadData...\n";
-	statsAnalisis.loadData(statistics, params); /*Almacena estadisticos y parametros*/ 
+	statsAnalisis.loadData(statistics, params);
 	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
 	cout<<"Analyzer::trainModel - computeDistances...\n";
-	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
-//	statsAnalisis.selectSample(1.0);
+	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar);
 	cout<<"Analyzer::trainModel - selectSample...\n";
-	double threshold = statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	double min = 0;
+	double max = 0;
+	double mean = 0;
+	/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
+	statsAnalisis.selectSample(0.1, min, max, mean);
 	
 	ofstream escritor(log_file, ofstream::app);
-	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", threshold "<<threshold<<"\n";
+	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min "<<min<<", max "<<max<<", mean "<<mean<<"\n";
 	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
-	statsAnalisis.distPosterior(tipoDistribucion);/*Obtiene la distribucion posterior*/ 
+	/*Obtiene la distribucion posterior*/ 
+	statsAnalisis.distPosterior(tipoDistribucion);
 	/**** Fin analisis *****/
 	
 	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";

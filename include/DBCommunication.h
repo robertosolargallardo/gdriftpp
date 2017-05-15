@@ -11,6 +11,7 @@
 #include <map>
 #include <set>
 
+#include "Const.h"
 #include "Mongo.h"
 
 using namespace std;
@@ -193,10 +194,6 @@ class DBCommunication{
 			map<string, double> params_res;
 			map<string, map<uint32_t, map<uint32_t, map<string, double>>>> stats_res;
 			
-			// Minimos y maximos por seguridad para valores aceptables
-			double min_value = -20000000;
-			double max_value = 20000000;
-			
 			for(auto &json : results){
 //				if(count >= 3) break;
 				
@@ -300,13 +297,13 @@ class DBCommunication{
 				}
 				bool omitir = false;
 				for(unsigned int i = 0; i < total_params; ++i){
-					if( values[i] < min_value || values[i] > max_value ){
+					if( values[i] < MIN_VALID_VALUE || values[i] > MAX_VALID_VALUE ){
 						omitir = true;
 						break;
 					}
 				}
 				for(unsigned int i = 0; i < total_statistics; ++i){
-					if( stats[i] < min_value || stats[i] > max_value ){
+					if( stats[i] < MIN_VALID_VALUE || stats[i] > MAX_VALID_VALUE ){
 						omitir = true;
 						break;
 					}

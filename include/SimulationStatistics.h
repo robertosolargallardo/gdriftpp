@@ -163,23 +163,28 @@ public:
 		sort(setDistancias.begin(), setDistancias.end(), sort_pred());
 	}
 
-	//Se selecciona un % de la muestra de las top-dim distancias  
-	double selectSample(double percentage){
+	// Se selecciona un % de la muestra de las top-dim distancias
+	// Recibe 3 argumentos para fines estadisticos, escribe las min, max y media distancias consideradas
+	// Retorna la distancia threshold (igual a max, ahora ese return es innecesario)
+	double selectSample(double percentage, double &min, double &max, double &mean){
 		cout<<"SimulationStatistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
 		unsigned int dim = (unsigned int) ( floor (setDistancias.size()*percentage) );
 		cout<<"SimulationStatistics::selectSample - dim: "<<dim<<"\n";
 		// size_t sizeStas  = setDistancias.size();
 		sortDistances();
 		int posSelect;
-		double threshold = 0;
-		for(size_t k = 0; k < dim; ++k){ 
+		mean = 0.0;
+		min = setDistancias[0].second;
+		max = setDistancias[dim-1].second;
+		for(size_t k = 0; k < dim; ++k){
 			posSelect = setDistancias[k].first;
-			threshold = setDistancias[k].second;
-			cout<<"SimulationStatistics::selectSample - threshold: "<<threshold<<"\n";
+			mean += setDistancias[k].second;
 			// setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].outParametros()));
 			setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].params));
 		}
-		return threshold;	
+		mean /= dim;
+		cout<<"SimulationStatistics::selectSample - Fin (min: "<<min<<", max: "<<max<<", mean: "<<mean<<")\n";
+		return max;	
 	}
 
 	//Se almacena la traspuesta de la matriz setSample 
