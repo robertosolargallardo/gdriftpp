@@ -607,20 +607,18 @@ class DBCommunication{
 			}
 			
 			// Escribir resultados
-			fstream escritor(out_file, fstream::trunc | fstream::out);
-			char buff[1024*1024];
+			ofstream escritor(out_file, fstream::trunc | fstream::out);
 			// map<uint32_t, vector< pair<string, pair<double, double> > > > distributions;
 			for(auto feed_data : distributions){
 				unsigned int feedback = feed_data.first;
 				vector< pair<string, pair<double, double> > > dists = feed_data.second;
-				sprintf(buff, "%u\t", feedback);
+				escritor<<feedback<<"\t";
 				for(unsigned int i = 0; i < dists.size(); ++i){
 					string type = dists[i].first;
 					pair<double, double> params = dists[i].second;
-					sprintf(buff + strlen(buff), "%s\t%f\t%f\t", type.c_str(), params.first, params.second);
+					escritor<<type<<"\t"<<params.first<<"\t"<<params.second<<"\t";
 				}
-				sprintf(buff + strlen(buff), "\n");
-				escritor.write(buff, strlen(buff));
+				escritor<<"\n";
 			}
 			escritor.close();
 			
