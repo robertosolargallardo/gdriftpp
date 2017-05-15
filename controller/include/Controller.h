@@ -10,6 +10,7 @@
 #include <Sample.h>
 #include <Node.h>
 #include <Comm.h>
+#include <NanoTimer.h>
 
 class Controller : public Node{
 private:

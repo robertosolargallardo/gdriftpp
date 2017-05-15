@@ -54,6 +54,8 @@ bool controller_thread(Controller::ThreadData *data){
 //		cout<<"controller_thread["<<data->id<<"] - Procesando json\n";
 //		data->list_mutex->unlock();
 		
+		NanoTimer timer;
+		
 		boost::property_tree::ptree _frequest = *ptr_json;
 		
 		cout<<"Controller::run - Inicio (sim "<<_frequest.get<string>("id")<<", scenario: "<<_frequest.get_child("scenario").get<uint32_t>("id")<<", run "<<_frequest.get<string>("run")<<", batch "<<_frequest.get<string>("batch")<<")\n";
@@ -78,11 +80,19 @@ bool controller_thread(Controller::ThreadData *data){
 		cout<<"Controller::run - Creando Simulatior (feedback: "<<feedback<<")\n";
 		Simulator sim(_frequest);
 		
+		double ms_preparation = timer.getMilisec();
+		timer.reset();
+		
 		//fprior.push_back(std::make_pair("populations", indices(sim.populations())));
 		
 		cout<<"Controller::run - Lanzando sim.run...\n";
 		sim.run();
 		cout<<"Controller::run - Ok\n";
+		
+		double ms_run = timer.getMilisec();
+		
+		fresponse.put("ms_preparation", ms_preparation);
+		fresponse.put("ms_run", ms_run);
 	
 		if( sim.detectedErrors() == 0 ){
 			fposterior.push_back(std::make_pair("populations", indices(sim.samples())));
@@ -92,11 +102,9 @@ bool controller_thread(Controller::ThreadData *data){
 			fresponse.push_back(make_pair("scenario", fscenario));
 		}
 		else{
-			
 			data->list_mutex->lock();
 			cout<<"Controller::run - Error durante simulacion, resultados no usables.\n";
 			data->list_mutex->unlock();
-			
 			fresponse.put("error", sim.detectedErrors());
 			++Controller::total_errores;
 		}
