@@ -157,8 +157,14 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 	scenarios.push_back(fscenario.second);
 	
 	vector<ptree> fjobs;
-	cout<<"SimulationSettings::send - Iterando "<<(_batch_length*controllers.size())<<" veces\n";
-	for(uint32_t i = 0; i < (_batch_length*controllers.size()); i++){
+	
+	// Por que usa batch * n_controller?
+	// Es mas claro DISTRIBUIR el batch entre los controllers
+//	cout<<"SimulationSettings::send - Iterando "<<(_batch_length*controllers.size())<<" veces\n";
+//	for(uint32_t i = 0; i < (_batch_length*controllers.size()); i++){
+
+	cout<<"SimulationSettings::send - Iterando "<<_batch_length<<" veces\n";
+	for(uint32_t i = 0; i < _batch_length; i++){
 		ptree fjob;
 		fjob.put("id", this->_fsettings.get<uint32_t>("id"));
 		fjob.put("run", this->_run++);
