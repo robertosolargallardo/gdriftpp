@@ -54,7 +54,7 @@ private:
 	vector< vector<double> > setStatsSim; 
 	
 	//set of distances for each simulation, where <int> is the id in (setStatsSim and setSimulaciones)	
-	vector<pair<int,double> > setDistancias; 
+	vector<pair<int, double> > setDistancias; 
 	
 	// set of data for use a compute f.distribution 
 	vector<pair<int, vector<double> > > setSample;
@@ -80,25 +80,25 @@ public:
 	~SimulationStatistics(){}
 
 	//Add simulacion
-	void agregarSim(SimulationData simIn){
+	void addSimulation(SimulationData simIn){
 		setSimulaciones.push_back(simIn);		
 	}
 
 	/*Alamacena target*/
-	void almacenarTarget(vector<double> dataIn){
+	void storeTarget(vector<double> &dataIn){
 		targets = dataIn;
 	}
 
 	/*Almacena en una matriz el set de estadisticos - creo que asi lo tienes victor*/
-	void almacenarSetStatsSim(vector< vector<double> > dataIn){
+	void storeSetSimulationStats(vector< vector<double> > &dataIn){
 		setStatsSim = dataIn;
 	}
 
 	/*Almacena vector de distancias*/
-	void cargaDataStats(vector< vector<double> > &dataStats, vector< vector<double> > &dataParams){
-		cout<<"SimulationStatistics::cargaDataStats - Inicio (dataStats: "<<dataStats.size()<<", dataParams: "<<dataParams.size()<<")\n";
+	void loadData(vector< vector<double> > &dataStats, vector< vector<double> > &dataParams){
+		cout<<"SimulationStatistics::loadData - Inicio (dataStats: "<<dataStats.size()<<", dataParams: "<<dataParams.size()<<")\n";
 		//Se almacena como matriz - creo que asi lo tienes o algo parecido
-		almacenarSetStatsSim(dataStats);		
+		storeSetSimulationStats(dataStats);		
 		//En lo que sigue se utilizan objetos, el proceso es tan rapido que puede que no necesite optimizacion
 		//en el sentido de solo usar vectores y matrices
 		//Se usan objetos, en caso de usar multiples simulaciones para distintos identificadores
@@ -118,43 +118,43 @@ public:
 				// simTmp.agregarParams(dataParams[i][k]);	
 				simTmp.params.push_back(dataParams[i][k]);
 			}
-			agregarSim(simTmp);
+			addSimulation(simTmp);
 			contId++; 		
 		}
 	}
 
 	/*Retorna vector de distancias*/
-	vector<pair<int,double> > simDistancias(){
+	vector<pair<int, double> > simulationDistances(){
 		return setDistancias;
 	}
 
 	/*Calcula distancias <medida de distancia,normalizar (no=0, o si=1)>*/ 
-	void computeDistancia(int medidaDistancia, int opcionNormalizar){
-		cout<<"SimulationStatistics::computeDistancia - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
+	void computeDistances(int medidaDistancia, int opcionNormalizar){
+		cout<<"SimulationStatistics::computeDistances - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
 		switch(opcionNormalizar){
 			//Sin Normalizar	
 			case 0:{
 				/*Almacena vector de errores*/		
-				vectorErrores(targets,setStatsSim,medidaDistancia,setDistancias);
+				vectorErrores(targets, setStatsSim, medidaDistancia, setDistancias);
 				break;
 			};
 			//Con Normalizar   
 			case 1:{
 				//Para procesamiento normalizado
-				vector <vector<double> > dataInSimStatsN;//Matriz normalizada de estadisticos
+				vector< vector<double> > dataInSimStatsN;//Matriz normalizada de estadisticos
 				vector<double>  dataInSimTargetN;//Target normalizado
-				vector <double> dataMaximos;//Maximos de cada estadistico
-				vector <double> dataMinimos;//Minimos de cada estadistico
+				vector<double> dataMaximos;//Maximos de cada estadistico
+				vector<double> dataMinimos;//Minimos de cada estadistico
 				/*Normaliza matriz de estadisticos*/
-				normalizedDataMatriz(setStatsSim,dataMaximos,dataMinimos,dataInSimStatsN);
+				normalizedDataMatriz(setStatsSim, dataMaximos, dataMinimos, dataInSimStatsN);
 				/*Normaliza target*/
-				normalizedDataLimits(targets,dataMaximos,dataMinimos,dataInSimTargetN);
+				normalizedDataLimits(targets, dataMaximos, dataMinimos, dataInSimTargetN);
 				/*Almacena vector<pair<int,double>> de errores*/
-				vectorErrores(dataInSimTargetN,dataInSimStatsN,medidaDistancia,setDistancias);
+				vectorErrores(dataInSimTargetN, dataInSimStatsN, medidaDistancia, setDistancias);
 				break;
 			};
 			default:{
-				cout<<"SimulationStatistics::computeDistancia - Opcion invalida ("<<opcionNormalizar<<", 0: sin normalizar, 1: normalizar)\n";
+				cout<<"SimulationStatistics::computeDistances - Opcion invalida ("<<opcionNormalizar<<", 0: sin normalizar, 1: normalizar)\n";
 			};
 		}
 	}
@@ -209,12 +209,12 @@ public:
 	}
 
 	//Add description
-	void agregarParamDesc(string dataDesc){
+	void addParamDesc(string dataDesc){
 		paramsDesc.push_back(dataDesc);		
 	}
 
 	//Add targets
-	void agregarTargets(double dataIn){
+	void addTargets(double dataIn){
 		targets.push_back(dataIn);				
 	}
 	

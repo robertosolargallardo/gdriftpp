@@ -324,7 +324,7 @@ using namespace std;
 //	}
 
 	//Normalized root-mean-square error - NRMSE
-	static double NRMSE(vector<double> a,vector<double> b)
+	static double NRMSE(vector<double> a, vector<double> b)
 	{
 		return errorRMSE(a,b)/(maximoValor(b) - minimoValor(b));
 	}
@@ -365,7 +365,7 @@ using namespace std;
 	 * de la matriz "m".
 	 * En id se almacena el identificador de cada simulacion 
 	 * */
-	static void vectorErrores(vector<double> a, vector< vector<double> > m, int opcionMedida,vector<pair<int, double> > &errores)
+	static void vectorErrores(vector<double> &a, vector< vector<double> > &m, int opcionMedida, vector<pair<int, double> > &errores)
 	{
 	size_t aSize = a.size();
 	size_t mSizeFils = m.size();

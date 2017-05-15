@@ -157,14 +157,14 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	/**** Comienzo analisis *****/ 
 	SimulationStatistics statsAnalisis;/*Declaracion de Objeto statsAnalisis*/
-	cout<<"Analyzer::trainModel - almacenarTarget...\n";
-	statsAnalisis.almacenarTarget(target);/*Almacena target*/ 
-	cout<<"Analyzer::trainModel - cargaDataStats...\n";
-	statsAnalisis.cargaDataStats(statistics, params); /*Almacena estadisticos y parametros*/ 
+	cout<<"Analyzer::trainModel - storeTarget...\n";
+	statsAnalisis.storeTarget(target);/*Almacena target*/ 
+	cout<<"Analyzer::trainModel - loadData...\n";
+	statsAnalisis.loadData(statistics, params); /*Almacena estadisticos y parametros*/ 
 	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
-	cout<<"Analyzer::trainModel - computeDistancia...\n";
-	statsAnalisis.computeDistancia(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
+	cout<<"Analyzer::trainModel - computeDistances...\n";
+	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar);/*Calcula distancias*/
 //	statsAnalisis.selectSample(1.0);
 	cout<<"Analyzer::trainModel - selectSample...\n";
 	double threshold = statsAnalisis.selectSample(0.1);/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
