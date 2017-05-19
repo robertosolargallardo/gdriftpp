@@ -129,10 +129,20 @@ ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop,
 				
 				break;
 			}
-			case INCREMENT:
-			case DECREMENT:
+			case INCREMENT:{
+				ptree fpercentage = fevent.second.get_child("params.source.population.percentage");
+				fevent.second.get_child("params.source.population").erase("percentage");
+				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true, 0.0):fpercentage.get<double>("value"));
+				break;
+			}
+			case DECREMENT:{
+				ptree fpercentage = fevent.second.get_child("params.source.population.percentage");
+				fevent.second.get_child("params.source.population").erase("percentage");
+				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true, 0.0, 1.0):fpercentage.get<double>("value"));
+				break;
+			}
 			case MIGRATION:{
-				ptree fpercentage=fevent.second.get_child("params.source.population.percentage");
+				ptree fpercentage = fevent.second.get_child("params.source.population.percentage");
 				fevent.second.get_child("params.source.population").erase("percentage");
 				fevent.second.get_child("params.source.population").put<double>("percentage",util::hash(fpercentage.get<string>("type"))==RANDOM?generate<double>(fpercentage.get_child("distribution"), true, 0.0, 1.0):fpercentage.get<double>("value"));
 				break;
@@ -141,6 +151,13 @@ ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop,
 				break;
 		}
 	}
+	
+//	cout<<"SimulationSettings::parse_scenario\n";
+//	std::stringstream ss;
+//	write_json(ss,_fscenario);
+//	cout << ss.str() << endl;
+//	cout<<"-----      ------\n";
+	
 	return(_fscenario);
 }
 
