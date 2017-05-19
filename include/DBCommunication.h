@@ -345,9 +345,9 @@ class DBCommunication{
 			return false;
 		}
 		
-		void storeResults(uint32_t id, uint32_t scenario_id, string out_file){
+		void storeResults(uint32_t id, uint32_t scenario_id, string out_file, uint32_t max_feedback){
 			
-			cout<<"DBCommunication::storeResults - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<")\n";
+			cout<<"DBCommunication::storeResults - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<", \""<<out_file<<"\")\n";
 			
 			// Tomar TODOS los resultados de id/scenario_id, agruparlas por feedback en map< feedback, vector<result> >
 			map<uint32_t, vector< vector<double> > > results;
@@ -357,8 +357,8 @@ class DBCommunication{
 			unsigned int contador = 0;
 			unsigned int feedback = 0;
 			boost::optional<ptree&> test_child;
-			unsigned int n_stats = 0;
-			unsigned int n_params = 0;
+//			unsigned int n_stats = 0;
+//			unsigned int n_params = 0;
 			for(list<ptree>::iterator it = results_list.begin(); it != results_list.end(); it++){
 				
 //				std::stringstream ss;
@@ -370,6 +370,9 @@ class DBCommunication{
 				test_child = it->get_child_optional("feedback");
 				if( test_child ){
 					feedback = it->get<uint32_t>("feedback");
+				}
+				if(feedback > max_feedback){
+					continue;
 				}
 //				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<"\n";
 				
@@ -394,13 +397,13 @@ class DBCommunication{
 						for(auto k : j.second){
 							for(auto l : k.second){
 								values.push_back(l.second);
-								if(contador == 0){ ++n_stats; }
+//								if(contador == 0){ ++n_stats; }
 							}
 						}
 					}
 				}
 				
-//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<", ";
+//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<", n_stats: "<<n_stats<<", ";
 //				for(unsigned int i = 0; i < values.size(); ++i){
 //					cout<<values[i]<<" ";
 //				}
@@ -459,41 +462,40 @@ class DBCommunication{
 				// Por ahora los agrego directamente a values
 				for(map<string, double>::iterator i = params.begin(); i != params.end(); i++){
 					values.push_back(i->second);
-					if(contador == 0){ ++n_params; }
+//					if(contador == 0){ ++n_params; }
 				}
 				results[feedback].push_back(values);
 				
 				++contador;
 			}
 			
-			cout<<"DBCommunication::storeResults - Total resultados: "<<contador<<"\n";
+//			cout<<"DBCommunication::storeResults - Total resultados: "<<contador<<"\n";
 			
-			fstream escritor(out_file, fstream::trunc | fstream::out);
-			char buff[1024*1024];
+			ofstream escritor(out_file, fstream::trunc | fstream::out);
+//			fstream escritor(out_file, fstream::trunc | fstream::out);
+//			char buff[1024*1024];
 			contador = 0;
 			for(map<uint32_t, vector< vector<double> > >::iterator it = results.begin(); it != results.end(); it++ ){
 				feedback = it->first;
 				vector< vector<double> > results = it->second;
 				for(unsigned int i = 0; i < results.size(); ++i){
 					vector<double> values = results[i];
-					sprintf(buff, "%u\t%u\t", contador, feedback);
+//					sprintf(buff, "%u\t%u\t", contador, feedback);
+					escritor<<contador<<"\t"<<feedback<<"\t";
 					for(unsigned int j = 0; j < values.size(); ++j){
-						sprintf(buff + strlen(buff), "%f\t", values[j]);
+//						sprintf(buff + strlen(buff), "%f\t", values[j]);
+						escritor<<values[j]<<"\t";
 					}
-					sprintf(buff + strlen(buff), "\n");
-					escritor.write(buff, strlen(buff));
+//					sprintf(buff + strlen(buff), "\n");
+//					escritor.write(buff, strlen(buff));
+					escritor<<"\n";
 					++contador;
 				}
 			}
-//			sprintf(buff + strlen(buff), "%u\t%u\t", contador, );
 			escritor.close();
 			
-			cout<<"DBCommunication::storeResults - Fin (pos, feedback, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
-		}
-		
-		void storeTraining(uint32_t id, uint32_t scenario_id, string out_file){
-			
-			
+//			cout<<"DBCommunication::storeResults - Fin (pos, feedback, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
+			cout<<"DBCommunication::storeResults - Fin\n";
 		}
 		
 		pair< string, pair<double, double> > parseDistribution(ptree dist){
@@ -519,7 +521,7 @@ class DBCommunication{
 		// Notar que feedback 0 partira con distribuciones uniformes
 		void storeDistributions(uint32_t id, uint32_t scenario_id, string out_file){
 			
-			cout<<"DBCommunication::storeDistributions - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<")\n";
+			cout<<"DBCommunication::storeDistributions - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<", \""<<out_file<<"\")\n";
 			
 			list<ptree> results;
 			mongo.readSettings(results, db_name, collection_settings, id);
@@ -557,7 +559,7 @@ class DBCommunication{
 						param_name += std::to_string(gid);
 						param_name += ".mutation.rate";
 						params[param_name] = dist;
-						cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+//						cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 					}
 				}
 				
@@ -576,18 +578,18 @@ class DBCommunication{
 							string param_name = param_base + ".timestamp";
 							pair< string, pair<double, double> > dist = parseDistribution(e.second.get_child("timestamp.distribution"));
 							params[param_name] = dist;
-							cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+//							cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							if( e_type.compare("create") == 0 ){
 								dist = parseDistribution(e.second.get_child("params.population.size.distribution"));
 								string param_name = param_base + ".params.population.size";
 								params[param_name] = dist;
-								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+//								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							}
 							else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
 								dist = parseDistribution(e.second.get_child("params.source.population.percentage.distribution"));
 								string param_name = param_base + ".params.source.population.percentage";
 								params[param_name] = dist;
-								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+//								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							}
 							
 							
