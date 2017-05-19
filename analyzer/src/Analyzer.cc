@@ -46,6 +46,20 @@ unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &json, map
 			}
 		}
 	}
+	
+//	// Prueba de resultados
+//	cout<<"Analyzer::parseIndices - Statistics:\t";
+//	for(auto p : indices){
+//		for(auto c : p.second){
+//			for(auto g : c.second){
+//				for(auto i : g.second){
+//					cout<<i.second<<"\t";
+//				}
+//			}
+//		}
+//	}
+//	cout<<"\n";
+	
 	return inserts;
 }
 
