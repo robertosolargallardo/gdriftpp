@@ -18,16 +18,24 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	switch(type){
 		case INIT:{
 			cout<<"Scheduler::run - INIT\n";
-			_frequest.put("feedback", 0);
+			boost::optional<boost::property_tree::ptree&> test_child;
+			
 			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<SimulationSettings>(_frequest);
 			this->_semaphore->unlock();
+			
 			this->_settings[id]->_training_size = BATCH_LENGTH;
-			boost::optional<boost::property_tree::ptree&> test_child = _frequest.get_child_optional("batch-size");
+			test_child = _frequest.get_child_optional("batch-size");
 			if( test_child ){
 				this->_settings[id]->_training_size = _frequest.get<uint32_t>("batch-size");
 			}
+			test_child = _frequest.get_child_optional("feedback");
+			if( test_child ){
+				this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
+			}
+			
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
 			break;
