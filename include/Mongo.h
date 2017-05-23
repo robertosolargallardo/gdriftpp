@@ -179,8 +179,8 @@ class Mongo{
 			
 		}
 		
-		unsigned int readResults(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid){
-			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << finalize);
+		unsigned int readResults(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid, uint32_t feedback){
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << finalize);
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
 			for(auto doc : cursor){

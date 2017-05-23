@@ -345,17 +345,16 @@ class DBCommunication{
 			return false;
 		}
 		
-		void storeResults(uint32_t id, uint32_t scenario_id, string out_file, uint32_t max_feedback){
+		void storeResults(uint32_t id, uint32_t scenario_id, string out_file, uint32_t feedback, uint32_t n_stats, uint32_t n_params){
 			
 			cout<<"DBCommunication::storeResults - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<", \""<<out_file<<"\")\n";
 			
 			// Tomar TODOS los resultados de id/scenario_id, agruparlas por feedback en map< feedback, vector<result> >
-			map<uint32_t, vector< vector<double> > > results;
+			vector< vector<double> > results;
 			list<ptree> results_list;
-			mongo.readResults(results_list, db_name, collection_results, id, scenario_id);
+			mongo.readResults(results_list, db_name, collection_results, id, scenario_id, feedback);
 			
 			unsigned int contador = 0;
-			unsigned int feedback = 0;
 			boost::optional<ptree&> test_child;
 //			unsigned int n_stats = 0;
 //			unsigned int n_params = 0;
@@ -365,16 +364,7 @@ class DBCommunication{
 //				write_json(ss, *it);
 //				cout<<ss.str()<<"\n";
 				
-				// feedback
-				feedback = 0;
-				test_child = it->get_child_optional("feedback");
-				if( test_child ){
-					feedback = it->get<uint32_t>("feedback");
-				}
-				if(feedback > max_feedback){
-					continue;
-				}
-//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<"\n";
+//				cout<<"DBCommunication::storeResults - Res["<<contador<<"]\n";
 				
 				// Extraer estadisticos
 				// Primero los extraigo a la estructura de mapa para que queden con el mismo orden
@@ -397,13 +387,12 @@ class DBCommunication{
 						for(auto k : j.second){
 							for(auto l : k.second){
 								values.push_back(l.second);
-//								if(contador == 0){ ++n_stats; }
 							}
 						}
 					}
 				}
 				
-//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] feedback: "<<feedback<<", n_stats: "<<n_stats<<", ";
+//				cout<<"DBCommunication::storeResults - Res["<<contador<<"] n_stats: "<<n_stats<<", ";
 //				for(unsigned int i = 0; i < values.size(); ++i){
 //					cout<<values[i]<<" ";
 //				}
@@ -462,39 +451,29 @@ class DBCommunication{
 				// Por ahora los agrego directamente a values
 				for(map<string, double>::iterator i = params.begin(); i != params.end(); i++){
 					values.push_back(i->second);
-//					if(contador == 0){ ++n_params; }
 				}
-				results[feedback].push_back(values);
+				if( values.size() == (n_stats + n_params) ){
+					results.push_back(values);
+				}
 				
 				++contador;
 			}
 			
-//			cout<<"DBCommunication::storeResults - Total resultados: "<<contador<<"\n";
+			cout<<"DBCommunication::storeResults - Total Revisados: "<<contador<<" (Agregados: "<<results.size()<<")\n";
 			
 			ofstream escritor(out_file, fstream::trunc | fstream::out);
-//			fstream escritor(out_file, fstream::trunc | fstream::out);
-//			char buff[1024*1024];
-			contador = 0;
-			for(map<uint32_t, vector< vector<double> > >::iterator it = results.begin(); it != results.end(); it++ ){
-				feedback = it->first;
-				vector< vector<double> > results = it->second;
-				for(unsigned int i = 0; i < results.size(); ++i){
-					vector<double> values = results[i];
-//					sprintf(buff, "%u\t%u\t", contador, feedback);
-					escritor<<contador<<"\t"<<feedback<<"\t";
-					for(unsigned int j = 0; j < values.size(); ++j){
-//						sprintf(buff + strlen(buff), "%f\t", values[j]);
-						escritor<<values[j]<<"\t";
-					}
-//					sprintf(buff + strlen(buff), "\n");
-//					escritor.write(buff, strlen(buff));
-					escritor<<"\n";
-					++contador;
+			for(unsigned int i = 0; i < results.size(); ++i){
+				vector<double> values = results[i];
+				escritor<<i<<"\t";
+				for(unsigned int j = 0; j < values.size(); ++j){
+					escritor<<values[j]<<"\t";
 				}
+				escritor<<"\n";
+				
 			}
 			escritor.close();
 			
-//			cout<<"DBCommunication::storeResults - Fin (pos, feedback, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
+//			cout<<"DBCommunication::storeResults - Fin (pos, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
 			cout<<"DBCommunication::storeResults - Fin\n";
 		}
 		
