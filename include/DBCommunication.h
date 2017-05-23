@@ -358,6 +358,7 @@ class DBCommunication{
 			boost::optional<ptree&> test_child;
 //			unsigned int n_stats = 0;
 //			unsigned int n_params = 0;
+			cout<<"DBCommunication::storeTimes - Procesando "<<results_list.size()<<" resultados\n";
 			for(list<ptree>::iterator it = results_list.begin(); it != results_list.end(); it++){
 				
 //				std::stringstream ss;
@@ -475,6 +476,111 @@ class DBCommunication{
 			
 //			cout<<"DBCommunication::storeResults - Fin (pos, n_stats: "<<n_stats<<", n_params: "<<n_params<<")\n";
 			cout<<"DBCommunication::storeResults - Fin\n";
+		}
+		
+		void storeTimes(uint32_t id, uint32_t scenario_id, string out_file, uint32_t feedback){
+			
+			cout<<"DBCommunication::storeTimes - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<", \""<<out_file<<"\")\n";
+			
+			// Tomar TODOS los resultados de id/scenario_id, agruparlas por feedback en map< feedback, vector<result> >
+			vector< vector<double> > results;
+			list<ptree> results_list;
+			mongo.readResults(results_list, db_name, collection_results, id, scenario_id, feedback);
+			
+			unsigned int contador = 0;
+			boost::optional<ptree&> test_child;
+			
+			cout<<"DBCommunication::storeTimes - Procesando "<<results_list.size()<<" resultados\n";
+			long double total = 0.0;
+			for(list<ptree>::iterator it = results_list.begin(); it != results_list.end(); it++){
+				
+//				std::stringstream ss;
+//				write_json(ss, *it);
+//				cout<<ss.str()<<"\n";
+				
+//				cout<<"DBCommunication::storeTimes - Res["<<contador<<"]\n";
+				
+				// mutacion, poblacion inicial, generaciones
+				// Las generaciones son el tiempo del ultimo evento, menos el tiempo del primero
+				vector<double> values;
+				
+				// Extraer parametros
+				// Primero los extraigo en un mapa para que queden con el mismo orden
+				map<string, double> params;
+				
+				// Genes
+				for(auto &c : it->get_child("individual.chromosomes")){
+					uint32_t cid = c.second.get<uint32_t>("id");
+					for(auto g : c.second.get_child("genes")){
+						uint32_t gid = g.second.get<uint32_t>("id");
+						double value = g.second.get<double>("mutation.rate");
+						string param_name = "chromosomes.";
+						param_name += std::to_string(cid);
+						param_name += ".genes.";
+						param_name += std::to_string(gid);
+						param_name += ".mutation.rate";
+						params[param_name] = value;
+//						cout<<"DBCommunication::storeTimes - params["<<param_name<<"] = "<<params[param_name]<<"\n";
+					}
+				}
+				for(map<string, double>::iterator i = params.begin(); i != params.end(); i++){
+					values.push_back(i->second);
+				}
+				
+				// Eventos
+				// De aqui me interesa: timestamp primer evento, size del create, tiempo del ultimo evento
+				uint32_t create_time = 0;
+				uint32_t create_size = 0;
+				uint32_t endsim_time = 0;
+				for(auto e : it->get_child("scenario.events")){
+					// En principio cada evento tiene timestamp y parametros
+					// Los parametros que tengan type random deben ser agregados
+					string e_id = e.second.get<string>("id");
+					string e_type = e.second.get<string>("type");
+					string param_base = "scenario.events.";
+					param_base += e_id;
+					if( e_type.compare("create") == 0 ){
+						create_time = e.second.get<uint32_t>("timestamp");
+						create_size = e.second.get<uint32_t>("params.population.size");
+					}
+					if( e_type.compare("endsim") == 0 ){
+						endsim_time = e.second.get<uint32_t>("timestamp");
+					}
+				}
+				values.push_back(create_size);
+				values.push_back(endsim_time - create_time);
+				
+				double milisec = -1;
+				boost::optional<ptree&> test_child;
+				test_child = it->get_child_optional("ms_run");
+				if( test_child ){
+					milisec = it->get<double>("ms_run");
+				}
+				
+				if( (milisec > 0) && (endsim_time > create_time) ){
+					total += milisec;
+					values.push_back(milisec);
+					results.push_back(values);
+				}
+				
+				++contador;
+			}
+			
+			cout<<"DBCommunication::storeTimes - Total Revisados: "<<contador<<" (Agregados: "<<results.size()<<", tpo medio: "<<total/results.size()<<")\n";
+			
+			ofstream escritor(out_file, fstream::trunc | fstream::out);
+			for(unsigned int i = 0; i < results.size(); ++i){
+				vector<double> values = results[i];
+				escritor<<i<<"\t";
+				for(unsigned int j = 0; j < values.size(); ++j){
+					escritor<<values[j]<<"\t";
+				}
+				escritor<<"\n";
+				
+			}
+			escritor.close();
+			
+			cout<<"DBCommunication::storeTimes - Fin\n";
 		}
 		
 		pair< string, pair<double, double> > parseDistribution(ptree dist){

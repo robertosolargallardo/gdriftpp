@@ -71,6 +71,9 @@ target_link_libraries(extract_data mongocxx bsoncxx restbed gdrift++ ssl crypto 
 add_executable(prepare_data  "${CMAKE_SOURCE_DIR}/test/statistics/prepare_data.cc")
 target_link_libraries(prepare_data mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
 
+add_executable(extract_times  "${CMAKE_SOURCE_DIR}/test/statistics/extract_times.cc")
+target_link_libraries(extract_times mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
+
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set (CMAKE_INSTALL_PREFIX "/usr/local" CACHE PATH "default install path" FORCE )
 endif()
