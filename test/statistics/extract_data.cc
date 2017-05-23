@@ -25,7 +25,7 @@ mongocxx::instance inst{};
 int main(int argc, char** argv){
 
 	if(argc != 5){
-		cout<<"\nModo de Uso: test_statistics hosts results_file distributions_file max_feedback\n";
+		cout<<"\nModo de Uso: ./extract_data hosts results_file distributions_file max_feedback\n";
 		cout<<"\n";
 		return 0;
 	}
