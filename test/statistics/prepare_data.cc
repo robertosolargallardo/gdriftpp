@@ -43,8 +43,8 @@ public:
 
 int main(int argc, char** argv){
 
-	if(argc != 9){
-		cout<<"\nModo de Uso: prepare_data results_file target_file n_stats n_params out_file params_simple_base n_buckets params_pares_base\n";
+	if(argc != 8){
+		cout<<"\nModo de Uso: prepare_data results_file target_file n_stats n_params params_simple_base n_buckets params_pares_base\n";
 		cout<<"\n";
 		return 0;
 	}
@@ -53,13 +53,12 @@ int main(int argc, char** argv){
 	string target_file = argv[2];
 	unsigned int n_stats = atoi(argv[3]);
 	unsigned int n_params = atoi(argv[4]);
-	string out_file = argv[5];
-	string params_simple_base = argv[6];
-	unsigned int n_buckets = atoi(argv[7]);
-	string params_pares_base = argv[8];
+	string params_simple_base = argv[5];
+	unsigned int n_buckets = atoi(argv[6]);
+	string params_pares_base = argv[7];
 	unsigned int n_clases_dist = 5;
 	
-	cout<<"Inicio (\""<<results_file<<"\", \""<<target_file<<"\", n_stats: "<<n_stats<<", n_params: "<<n_params<<", \""<<out_file<<"\", \""<<params_simple_base<<"\")\n";
+	cout<<"Inicio (\""<<results_file<<"\", \""<<target_file<<"\", n_stats: "<<n_stats<<", n_params: "<<n_params<<", \""<<params_simple_base<<"\")\n";
 	
 	// Cargar datos (full)
 	// 0... ns-1	| ns... ns+np-1	| ns+np
