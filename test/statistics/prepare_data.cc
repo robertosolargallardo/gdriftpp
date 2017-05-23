@@ -259,6 +259,25 @@ int main(int argc, char** argv){
 		
 	}
 	
+	cout<<"Revision de threshold\n";
+	PositionalComparator comp(n_stats + n_params);
+	sort(data.begin(), data.end(), comp);
+	min_dist = 100000000;
+	max_dist = 0;
+	mean_dist = 0;
+	for(unsigned int i = 0; i < data.size()*0.1; ++i){
+		if(data[i][n_stats + n_params] < min_dist){
+			min_dist = data[i][n_stats + n_params];
+		}
+		if(data[i][n_stats + n_params] > max_dist){
+			max_dist = data[i][n_stats + n_params];
+		}
+		mean_dist += data[i][n_stats + n_params];
+	}
+	mean_dist /= data.size()*0.1;
+	cout<<"min: "<<min_dist<<", max: "<<max_dist<<", mean: "<<mean_dist<<"\n";
+	
+	
 	return 0;
 }
 
