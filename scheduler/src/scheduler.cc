@@ -17,11 +17,13 @@ mt19937 rng(seed());
 mongocxx::instance inst{};
 
 shared_ptr<Scheduler> scheduler;
-std::mutex internal_mutex;
+
+// Notar que el mutex SOLO es para las pruebas, el sistema real no puede ser bloqueante a este nivel
+//std::mutex internal_mutex;
 
 void run(boost::property_tree::ptree _frequest){
 //	cout<<"scheduler::main::run - Inicio\n";
-	lock_guard<mutex> lock(internal_mutex);
+//	lock_guard<mutex> lock(internal_mutex);
 	scheduler->run(_frequest);
 }
 

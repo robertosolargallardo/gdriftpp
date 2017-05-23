@@ -67,6 +67,9 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			this->_semaphore->unlock();
 			// Asigno independientemente el feedback, quzas podria definirse en el constructo si se encuentra (para ser resistente al init)
 			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
+			// Continuo directamente (ya no esperare el continue para evitar el problema del doble mensaje del analizer)
+			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
+			
 			break;
 		}
 		case FINALIZE:{

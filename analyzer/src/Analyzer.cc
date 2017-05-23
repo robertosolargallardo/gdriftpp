@@ -495,11 +495,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //					write_json(ss, fresponse);
 //					cout << ss.str() << endl;
 					
-					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
+//					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 					// Enviar nuevos parametros al scheduler
-					cout<<"Analyzer::run - Preparando continue\n";
-//					this->_batch_size[id] = 0;
-					fresponse.put("type", "continue");
+//					cout<<"Analyzer::run - Preparando continue\n";
+//					fresponse.put("type", "continue");
+					
 				}// else... Continue
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
 			}
