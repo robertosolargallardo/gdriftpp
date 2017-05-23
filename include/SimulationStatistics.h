@@ -59,10 +59,10 @@ private:
 	vector< vector<double>  > setSampleTraspuesto;
 	
 	//Vector of objects of Function density for each params en caso de querer almacenar dist. a priori
-	//vector< FuncionDensidad  > setDistOriginal;
+	//vector< DensityFunction > setDistOriginal;
 	
 	//Vector of objects of Function density for each params de la seleccion de datos de la simulacion
-	vector< FuncionDensidad  > setDistPosterior;
+	vector< DensityFunction > setDistPosterior;
 	
 	//Data-params for fase of training
 	vector<pair<double, double> > medianVar;
@@ -206,9 +206,9 @@ public:
 		unsigned int dim = setSampleTraspuesto.size();
 		for(size_t k=0;k<dim;k++){ 			
 			//DistPosterior
-			FuncionDensidad fden;
-			fden.computeFuncionDensidad(setSampleTraspuesto[k],opcion);
-			setDistPosterior.push_back(fden); 	
+			DensityFunction fden;
+			fden.computeDensityFunction(setSampleTraspuesto[k],opcion);
+			setDistPosterior.push_back(fden);
 		}
 	}
 
@@ -222,7 +222,7 @@ public:
 		targets.push_back(dataIn);				
 	}
 	
-	FuncionDensidad &getDistribution(unsigned int pos){
+	DensityFunction &getDistribution(unsigned int pos){
 		return setDistPosterior[pos];
 	}
 	

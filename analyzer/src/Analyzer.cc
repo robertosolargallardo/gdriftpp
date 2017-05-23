@@ -200,8 +200,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		unsigned int opcionGraficoOut = it->second;
 		string nombre = it->first;
 		vector<double> dataGrafica;
-		FuncionDensidad dist = statsAnalisis.getDistribution(opcionGraficoOut);
-		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<dist.sampleMediana<<", std: "<<dist.sampleStd<<")\n";
+		DensityFunction dist = statsAnalisis.getDistribution(opcionGraficoOut);
+		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<dist.sampleMedian<<", std: "<<dist.sampleStd<<")\n";
 		//Por ahora se usa el mismo numero de puntos que muestra, lunes os comento
 		unsigned int dimG = dist.samplePostNormalized.size();
 		//Parametro con numeracion:opcionGraficoOut
@@ -211,10 +211,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 //		}
 		estimations_map[nombre] = dataGrafica;
 		
-		res_dist.push_back( pair<double, double>(dist.sampleMediana, dist.sampleStd) );
+		res_dist.push_back( pair<double, double>(dist.sampleMedian, dist.sampleStd) );
 		
 		// Estos datos tambien podrian retornarse al llamador (para agregarlos al resultado de training)
-//		distribution_map[nombre] = pair<double, double>( dist.sampleMediana, dist.sampleStd );
+//		distribution_map[nombre] = pair<double, double>( dist.sampleMedian, dist.sampleStd );
 		
 	}
 	

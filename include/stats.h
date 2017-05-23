@@ -119,7 +119,7 @@ using namespace std;
 	}
     
     /*Calculo de la mediana*/
-	static double mediana(vector<double> dataIn)
+	static double median(vector<double> dataIn)
 	{
 	  double median;
 	  size_t size = dataIn.size();
@@ -131,7 +131,7 @@ using namespace std;
 	}
 
     /*Calculo del promedio*/
-	static double promedio(vector<double> dataIn)
+	static double mean(vector<double> dataIn)
 	{
 	  double suma = 0.0;
 	  double cont = 0.0;
@@ -145,11 +145,11 @@ using namespace std;
 	}
 
     /*Calculo de la varianza*/
-	static double varianza(vector<double> dataIn)
+	static double variance(vector<double> dataIn)
 	{
 	  double suma = 0.0;
 	  double cont = 0.0;    
-	  double dataPromedio = promedio(dataIn);
+	  double dataPromedio = mean(dataIn);
 
 	    for (std::vector<double>::iterator it = dataIn.begin() ; it != dataIn.end(); ++it)
 	    {
@@ -184,8 +184,8 @@ using namespace std;
 					{
 						tmp.push_back(m[fil][col]);
 					}
-					vVar = varianza(tmp);
-					vMedia = promedio(tmp);
+					vVar = variance(tmp);
+					vMedia = mean(tmp);
 					//cout<<"Varianza:"<<vVar<<" , Dim:"<< tmp.size() <<endl;
 					//Un elemento con valor 0 en varianza, lo cual puede indeterminar un calculo a inf!!! 
 					if(vVar == 0.0)
@@ -320,7 +320,7 @@ using namespace std;
 	//Coeficente (Percentage) of variation of one random variable - siempre entre [0,1] y no depende de la magnitud de valores (escala)
 //	static double coefVariation(vector<double> a)
 //	{
-//		return sqrt(varianza(a))/promedio(a);
+//		return sqrt(variance(a))/mean(a);
 //	}
 
 	//Normalized root-mean-square error - NRMSE
