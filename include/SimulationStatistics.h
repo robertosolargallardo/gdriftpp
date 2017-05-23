@@ -12,7 +12,7 @@
 #include <set>
 #include <map>
 //Libs extras
-#include "densityProbability.h"
+#include "DensityFunction.h"
 #define END_OF_STREAM 999999999
 
 using namespace std;
