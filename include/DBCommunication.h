@@ -458,6 +458,7 @@ class DBCommunication{
 				}
 				
 				++contador;
+//if(contador>10) break;
 			}
 			
 			cout<<"DBCommunication::storeResults - Total Revisados: "<<contador<<" (Agregados: "<<results.size()<<")\n";
@@ -604,106 +605,98 @@ class DBCommunication{
 		// Este metodo de prueba extrae todos los settings de una simulacion
 		// Guarda los parametros de las distribuciones por cada feedback
 		// Notar que feedback 0 partira con distribuciones uniformes
-		void storeDistributions(uint32_t id, uint32_t scenario_id, string out_file){
+		void storeDistributions(uint32_t id, uint32_t scenario_id, string out_file, uint32_t feedback){
 			
 			cout<<"DBCommunication::storeDistributions - Inicio (id: "<<id<<", scenario_id: "<<scenario_id<<", \""<<out_file<<"\")\n";
 			
-			list<ptree> results;
-			mongo.readSettings(results, db_name, collection_settings, id);
-			cout<<"DBCommunication::storeDistributions - Total results: "<<results.size()<<"\n";
-			// Guardar: feedback, genes, params (ordenados por mapa de nombre)
-			uint32_t feedback = 0;
+			ptree settings = mongo.readSettings(db_name, collection_settings, id, feedback);
+			// Guardar: genes, params (ordenados por mapa de nombre)
 			boost::optional<ptree&> test_child;
 			// Mapa <feedback, vector <dist_type, <param1, param2> > >
-			map<uint32_t, vector< pair<string, pair<double, double> > > > distributions;
-			for(list<ptree>::iterator it = results.begin(); it != results.end(); it++){
+			vector< pair<string, pair<double, double> > > distributions;
 				
-				// feedback
-				feedback = 0;
-				test_child = it->get_child_optional("feedback");
-				if( test_child ){
-					feedback = it->get<uint32_t>("feedback");
-				}
-				
-				cout<<"DBCommunication::storeDistributions - Agregando parametros de feedback: "<<feedback<<"\n";
-				
-				// Mapa para ordenar los parametros
-				map<string, pair<string, pair<double, double> > > params;
-				
-				// genes
-				for(auto &c : it->get_child("individual.chromosomes")){
-					uint32_t cid = c.second.get<uint32_t>("id");
-					for(auto g : c.second.get_child("genes")){
-						uint32_t gid = g.second.get<uint32_t>("id");
+			cout<<"DBCommunication::storeDistributions - Agregando parametros\n";
+			
+			// Mapa para ordenar los parametros
+			map<string, pair<string, pair<double, double> > > params;
+			
+			// genes
+			for(auto &c : settings.get_child("individual.chromosomes")){
+				uint32_t cid = c.second.get<uint32_t>("id");
+				for(auto g : c.second.get_child("genes")){
+					uint32_t gid = g.second.get<uint32_t>("id");
 //						double value = g.second.get<double>("mutation.rate");
-						string type = g.second.get<string>("mutation.rate.type");
-						pair< string, pair<double, double> > dist = parseDistribution(g.second.get_child("mutation.rate.distribution"));
-						string param_name = "chromosomes.";
-						param_name += std::to_string(cid);
-						param_name += ".genes.";
-						param_name += std::to_string(gid);
-						param_name += ".mutation.rate";
-						params[param_name] = dist;
-//						cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
-					}
+					string type = g.second.get<string>("mutation.rate.type");
+					pair< string, pair<double, double> > dist = parseDistribution(g.second.get_child("mutation.rate.distribution"));
+					string param_name = "chromosomes.";
+					param_name += std::to_string(cid);
+					param_name += ".genes.";
+					param_name += std::to_string(gid);
+					param_name += ".mutation.rate";
+					params[param_name] = dist;
+					cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 				}
-				
-				// eventos (del escenario correcto)
-				for(auto s : it->get_child("scenarios")){
-					uint32_t s_id = s.second.get<uint32_t>("id");
-					if(s_id == scenario_id){
-						for(auto e : s.second.get_child("events")){
-							// En principio cada evento tiene timestamp y parametros
-							// Los parametros que tengan type random deben ser agregados
+			}
+			
+			// eventos (del escenario correcto)
+			for(auto s : settings.get_child("scenarios")){
+				uint32_t s_id = s.second.get<uint32_t>("id");
+				if(s_id == scenario_id){
+					for(auto e : s.second.get_child("events")){
+						// En principio cada evento tiene timestamp y parametros
+						// Los parametros que tengan type random deben ser agregados
+					
+						string e_id = e.second.get<string>("id");
+						string e_type = e.second.get<string>("type");
+						string param_base = "scenario.events.";
+						param_base += e_id;
+						pair< string, pair<double, double> > dist;
 						
-							string e_id = e.second.get<string>("id");
-							string e_type = e.second.get<string>("type");
-							string param_base = "scenario.events.";
-							param_base += e_id;
+						string value_type = e.second.get<string>("timestamp.type");
+						if( value_type.compare("random") == 0 ){
+							dist = parseDistribution(e.second.get_child("timestamp.distribution"));
 							string param_name = param_base + ".timestamp";
-							pair< string, pair<double, double> > dist = parseDistribution(e.second.get_child("timestamp.distribution"));
 							params[param_name] = dist;
-//							cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
-							if( e_type.compare("create") == 0 ){
+							cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+						}
+						if( e_type.compare("create") == 0 ){
+							string value_type = e.second.get<string>("params.population.size.type");
+							if( value_type.compare("random") == 0 ){
 								dist = parseDistribution(e.second.get_child("params.population.size.distribution"));
 								string param_name = param_base + ".params.population.size";
 								params[param_name] = dist;
-//								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							}
-							else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+						}
+						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+							string value_type = e.second.get<string>("params.source.population.percentage");
+							if( value_type.compare("random") == 0 ){
 								dist = parseDistribution(e.second.get_child("params.source.population.percentage.distribution"));
 								string param_name = param_base + ".params.source.population.percentage";
 								params[param_name] = dist;
-//								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
+								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							}
-							
-							
 						}
+						
+						
 					}
 				}
-				
-				// Volcar resultados en distributions
-				distributions.erase(feedback);
-				for( map<string, pair<string, pair<double, double> > >::iterator it_params = params.begin(); it_params != params.end(); it_params++ ){
-					distributions[feedback].push_back(it_params->second);
-				}
-				
+			}
+			
+			// Volcar resultados en distributions
+			for( map<string, pair<string, pair<double, double> > >::iterator it_params = params.begin(); it_params != params.end(); it_params++ ){
+				distributions.push_back(it_params->second);
 			}
 			
 			// Escribir resultados
 			ofstream escritor(out_file, fstream::trunc | fstream::out);
-			// map<uint32_t, vector< pair<string, pair<double, double> > > > distributions;
-			for(auto feed_data : distributions){
-				unsigned int feedback = feed_data.first;
-				vector< pair<string, pair<double, double> > > dists = feed_data.second;
-				escritor<<feedback<<"\t";
-				for(unsigned int i = 0; i < dists.size(); ++i){
-					string type = dists[i].first;
-					pair<double, double> params = dists[i].second;
-					escritor<<type<<"\t"<<params.first<<"\t"<<params.second<<"\t";
-				}
-				escritor<<"\n";
+			escritor<<feedback<<"\t";
+			for(unsigned int i = 0; i < distributions.size(); ++i){
+				string type = distributions[i].first;
+				pair<double, double> params = distributions[i].second;
+				escritor<<type<<"\t"<<params.first<<"\t"<<params.second<<"\t";
 			}
+			escritor<<"\n";
 			escritor.close();
 			
 			cout<<"DBCommunication::storeDistributions - Fin\n";
