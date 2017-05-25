@@ -1,7 +1,7 @@
 #include <restbed>
 #include <boost/lexical_cast.hpp>
 
-#include <Semaphore.h>
+//#include <Semaphore.h>
 #include <Method.h>
 #include <Logger.h>
 #include <Controller.h>
@@ -18,7 +18,7 @@ using namespace boost::property_tree;
 random_device seed;
 mt19937 rng(seed());
 
-shared_ptr<util::Semaphore>  semaphore;
+//shared_ptr<util::Semaphore>  semaphore;
 shared_ptr<Controller> controller;
 static unsigned int id_controller = 0;
 
@@ -26,8 +26,8 @@ static unsigned int id_controller = 0;
 list<shared_ptr<boost::property_tree::ptree>> work_list;
 std::mutex list_mutex;
 unsigned MAX_THREADS = std::thread::hardware_concurrency();
-//unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
-unsigned n_threads = 1;
+unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
+//unsigned n_threads = 1;
 
 // Inicializacion de los threads (Lo dejo EN el main por ahora para agregar hosts)
 //bool Controller::thread_started = Controller::startThreads(n_threads, &work_list, &list_mutex);
@@ -59,7 +59,7 @@ int main(int argc, char **argv){
 	uint32_t id = atoi(argv[2]);
 	
 	// semaphore = make_shared<util::Semaphore>(MAX_THREADS);
-	semaphore = make_shared<util::Semaphore>(1);
+	//semaphore = make_shared<util::Semaphore>(1);
 	
 	controller = make_shared<Controller>(fhosts, id);
 	Controller::startThreads(n_threads, &work_list, &list_mutex, fhosts);

@@ -2,7 +2,8 @@
 	"analyzer" : {
 		"host" : "localhost",
 		"port" : "1986",
-		"resource" : "/analyzer"
+		"simulated" : "/analyzer/simulated",
+		"data" : "/analyzer/data"
 	},
 	"scheduler" : {
 		"host" : "localhost",

@@ -517,6 +517,143 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 	return(_frequest);
 }
 
+boost::property_tree::ptree Analyzer::run(const std::string &_body){
+	boost::property_tree::ptree fsettings;
 
+    MultipartFormParser m(_body);
+
+    fsettings.put("max-number-of-simulations",m.get("max-number-of-simulations"));
+    m.remove("max-number-of-simulations");
+
+    fsettings.put("name",m.get("simulation-name"));
+    m.remove("simulation-name");
+
+    fsettings.put("user",m.get("user"));
+    m.remove("user");
+
+    fsettings.put("type","init");
+    fsettings.put("batch-size","1000");
+    fsettings.put("population-increase-phases","0");
+
+    uint32_t ploidy=boost::lexical_cast<uint32_t>(m.get("ploidy"));
+    m.remove("ploidy");
+
+    fsettings.put("similarity-threshold",m.get("similarity-threshold"));
+    m.remove("similarity-threshold");
+
+    milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	 uint32_t id=ms.count();
+    fsettings.put("id",boost::lexical_cast<std::string>(id));
+
+    map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> samples;
+
+    while(!m.empty()) {
+        uint32_t sample=boost::lexical_cast<uint32_t>(m.get("Sample"));
+        m.remove("Sample");
+
+        uint32_t chromosome=boost::lexical_cast<uint32_t>(m.get("Chromosome"));
+        m.remove("Chromosome");
+
+        uint32_t gene=boost::lexical_cast<uint32_t>(m.get("Gene"));
+        m.remove("Gene");
+
+        uint32_t markertype=boost::lexical_cast<uint32_t>(m.get("MarkerType"));
+        m.remove("MarkerType");
+
+        uint32_t filetype=boost::lexical_cast<uint32_t>(m.get("FileType"));
+        m.remove("FileType");
+
+        FileParser fp(m.get("File"),FileType(filetype),MarkerType(markertype));
+        m.remove("File");
+
+        vector<Marker> markers=fp.parse();
+        samples[sample][chromosome][gene]=markers;
+    }
+
+    boost::property_tree::ptree fsamples;
+    for(auto& sample : samples){
+    	boost::property_tree::ptree fsample;
+    	fsample.put("name","sample"+boost::lexical_cast<string>(sample.first));
+    	fsamples.push_back(std::make_pair("",fsample));
+    }
+
+    boost::property_tree::ptree findividual=get_profile(samples,ploidy);
+    fsettings.add_child("samples",fsamples);
+    fsettings.add_child("individual",findividual);
+
+	 /*computing statistics*/
+	this->finished[id]=0;
+
+	boost::property_tree::ptree fdata,fposterior;
+   fdata.put("id",fsettings.get<std::string>("id"));
+   fdata.put("type", "data");
+
+   boost::property_tree::ptree fpopulations;
+   Sample all("summary");
+   for(auto& sample : samples){
+		Sample p("sample"+boost::lexical_cast<std::string>(sample.first),sample.second,fsettings);
+   	fpopulations.push_back(std::make_pair("", p.indices()));
+   	all.merge(&p);
+	}
+   fpopulations.push_back(std::make_pair("", all.indices()));
+   fposterior.push_back(make_pair("populations", fpopulations));
+   fdata.push_back(make_pair("posterior",fposterior));
+
+	this->_data[id] = fdata;
+	_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
+	parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
+
+	db_comm.writeData(fdata);
+
+	std::stringstream ss;
+   write_json(ss,fdata);
+	cout << ss.str() << endl;
+	 /*computing statistics*/
+
+    return(fsettings);
+}
+boost::property_tree::ptree Analyzer::get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy) {
+    boost::property_tree::ptree findividual;
+
+    findividual.put("ploidy",boost::lexical_cast<std::string>(_ploidy));
+
+    for(auto& sample : _samples){
+    	boost::property_tree::ptree fchromosomes;
+    	for(auto& chromosome : sample.second){
+    		boost::property_tree::ptree fchromosome;
+    		fchromosome.put("id",chromosome.first);
+
+    		boost::property_tree::ptree fgenes;
+    		for(auto& gene : chromosome.second){
+    			boost::property_tree::ptree fgene;
+    			fgene.put("id",gene.first);
+
+				Marker m=gene.second.back();
+    			fgene.put("type",boost::lexical_cast<std::string>(uint32_t(m.type())));
+				switch(m.type()){
+					case SEQUENCE:{
+    					fgene.put("nucleotides",boost::lexical_cast<string>(m.sequence()->data().length()));
+						break;
+					}
+					case MICROSATELLITE:{
+    					fgene.put("number-of-repeats",boost::lexical_cast<string>(m.microsatellite()->repeats()));
+    					fgene.put("tandem-length",boost::lexical_cast<string>(m.microsatellite()->tandem().length()));
+						break;
+					}
+					default:{
+        				std::cerr << "Error::Unknown marker type: " << m.type() << std::endl;
+			        	exit(EXIT_FAILURE);
+					}
+				}
+    			fgenes.push_back(std::make_pair("", fgene));
+    		}
+    		fchromosome.add_child("genes",fgenes);
+    		fchromosomes.push_back(std::make_pair("", fchromosome));
+    	}
+    	findividual.add_child("chromosomes",fchromosomes);
+    	break;
+    }
+    return(findividual);
+}
 
 

@@ -10,8 +10,11 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <chrono>
 
 #include <Simulator.h>
+#include "FileParser.h"
+#include "MultipartFormParser.h"
 
 #include "Comm.h"
 #include "Node.h"
@@ -21,6 +24,7 @@
 #include "simEvaluation.h"
 
 using namespace std;
+using namespace chrono;
 
 class Analyzer : public Node{
 private: 
@@ -53,11 +57,14 @@ private:
 //	pair<double, double> evaluateDistribution(vector<double> values);
 	
 	static string log_file;
+
+	boost::property_tree::ptree get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);
 	~Analyzer(void);
 	
+	boost::property_tree::ptree run(const std::string&);
 	boost::property_tree::ptree run(boost::property_tree::ptree&);
 	double distance(uint32_t id, const boost::property_tree::ptree&);
 	

@@ -130,7 +130,7 @@ bool Controller::startThreads(unsigned int n_threads, list<shared_ptr<boost::pro
 		
 		data.analyzer_host = fhosts.get<string>("analyzer.host");
 		data.analyzer_port = fhosts.get<string>("analyzer.port");
-		data.analyzer_resource = fhosts.get<string>("analyzer.resource");
+		data.analyzer_resource = fhosts.get<string>("analyzer.simulated");
 		
 		threads_data.push_back(data);
 	}
