@@ -3,6 +3,7 @@
 string Analyzer::log_file = "logs/analyzer.log";
 
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
+	this->_incremental_id=0U;
 	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
 	// Prueba de toma de resultados (para fase de entrenamiento)
@@ -83,7 +84,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	return sqrt(s/n);
 }
 
-bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map, map<string, map<string, double>> &statistics_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -194,6 +195,13 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana,
 			statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd) 
 		);
+		
+		statistics_map[nombre]["median"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana;
+		statistics_map[nombre]["mean"] = statsAnalisis.setDistPosterior[opcionGraficoOut].samplePromedio;
+		statistics_map[nombre]["stddev"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd;
+		statistics_map[nombre]["var"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleVariance;
+		statistics_map[nombre]["min"] = statsAnalisis.setDistPosterior[opcionGraficoOut].minimoV;
+		statistics_map[nombre]["max"] = statsAnalisis.setDistPosterior[opcionGraficoOut].maximoV;
 		
 	}
 	
@@ -369,7 +377,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			
 			
 			boost::property_tree::ptree fresponse;
-			fresponse.put("id", id);
+			fresponse.put("id", boost::lexical_cast<std::string>(id));
 			
 			if( finished[id] >= _frequest.get<uint32_t>("max-number-of-simulations") ){
 				cout<<"Analyzer::run - Preparando finalize\n";
@@ -417,7 +425,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
 					// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
 					map<string, vector<double>> estimations_map;
-					finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map);
+					map<string, map<string, double>> statistics_map;
+					finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map, statistics_map);
 					
 					// Agregar estimations_map al json de resultados de entrenamiento
 					boost::property_tree::ptree scenario;
@@ -430,6 +439,15 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 					
 						boost::property_tree::ptree estimation;
 						estimation.put("parameter", it->first);
+						
+						//estimation.put("min", min);
+						//estimation.put("max", max);
+						//estimation.put("median", mediana);
+						map<string, double> stats = statistics_map[it->first];
+						for(map<string, double>::iterator it = stats.begin(); it != stats.end(); it++){
+							estimation.put(it->first, it->second);
+						}
+
 						boost::property_tree::ptree fvalue;
 						boost::property_tree::ptree fvalues;
 						for( unsigned int j = 0; j < it->second.size(); ++j ){
@@ -437,6 +455,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 							fvalues.push_back(make_pair("", fvalue));
 						}
 						estimation.add_child("values", fvalues);
+						
 						estimations.push_back(make_pair("", estimation));
 					}
 					scenario.add_child("estimations", estimations);
@@ -451,7 +470,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				estimations.add_child("scenarios", scenarios);
 				
 				boost::property_tree::ptree training_results;
-				training_results.put("id", id);
+				training_results.put("id", boost::lexical_cast<std::string>(id));
+				training_results.put("feedback", feedback);
 				training_results.add_child("estimations", estimations);
 				
 				db_comm.storeTrainingResults(training_results);
@@ -532,7 +552,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
     m.remove("user");
 
     fsettings.put("type","init");
-    fsettings.put("batch-size","1000");
+    fsettings.put("batch-size","100");
     fsettings.put("population-increase-phases","0");
 
     uint32_t ploidy=boost::lexical_cast<uint32_t>(m.get("ploidy"));
@@ -541,9 +561,12 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
     fsettings.put("similarity-threshold",m.get("similarity-threshold"));
     m.remove("similarity-threshold");
 
-    milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	 uint32_t id=ms.count();
+    /*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+	 uint32_t id=ms.count();*/
+	 uint32_t id=this->_incremental_id++;
+	 uint32_t timestamp=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     fsettings.put("id",boost::lexical_cast<std::string>(id));
+    fsettings.put("timestamp",boost::lexical_cast<std::string>(timestamp));
 
     map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> samples;
 

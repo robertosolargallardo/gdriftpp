@@ -28,6 +28,9 @@ using namespace chrono;
 
 class Analyzer : public Node{
 private: 
+	/*id incremental*/
+	uint32_t _incremental_id;
+
 	map<uint32_t, boost::property_tree::ptree> _data;
 	map<uint32_t, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> > _data_indices;
 	map<uint32_t, uint32_t> finished;
@@ -45,7 +48,7 @@ private:
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
 	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
-	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map);
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map, map<string, map<string, double>> &statistics_map);
 	
 	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
 	// Recibe los P parametros de las N simulaciones
