@@ -43,8 +43,8 @@ public:
 
 int main(int argc, char** argv){
 
-	if(argc != 8){
-		cout<<"\nModo de Uso: prepare_data results_file target_file n_stats n_params params_simple_base n_buckets params_pares_base\n";
+	if(argc != 9){
+		cout<<"\nModo de Uso: prepare_data results_file target_file n_stats n_params params_simple_base n_buckets params_pares_base dist_histo_file\n";
 		cout<<"\n";
 		return 0;
 	}
@@ -56,6 +56,7 @@ int main(int argc, char** argv){
 	string params_simple_base = argv[5];
 	unsigned int n_buckets = atoi(argv[6]);
 	string params_pares_base = argv[7];
+	string dist_histo_file = argv[8];
 	unsigned int n_clases_dist = 5;
 	
 	cout<<"Inicio (\""<<results_file<<"\", \""<<target_file<<"\", n_stats: "<<n_stats<<", n_params: "<<n_params<<", \""<<params_simple_base<<"\")\n";
@@ -258,6 +259,29 @@ int main(int argc, char** argv){
 		}
 		
 	}
+	
+	cout<<"Preparando Histograma\n";
+	// Datos para histograma de distancias
+	// Lo armare en el rango relativo (min - max) y con 100 puntos (fijo)
+	// pos = floor((d-min)*n_buckets/(max-min))
+	unsigned int n_histo = 99;
+	unsigned int histo_counts[n_histo+1];
+	memset(histo_counts, 0, (n_histo+1)*sizeof(int));
+	for(unsigned int i = 0; i < data.size(); ++i){
+		unsigned int pos = (unsigned int)((data[i][n_stats + n_params] - min_dist)*n_histo/(max_dist - min_dist));
+		if(pos >= n_histo){
+			pos = n_histo;
+		}
+		++histo_counts[pos];
+	}
+	ofstream escritor(dist_histo_file, fstream::trunc | fstream::out);
+	for(unsigned int i = 0; i <= n_histo; ++i){
+		if(histo_counts[i] > 0){
+			escritor<<(min_dist + (max_dist - min_dist)*i/n_histo)<<"\t"<<(histo_counts[i])<<"\n";
+		}
+	}
+	escritor.close();
+	
 	
 	cout<<"Revision de threshold\n";
 	PositionalComparator comp(n_stats + n_params);
