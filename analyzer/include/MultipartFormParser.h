@@ -2,6 +2,7 @@
 #define _MULTIPARTFORMPARSER_H_
 #include <vector>
 #include <string>
+#include <iostream>
 #include <regex>
 #include <boost/algorithm/string.hpp>
 
