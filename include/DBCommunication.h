@@ -617,6 +617,10 @@ class DBCommunication{
 				
 			cout<<"DBCommunication::storeDistributions - Agregando parametros\n";
 			
+			std::stringstream ss;
+			write_json(ss, settings);
+			cout<<ss.str()<<"\n-----     -----\n";
+			
 			// Mapa para ordenar los parametros
 			map<string, pair<string, pair<double, double> > > params;
 			

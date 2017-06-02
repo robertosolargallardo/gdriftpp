@@ -20,7 +20,12 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			cout<<"Scheduler::run - INIT\n";
 			boost::optional<boost::property_tree::ptree&> test_child;
 			
-			this->_mongo->write(this->_fhosts.get<string>("database.name"),this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			test_child = _frequest.get_child_optional("feedback");
+			if( ! test_child ){
+				_frequest.put("feedback", 0);
+			}
+			
+			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<SimulationSettings>(_frequest);
@@ -31,10 +36,11 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			if( test_child ){
 				this->_settings[id]->_training_size = _frequest.get<uint32_t>("batch-size");
 			}
-			test_child = _frequest.get_child_optional("feedback");
-			if( test_child ){
+			// No es necesaria la verificacion si pongo valores por defecto mas arriba
+//			test_child = _frequest.get_child_optional("feedback");
+//			if( test_child ){
 				this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
-			}
+//			}
 			
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
 			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
