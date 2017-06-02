@@ -564,7 +564,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
     /*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	 uint32_t id=ms.count();*/
 	 uint32_t id=this->_incremental_id++;
-	 uint32_t timestamp=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	 uint64_t timestamp=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     fsettings.put("id",boost::lexical_cast<std::string>(id));
     fsettings.put("timestamp",boost::lexical_cast<std::string>(timestamp));
 
