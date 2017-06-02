@@ -40,6 +40,11 @@ private:
 	// Por ahora lo dejo dependiendo de la simulacion, pues finished cuanta por simulacion
 	map<uint32_t, uint32_t> next_batch;
 	
+	// Mapa equivalente al anterior, pero solo usado para actualizar resultados (frecuentemente)
+//	static const uint32_t update_results = 100;
+	static uint32_t update_results;
+	map<uint32_t, uint32_t> next_results;
+	
 	DBCommunication db_comm;
 	enum Types{SIMULATED=416813159, DATA=1588979285};
 	
@@ -62,6 +67,9 @@ private:
 	static string log_file;
 
 	boost::property_tree::ptree get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
+	
+	boost::property_tree::ptree updateTrainingResults(uint32_t id, uint32_t feedback, bool &finish);
+	
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);

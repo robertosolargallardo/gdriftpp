@@ -1,6 +1,7 @@
 #include "Analyzer.h"
 
 string Analyzer::log_file = "logs/analyzer.log";
+uint32_t Analyzer::update_results = 100;
 
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
 	this->_incremental_id=0U;
@@ -317,6 +318,102 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	return false;
 }
 
+boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback, bool &finish){
+
+	// fresponse debe contener un documento completo de settings
+	// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
+	// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
+	// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
+	boost::property_tree::ptree fresponse = db_comm.readSettings(id, feedback);
+	boost::optional<boost::property_tree::ptree&> test_child;
+	
+	// Creo que esto hay que hacerlo para CADA escenario del setting
+	// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
+	// Iterar por cada scenario_id de la simulacion
+	// Notar que dejo el ciclo aqui (en lugar de en trainModel) pues en la version final, deberia entrenarse solo el escenario actual
+	// trainModel PODRIA usar max_feedback para algo
+	// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
+	uint32_t max_feedback = 0;
+	test_child = fresponse.get_child_optional("population-increase-phases");
+	if( test_child ){
+		max_feedback = fresponse.get<uint32_t>("population-increase-phases");
+	}
+	
+	// Por seguridad (del iterador) primero extraigo los scenario.id de fresponse
+	vector<uint32_t> s_ids;
+	for(auto s : fresponse.get_child("scenarios")){
+		uint32_t s_id = s.second.get<uint32_t>("id");
+		s_ids.push_back(s_id);
+	}
+	finish = false;
+	
+	boost::property_tree::ptree scenarios;
+	for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
+		// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
+		// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
+		// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
+		map<string, vector<double>> estimations_map;
+		map<string, map<string, double>> statistics_map;
+		finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map, statistics_map);
+		
+		// Agregar estimations_map al json de resultados de entrenamiento
+		boost::property_tree::ptree scenario;
+		string name = "Scenario " + std::to_string(s_ids[i]);
+		scenario.put("name", name);
+		scenario.put("id", s_ids[i]);
+			
+		boost::property_tree::ptree estimations;
+		
+		for(map<string, vector<double>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
+		
+			boost::property_tree::ptree estimation;
+			estimation.put("parameter", it->first);
+			
+			//estimation.put("min", min);
+			//estimation.put("max", max);
+			//estimation.put("median", mediana);
+			map<string, double> stats = statistics_map[it->first];
+			for(map<string, double>::iterator it = stats.begin(); it != stats.end(); it++){
+				estimation.put(it->first, it->second);
+			}
+
+			boost::property_tree::ptree fvalue;
+			boost::property_tree::ptree fvalues;
+			for( unsigned int j = 0; j < it->second.size(); ++j ){
+				fvalue.put("y", it->second[j]);
+				fvalues.push_back(make_pair("", fvalue));
+			}
+			estimation.add_child("values", fvalues);
+			
+			estimations.push_back(make_pair("", estimation));
+		}
+		scenario.add_child("estimations", estimations);
+		scenarios.push_back(make_pair("", scenario));
+		
+		scenario.add_child("estimations", estimations);
+		
+		estimations_map.clear();
+	}
+	
+	boost::property_tree::ptree estimations;
+	estimations.add_child("scenarios", scenarios);
+	
+	boost::property_tree::ptree training_results;
+	training_results.put("id", boost::lexical_cast<std::string>(id));
+	training_results.put("feedback", feedback);
+		
+	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	cout<<"Analyzer::updateTrainingResults - Agregando timestamp "<<timestamp<<"\n";
+	training_results.put("timestamp", std::to_string(timestamp));
+	
+	training_results.add_child("estimations", estimations);
+	
+	// Almacenar el json de resultados de entrenamiento
+	db_comm.storeTrainingResults(training_results);
+	
+	return fresponse;	
+}
+
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
 	
 	uint32_t id = _frequest.get<uint32_t>("id");
@@ -346,6 +443,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			
 //			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * batch_size[i];
 			this->next_batch.emplace(id, batch_size);
+			this->next_results.emplace(id, update_results);
 			
 			unsigned int feedback = 0;
 			test_child = _frequest.get_child_optional("feedback");
@@ -399,6 +497,8 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			cout<<"Analyzer::run - Finished: "<<finished[id]<<" / "<<next_batch[id]<<"\n";
 			
 			
+			
+			
 			boost::property_tree::ptree fresponse;
 			fresponse.put("id", boost::lexical_cast<std::string>(id));
 			
@@ -406,6 +506,16 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			// Basta con un if independiente en rango fijo (cada 100 por ejemplo) que invoque los metodos estadisticos y genere un json de training
 			// El problema es como identificarlo, pues habra varios de un mismo feedback
 			// Ese json tambien puede tener fecha absoluta para medir el tiempo, quizas se pueda usar eso para seleccionar el "ultimo" (tiempo mayor)
+			
+			// if independiente para actualizar resultados
+			if( finished[id] >= this->next_results[id] ){
+				this->next_batch[id] += update_results;
+				bool finish = false;
+				updateTrainingResults(id, feedback, finish);
+				
+			}
+			
+			
 			
 			if( finished[id] >= _frequest.get<uint32_t>("max-number-of-simulations") ){
 				cout<<"Analyzer::run - Preparando finalize\n";
@@ -421,6 +531,16 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				this->next_batch[id] += batch_size;
 				cout<<"Analyzer::run - Preparando reload (proximo feedback en simulacion "<<this->next_batch[id]<<")\n";
 				
+				
+				
+				
+				bool finish = false;
+				fresponse = updateTrainingResults(id, feedback, finish);
+				
+				
+				
+				
+				/*
 				// fresponse debe contener un documento completo de settings
 				// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
 				// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
@@ -502,9 +622,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				training_results.put("feedback", feedback);
 				training_results.add_child("estimations", estimations);
 				
+				// Almacenar el json de resultados de entrenamiento
 				db_comm.storeTrainingResults(training_results);
 				
-				// Almacenar el json de resultados de entrenamiento
+				*/
+				
 				
 				if(finish){
 					cout<<"Analyzer::run - Preparando finalize\n";
@@ -519,11 +641,6 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //					std::stringstream ss;
 //					write_json(ss, fresponse);
 //					cout << ss.str() << endl;
-					
-//					comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
-					// Enviar nuevos parametros al scheduler
-//					cout<<"Analyzer::run - Preparando continue\n";
-//					fresponse.put("type", "continue");
 					
 				}// else... Continue
 				comm::send(this->_fhosts.get<string>("scheduler.host"), this->_fhosts.get<string>("scheduler.port"), this->_fhosts.get<string>("scheduler.resource"), fresponse);
