@@ -24,6 +24,11 @@ shared_ptr<Scheduler> scheduler;
 void run(boost::property_tree::ptree _frequest){
 //	cout<<"scheduler::main::run - Inicio\n";
 //	lock_guard<mutex> lock(internal_mutex);
+
+ /*std::stringstream ss;
+ write_json(ss,_frequest);
+ cout << ss.str() << endl;*/
+
 	scheduler->run(_frequest);
 }
 
@@ -37,8 +42,9 @@ int main(int argc,char** argv){
 
 	scheduler=make_shared<Scheduler>(fhosts);
 
-	scheduler->run(frequest);*/
+	scheduler->run(frequest);
 
+	return(0);*/
 	if(argc < 2){
 		cerr << "Error::Hosts File not Specified" << endl;
 		exit(EXIT_FAILURE);

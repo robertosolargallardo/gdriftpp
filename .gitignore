@@ -6,3 +6,4 @@ bin/
 lib/libgdrift++.so
 build/
 logs/*.log
+*.o

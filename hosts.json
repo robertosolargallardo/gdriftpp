@@ -2,7 +2,8 @@
 	"analyzer" : {
 		"host" : "localhost",
 		"port" : "1986",
-		"resource" : "/analyzer"
+		"simulated" : "/analyzer/simulated",
+		"data" : "/analyzer/data"
 	},
 	"scheduler" : {
 		"host" : "localhost",
@@ -23,7 +24,7 @@
 		}
 	],
 	"database" : {
-		"uri"  : "mongodb://localhost:27017",
+		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
 		"name" : "gdrift",
 		"collections" : {
 			"data"     : "data",

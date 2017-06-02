@@ -10,8 +10,11 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <chrono>
 
 #include <Simulator.h>
+#include "FileParser.h"
+#include "MultipartFormParser.h"
 
 #include "Comm.h"
 #include "Node.h"
@@ -21,9 +24,13 @@
 #include "SimulationStatistics.h"
 
 using namespace std;
+using namespace chrono;
 
 class Analyzer : public Node{
 private: 
+	/*id incremental*/
+	uint32_t _incremental_id;
+
 	map<uint32_t, boost::property_tree::ptree> _data;
 	map<uint32_t, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> > _data_indices;
 	map<uint32_t, uint32_t> finished;
@@ -41,7 +48,7 @@ private:
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
 	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
-	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map);
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map, map<string, map<string, double>> &statistics_map);
 	
 	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
 	// Recibe los P parametros de las N simulaciones
@@ -53,11 +60,14 @@ private:
 //	pair<double, double> evaluateDistribution(vector<double> values);
 	
 	static string log_file;
+
+	boost::property_tree::ptree get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);
 	~Analyzer(void);
 	
+	boost::property_tree::ptree run(const std::string&);
 	boost::property_tree::ptree run(boost::property_tree::ptree&);
 	double distance(uint32_t id, const boost::property_tree::ptree&);
 	
