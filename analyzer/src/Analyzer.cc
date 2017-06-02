@@ -217,12 +217,12 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		// Estos datos tambien podrian retornarse al llamador (para agregarlos al resultado de training)
 //		distribution_map[nombre] = pair<double, double>( dist.sampleMedian, dist.sampleStd );
 		
-		statistics_map[nombre]["median"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleMediana;
-		statistics_map[nombre]["mean"] = statsAnalisis.setDistPosterior[opcionGraficoOut].samplePromedio;
-		statistics_map[nombre]["stddev"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleStd;
-		statistics_map[nombre]["var"] = statsAnalisis.setDistPosterior[opcionGraficoOut].sampleVariance;
-		statistics_map[nombre]["min"] = statsAnalisis.setDistPosterior[opcionGraficoOut].minimoV;
-		statistics_map[nombre]["max"] = statsAnalisis.setDistPosterior[opcionGraficoOut].maximoV;
+		statistics_map[nombre]["median"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleMedian;
+		statistics_map[nombre]["mean"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleMean;
+		statistics_map[nombre]["stddev"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleStd;
+		statistics_map[nombre]["var"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleVariance;
+		statistics_map[nombre]["min"] = statsAnalisis.getDistribution(opcionGraficoOut).minimoV;
+		statistics_map[nombre]["max"] = statsAnalisis.getDistribution(opcionGraficoOut).maximoV;
 		
 	}
 	
