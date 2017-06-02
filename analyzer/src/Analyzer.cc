@@ -402,6 +402,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			boost::property_tree::ptree fresponse;
 			fresponse.put("id", boost::lexical_cast<std::string>(id));
 			
+			// Notar que aqui puedo agregar un caso para actualizar resultados aunque no este reentrenando
+			// Basta con un if independiente en rango fijo (cada 100 por ejemplo) que invoque los metodos estadisticos y genere un json de training
+			// El problema es como identificarlo, pues habra varios de un mismo feedback
+			// Ese json tambien puede tener fecha absoluta para medir el tiempo, quizas se pueda usar eso para seleccionar el "ultimo" (tiempo mayor)
+			
 			if( finished[id] >= _frequest.get<uint32_t>("max-number-of-simulations") ){
 				cout<<"Analyzer::run - Preparando finalize\n";
 				finished.erase(finished.find(id));
@@ -585,11 +590,11 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
     m.remove("similarity-threshold");
 
     /*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	 uint32_t id=ms.count();*/
-	 uint32_t id=this->_incremental_id++;
-	 uint64_t timestamp=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-    fsettings.put("id",boost::lexical_cast<std::string>(id));
-    fsettings.put("timestamp",boost::lexical_cast<std::string>(timestamp));
+	 uint32_t id = ms.count();*/
+	 uint32_t id = this->_incremental_id++;
+	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    fsettings.put("id", boost::lexical_cast<std::string>(id));
+    fsettings.put("timestamp", boost::lexical_cast<std::string>(timestamp));
 
     map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> samples;
 
