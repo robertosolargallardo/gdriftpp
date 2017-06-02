@@ -20,10 +20,15 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			cout<<"Scheduler::run - INIT\n";
 			boost::optional<boost::property_tree::ptree&> test_child;
 			
+			// Agregar cualquier informacion al json antes de guardarlo en la BD
+			
 			test_child = _frequest.get_child_optional("feedback");
 			if( ! test_child ){
 				_frequest.put("feedback", 0);
 			}
+			
+			uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			_frequest.put("timestamp", std::to_string(timestamp));
 			
 			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			
