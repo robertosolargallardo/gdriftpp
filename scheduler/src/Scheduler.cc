@@ -28,6 +28,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			}
 			
 			uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			cout<<"Scheduler::run - Agregando timestamp "<<timestamp<<"\n";
 			_frequest.put("timestamp", std::to_string(timestamp));
 			
 			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
