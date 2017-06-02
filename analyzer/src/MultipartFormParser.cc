@@ -6,7 +6,11 @@ MultipartFormParser::MultipartFormParser(const MultipartFormParser &_mfp) {
 	this->_fields=_mfp._fields;
 }
 MultipartFormParser::MultipartFormParser(const std::string &_body) {
-    this->_fields=std::vector<std::string>(std::sregex_token_iterator(_body.begin(),_body.end(),std::regex("------WebKitFormBoundary([a-zA-Z]|[0-9])+"),-1),std::sregex_token_iterator());
+    std::regex expr("------WebKitFormBoundary([a-zA-Z]|[0-9])+");
+    this->_fields = std::vector<std::string>(
+    	std::sregex_token_iterator(_body.begin(), _body.end(), expr, -1), 
+    	std::sregex_token_iterator()
+    );
     this->_fields.erase(std::remove_if(this->_fields.begin(),this->_fields.end(),[](const std::string &str)->bool {return(std::regex_search(str,std::regex("^\\s*$")));}));
     std::for_each(this->_fields.begin(),this->_fields.end(),[](std::string &str)->void {boost::trim(str);});
     std::for_each(this->_fields.begin(),this->_fields.end(),[](std::string &str)->void {str=std::regex_replace(str,std::regex("Content-Disposition:\\s+form-data;\\s+"),"");});
