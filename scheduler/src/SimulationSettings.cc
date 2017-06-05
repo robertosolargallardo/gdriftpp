@@ -95,10 +95,9 @@ ptree SimulationSettings::parse_individual(ptree _findividual){
 // Este metodo puede recibir el escalamiento de poblacion (feedback / max_feedback)
 ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
 
-	std::stringstream ss;
-	write_json(ss,_fscenario);
-	cout << ss.str() << endl;
-
+//	std::stringstream ss;
+//	write_json(ss,_fscenario);
+//	cout << ss.str() << endl;
 
 	uint32_t last_timestamp = 0;
 	// TODO: Este limite de seguridad al tamaño de la poblacion es arbitrario
