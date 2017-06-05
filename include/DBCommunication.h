@@ -180,24 +180,29 @@ class DBCommunication{
 			return events_params;
 		}
 			
-		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, uint32_t total_params, vector<vector<double>> &statistics, uint32_t total_statistics){
+		uint32_t getResults(uint32_t id, uint32_t scenario_id, uint32_t feedback, vector<vector<double>> &params, map<uint32_t, vector<string>> &events_params, vector<vector<double>> &statistics){
 			
-			cout<<"DBCommunication::getResults - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<", total_params: "<<total_params<<", total_statistics: "<<total_statistics<<")\n";
+			cout<<"DBCommunication::getResults - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<")\n";
 			
 			list<boost::property_tree::ptree> results;
 			mongo.readStatistics(results, db_name, collection_results, id, scenario_id, feedback);
 			
-			unsigned int inserts = 0;
 			unsigned int count = 0;
 			double value = 0;
 			boost::optional< boost::property_tree::ptree& > child;
 			map<string, double> params_res;
 			map<string, map<uint32_t, map<uint32_t, map<string, double>>>> stats_res;
 			
+			// Mapas de n_params y n_stat por cantidad de veces usado
+			// Al final, conservo el mayor en cada caso y descarto los resultados incorrectos
+			map<unsigned int, unsigned int> params_used;
+			map<unsigned int, unsigned int> statistics_used;
+			
+			// Arreglos locales para la insercion previa antes del filtrado
+			vector<vector<double>> params_local;
+			vector<vector<double>> statistics_local;
+			
 			for(auto &json : results){
-//				if(count >= 3) break;
-				
-//				cout<<"Res["<<count++<<"]:\n";
 				
 //				std::stringstream ss;
 //				write_json(ss, json);
@@ -263,16 +268,10 @@ class DBCommunication{
 							uint32_t gid = g.second.get<uint32_t>("id");
 							for(auto i : g.second.get_child("indices")){
 								stats_res[name][cid][gid][i.first] = std::stod(i.second.data());
-//								if(stats_res[name][cid][gid][i.first] != 0.0){
-//									valid = true;
-//								}
 //								cout<<"DBCommunication::getResults - stat["<<name<<"]["<<cid<<"]["<<gid<<"]["<<i.first<<"]: "<<i.second.data()<<"\n";
 							}
 						}
 					}
-//					if(!valid){
-//						stats_res.erase(name);
-//					}
 				}
 				
 				// volcar statistics_map en vector
@@ -292,17 +291,14 @@ class DBCommunication{
 				
 				// Verifico y agrego los valores
 				
-				if( values.size() != total_params || stats.size() != total_statistics ){
-					continue;
-				}
 				bool omitir = false;
-				for(unsigned int i = 0; i < total_params; ++i){
+				for(unsigned int i = 0; i < values.size(); ++i){
 					if( values[i] < MIN_VALID_VALUE || values[i] > MAX_VALID_VALUE ){
 						omitir = true;
 						break;
 					}
 				}
-				for(unsigned int i = 0; i < total_statistics; ++i){
+				for(unsigned int i = 0; i < stats.size(); ++i){
 					if( stats[i] < MIN_VALID_VALUE || stats[i] > MAX_VALID_VALUE ){
 						omitir = true;
 						break;
@@ -312,13 +308,47 @@ class DBCommunication{
 					continue;
 				}
 				
-				params.push_back(values);
-				statistics.push_back(stats);
-				++inserts;
+				params_local.push_back(values);
+				statistics_local.push_back(stats);
+				
+				// n_params y n_stats usadaos, para luego conservar los mas usados y eliminar el resto
+				params_used[values.size()]++;
+				statistics_used[stats.size()]++;
 				
 			}
 			
-			cout<<"DBCommunication::getResults - Fin (inserts: "<<inserts<<")\n";
+			cout<<"DBCommunication::getResults - "<<params_local.size()<<" resultados agregados\n";
+			
+			// Eliminar resultados incorrectos a posteriori si no se conocen los parametros desde el inicio
+			// Una forma es quedarse (a posteriori) con total_params y total_statistics mas frecuentes
+			unsigned int total_params = 0;
+			unsigned int total_statistics = 0;
+			unsigned max_uso = 0;
+			for(map<unsigned int, unsigned int>::iterator it = params_used.begin(); it != params_used.end(); it++){
+				if(it->second > max_uso){
+					total_params = it->first;
+					max_uso = it->second;
+				}
+			}
+			max_uso = 0;
+			for(map<unsigned int, unsigned int>::iterator it = statistics_used.begin(); it != statistics_used.end(); it++){
+				if(it->second > max_uso){
+					total_statistics = it->first;
+					max_uso = it->second;
+				}
+			}
+			
+			cout<<"DBCommunication::getResults - total_params: "<<total_params<<", total_statistics: "<<total_statistics<<", filtrando resultados\n";
+			// ELiminar resultados que no cumplan
+			for(unsigned int i = 0; i < params_local.size(); ++i){
+				if(params_local[i].size() == total_params && statistics_local[i].size() == total_statistics){
+					params.push_back(params_local[i]);
+					statistics.push_back(statistics_local[i]);
+					++count;
+				}
+			}
+			
+			cout<<"DBCommunication::getResults - Fin (Resultados filtrados: "<<count<<")\n";
 			return count;
 		}
 		
@@ -326,10 +356,10 @@ class DBCommunication{
 			
 			cout<<"DBCommunication::storeTrainingResults - Inicio\n";
 			
-			cout<<"Analyzer::run - Resultados de entrenamiento: \n";
-			std::stringstream ss;
-			write_json(ss, result);
-			cout << ss.str() << endl;
+//			cout<<"DBCommunication::storeTrainingResults - Resultados de entrenamiento: \n";
+//			std::stringstream ss;
+//			write_json(ss, result);
+//			cout << ss.str() << endl;
 			
 			// Quizas sea necesario crear una coleccion adicional
 			mongo.write(db_name, collection_training, result);
