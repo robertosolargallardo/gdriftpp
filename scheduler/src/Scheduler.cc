@@ -64,9 +64,13 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			// Tambien hay que recrear settings (con los nuevos parametros)
 			// Hay que asegurar entonces, que en reload el analizer envie el ptree de settings !!!
 			
-			std::stringstream ss;
-			write_json(ss, _frequest);
-			cout << ss.str() << endl;
+			uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+			cout<<"Scheduler::run - Agregando timestamp "<<timestamp<<"\n";
+			_frequest.put("timestamp", std::to_string(timestamp));
+			
+//			std::stringstream ss;
+//			write_json(ss, _frequest);
+//			cout << ss.str() << endl;
 			
 			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
 			this->_semaphore->lock();
