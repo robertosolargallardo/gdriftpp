@@ -428,6 +428,15 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 //			write_json(ss, _frequest);
 //			cout<<ss.str()<<"\n";
 			
+			if( finished.find(id) == finished.end() ){
+				// Resultado de simulacion NO iniciada, o cancelada
+				// Omitir esto antes de hacer cualquier cosa adicional
+				
+				cout<<"Analyzer::run - SIMULATED (Omitiendo resultados de simulacion "<<id<<")\n";
+				return _frequest;
+				
+			}
+			
 			// Nodo de prueba para buscar atributos
 			boost::optional<boost::property_tree::ptree&> test_child;
 			
@@ -457,7 +466,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			cout<<"Analyzer::run - SIMULATED (id: "<<id<<", scenario: "<<scenario_id<<", feedback: "<<feedback<<")\n";
 			
 			// NO se por que esta este if
-			if(finished.count(id)==0) return(_frequest);
+//			if(finished.count(id)==0) return(_frequest);
 			
 			finished[id]++;
 			
@@ -617,7 +626,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	m.remove("user");
 
 	fsettings.put("type","init");
-	fsettings.put("batch-size","100");
+	fsettings.put("batch-size","2000");
 	fsettings.put("population-increase-phases","0");
 
 	uint32_t ploidy=boost::lexical_cast<uint32_t>(m.get("ploidy"));
