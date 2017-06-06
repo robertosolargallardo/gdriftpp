@@ -26,7 +26,7 @@ using namespace std;
 
 class Scheduler : public Node{
 private:
-	enum Types {INIT=305198855, CONTINUE=810372829, RELOAD=1571056488, FINALIZE=3761776383};
+	enum Types {INIT=305198855, CONTINUE=810372829, RELOAD=1571056488, FINALIZE=3761776383, CANCEL=3692849629, PAUSE=2643254728, STOP=2467080178};
 	
 	shared_ptr<util::Mongo> _mongo;
 	shared_ptr<util::Semaphore> _semaphore;

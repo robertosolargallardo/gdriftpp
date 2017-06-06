@@ -1,11 +1,20 @@
 #include "SimulationSettings.h"
 
+SimulationSettings::SimulationSettings(){
+	this->_run = 0;
+	this->_batch = 0;
+	this->_feedback = 0;
+	this->_training_size = 0;
+	cancel = false;
+}
+
 SimulationSettings::SimulationSettings(ptree &_fsettings){
 	this->_fsettings = _fsettings;
 	this->_run = 0;
 	this->_batch = 0;
 	this->_feedback = 0;
 	this->_training_size = 0;
+	cancel = false;
 }
 
 SimulationSettings::~SimulationSettings(void){
@@ -209,6 +218,10 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 	random_shuffle(fjobs.begin(), fjobs.end());
 
 	for(uint32_t i = 0; i < fjobs.size(); i++){
+		if(cancel){
+			cout<<"SimulationSettings::send - Cancelando\n";
+			break;
+		}
 		uint32_t pos = i%controllers.size();
 		cout<<"SimulationSettings::send - Enviando trabajo "<<i<<" a controler "<<pos<<"\n";
 		comm::send(controllers[pos].get<string>("host"),controllers[pos].get<string>("port"),controllers[pos].get<string>("resource"), fjobs[i]);

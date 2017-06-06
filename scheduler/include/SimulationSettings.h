@@ -34,8 +34,10 @@ public:
 	uint32_t _batch;
 	uint32_t _feedback;
 	uint32_t _training_size;
+	
+	bool cancel;
 
-	SimulationSettings(){}
+	SimulationSettings();
 	SimulationSettings(ptree &_fsettings);
 	~SimulationSettings();
 	
