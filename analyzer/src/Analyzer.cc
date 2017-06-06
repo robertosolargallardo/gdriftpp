@@ -616,73 +616,74 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 
 	MultipartFormParser m(_body);
 
-	fsettings.put("max-number-of-simulations",m.get("max-number-of-simulations"));
+	fsettings.put("max-number-of-simulations", m.get("max-number-of-simulations"));
 	m.remove("max-number-of-simulations");
 
-	fsettings.put("name",m.get("simulation-name"));
+	fsettings.put("name", m.get("simulation-name"));
 	m.remove("simulation-name");
-
-	fsettings.put("user",m.get("user"));
+	
+	fsettings.put("user", m.get("user"));
 	m.remove("user");
 
-	fsettings.put("type","init");
-	fsettings.put("batch-size","2000");
-	fsettings.put("population-increase-phases","0");
+	fsettings.put("type", "init");
+	fsettings.put("batch-size", "2000");
+	fsettings.put("population-increase-phases", "0");
+	fsettings.put("feedback", "0");
 
-	uint32_t ploidy=boost::lexical_cast<uint32_t>(m.get("ploidy"));
+	uint32_t ploidy = boost::lexical_cast<uint32_t>(m.get("ploidy"));
 	m.remove("ploidy");
 
-	fsettings.put("similarity-threshold",m.get("similarity-threshold"));
+	fsettings.put("similarity-threshold", m.get("similarity-threshold"));
 	m.remove("similarity-threshold");
 
 	/*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	 uint32_t id = ms.count();*/
 	 uint32_t id = this->_incremental_id++;
 	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	fsettings.put("id", boost::lexical_cast<std::string>(id));
-	fsettings.put("timestamp", boost::lexical_cast<std::string>(timestamp));
+	fsettings.put("id", std::to_string(id));
+	fsettings.put("timestamp", std::to_string(timestamp));
 
-	map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> samples;
+	map<uint32_t, map<uint32_t, map<uint32_t, vector<Marker>>>> samples;
 
 	while(!m.empty()) {
-		uint32_t sample=boost::lexical_cast<uint32_t>(m.get("Sample"));
+		uint32_t sample = boost::lexical_cast<uint32_t>(m.get("Sample"));
 		m.remove("Sample");
 
-		uint32_t chromosome=boost::lexical_cast<uint32_t>(m.get("Chromosome"));
+		uint32_t chromosome = boost::lexical_cast<uint32_t>(m.get("Chromosome"));
 		m.remove("Chromosome");
 
-		uint32_t gene=boost::lexical_cast<uint32_t>(m.get("Gene"));
+		uint32_t gene = boost::lexical_cast<uint32_t>(m.get("Gene"));
 		m.remove("Gene");
 
-		uint32_t markertype=boost::lexical_cast<uint32_t>(m.get("MarkerType"));
+		uint32_t markertype = boost::lexical_cast<uint32_t>(m.get("MarkerType"));
 		m.remove("MarkerType");
 
-		uint32_t filetype=boost::lexical_cast<uint32_t>(m.get("FileType"));
+		uint32_t filetype = boost::lexical_cast<uint32_t>(m.get("FileType"));
 		m.remove("FileType");
 
-		FileParser fp(m.get("File"),FileType(filetype),MarkerType(markertype));
+		FileParser fp(m.get("File"), FileType(filetype), MarkerType(markertype));
 		m.remove("File");
 
-		vector<Marker> markers=fp.parse();
-		samples[sample][chromosome][gene]=markers;
+		vector<Marker> markers = fp.parse();
+		samples[sample][chromosome][gene] = markers;
 	}
 
 	boost::property_tree::ptree fsamples;
 	for(auto& sample : samples){
 		boost::property_tree::ptree fsample;
-		fsample.put("name","sample"+boost::lexical_cast<string>(sample.first));
+		fsample.put("name","sample" + boost::lexical_cast<string>(sample.first));
 		fsamples.push_back(std::make_pair("",fsample));
 	}
 
-	boost::property_tree::ptree findividual=get_profile(samples,ploidy);
-	fsettings.add_child("samples",fsamples);
-	fsettings.add_child("individual",findividual);
+	boost::property_tree::ptree findividual = get_profile(samples,ploidy);
+	fsettings.add_child("samples", fsamples);
+	fsettings.add_child("individual", findividual);
 
 	 /*computing statistics*/
-	this->finished[id]=0;
+	this->finished[id] = 0;
 
 	boost::property_tree::ptree fdata,fposterior;
-	fdata.put("id",fsettings.get<std::string>("id"));
+	fdata.put("id", fsettings.get<std::string>("id"));
 	fdata.put("type", "data");
 
 	boost::property_tree::ptree fpopulations;
@@ -695,13 +696,13 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	fpopulations.push_back(std::make_pair("", all.indices()));
 	fposterior.push_back(make_pair("populations", fpopulations));
 	fdata.push_back(make_pair("posterior",fposterior));
-
+	
 	this->_data[id] = fdata;
 	_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
 	parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
-
+	
 	db_comm.writeData(fdata);
-
+	
 	std::stringstream ss;
 	write_json(ss,fdata);
 	cout << ss.str() << endl;
@@ -709,6 +710,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 
 	return(fsettings);
 }
+
 boost::property_tree::ptree Analyzer::get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy) {
 	boost::property_tree::ptree findividual;
 

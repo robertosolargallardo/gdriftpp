@@ -4,6 +4,9 @@
 	"max-number-of-simulations": "100000",
 	"batch-size": "2000",
 	"population-increase-phases": "0",
+	"name": "Test Simulation 01",
+	"user": "0",
+	"feedback": "0",
 
 	"individual": {
 		"ploidy": "1",
