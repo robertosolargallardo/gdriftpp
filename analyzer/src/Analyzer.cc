@@ -422,6 +422,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 	uint32_t id = _frequest.get<uint32_t>("id");
 	
 	switch(util::hash(_frequest.get<string>("type"))){
+		case CANCEL: {
+			cout<<"Analyzer::run - CANCEL ("<<id<<")\n";
+			break;
+		}
 		case SIMULATED:{
 
 //			std::stringstream ss;

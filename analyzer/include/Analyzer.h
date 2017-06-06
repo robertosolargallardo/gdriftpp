@@ -46,7 +46,7 @@ private:
 	map<uint32_t, uint32_t> next_results;
 	
 	DBCommunication db_comm;
-	enum Types{SIMULATED=416813159, DATA=1588979285};
+	enum Types{SIMULATED=416813159, DATA=1588979285, CANCEL=3692849629};
 //	enum Types{SIMULATED=416813159, DATA=1588979285, QUERY=2172811635, PROGRESS=1089828659, TIME=258444835};
 	
 	// Mapa de indices: <sample, chrid, genid, map<statistic, value>>
