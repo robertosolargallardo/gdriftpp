@@ -125,7 +125,7 @@ public:
 		//vector<double> dataOut;
 		double zTmp, value;
 		for (std::vector<double>::iterator it = sampleNormalized.begin() ; it != sampleNormalized.end(); ++it){
-			zTmp = zValue((*it),sampleMedianNormalized,sampleStdNormalized);
+			zTmp = zValue((*it), sampleMedianNormalized, sampleStdNormalized);
 			value = kernelNormal(zTmp);
 			samplePostNormalizedScaled.push_back(value/sampleStdNormalized);
 			samplePostNormalized.push_back(value);
@@ -152,18 +152,39 @@ public:
 
 	void outVectorGrafico1(int dimInterpolacion,vector<double> &interpoladoOut){
 		vector<double> interpoladoTmp;
-		interpolarDistribucion(samplePostNormalized,dimInterpolacion,interpoladoTmp);
+		interpolarDistribucion(samplePostNormalized, dimInterpolacion, interpoladoTmp);
 		int dim = interpoladoTmp.size();
 		double tmp,value;
+//		cout<<"SimulationStatistics::outVectorGrafico1 - min: "<<minimoV<<", max: "<<maximoV<<", \n";
 		for(int i=0;i<dim;i++){
 			if(sampleStdNormalized == 0){
 				interpoladoOut.push_back(1.0);
 				continue;
 			}
-			tmp = zValue(interpoladoTmp[i], sampleMedianNormalized,sampleStdNormalized);
+			double x = xValue(interpoladoTmp[i]);
+			double xv2 = xValueOrigenNorm(interpoladoTmp[i]);
+			tmp = zValue(interpoladoTmp[i], sampleMedianNormalized, sampleStdNormalized);
 			value = kernelNormal(tmp);
+//			cout<<"SimulationStatistics::outVectorGrafico1 - inter: "<<interpoladoTmp[i]<<", x: "<<x<<", xv2: "<<xv2<<", z: "<<tmp<<", val: "<<value<<", grafico: "<<value/sampleStdNormalized<<"\n";
 			interpoladoOut.push_back(value/sampleStdNormalized);			
 		}
+		/*
+		// Prueba de generacion directa de PDF 
+		cout<<"SimulationStatistics::outVectorGrafico1 - Datos entrada: "<<sample.size()<<" ("<<sampleMean<<", "<<sampleStd<<")\n";
+		double min = minimoV;
+		double max = maximoV;
+		double sampleMeanNorm = (sampleMean-min) / (max-min);
+		// Notar que la std NO debe ser trasladada, solo escalada
+		double sampleStdNorm = (sampleStd) / (max-min);
+		cout<<"SimulationStatistics::outVectorGrafico1 - Datos entrada: "<<sample.size()<<" ("<<sampleMean<<", "<<sampleStd<<", "<<sampleMeanNorm<<", "<<sampleStdNorm<<")\n";
+		for(unsigned int i = 0; i < sample.size(); ++i){
+			double y = ( exp(-( pow((sample[i]-sampleMean), 2.0) )/( 2.0*pow(sampleStd, 2.0) )) )/(sqrtOf2Pi*sampleStd);
+			double xnorm = (sample[i]-min) / (max-min);
+			double ynorm = ( exp(-( pow((xnorm-sampleMeanNorm), 2.0) )/( 2.0*pow(sampleStdNorm, 2.0) )) )/(sqrtOf2Pi*sampleStdNorm);
+			cout<<"SimulationStatistics::outVectorGrafico1 - x: "<<sample[i]<<", y: "<<y<<" (test: "<<(y*sqrtOf2Pi*sampleStd)<<", xnorm: "<<xnorm<<", ynorm: "<<ynorm<<")\n";
+		}
+		*/
+		
 	}
 
 	//Kernel que retorna la Probabilidad de  Pr(X<x) 
