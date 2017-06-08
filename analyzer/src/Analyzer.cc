@@ -360,6 +360,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
 	// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
 	// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
+	// Por ultimo, notar que hay que guardar las distribuciones a priori antes de modificarlo
 	boost::property_tree::ptree fresponse = db_comm.readSettings(id, feedback);
 	boost::optional<boost::property_tree::ptree&> test_child;
 	
@@ -383,6 +384,135 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	}
 	finish = false;
 	
+	// Almacenamiento de distribuciones a priori, con el esquema de nombre de "parameter name"
+	// name -> type -> val1, val2
+	// Hay que agrega el escenario, por ahora lo parcho como:
+	// scen_id -> name -> type -> val, val2
+	map<uint32_t, map<string, pair<string, pair<double, double>>>> dists_prior;
+	
+	for(auto s : fresponse.get_child("scenarios")){
+		uint32_t s_id = s.second.get<uint32_t>("id");
+		for(auto e : s.second.get_child("events")){
+			// En principio cada evento tiene timestamp y parametros
+			// Los parametros que tengan type random deben ser agregados
+			
+			uint32_t eid = e.second.get<uint32_t>("id");
+			string etype = e.second.get<string>("type");
+			
+//			events_params[eid].push_back("timestamp");
+			// ESTOY ASUMIENDO TIMESTAMP RANDOM !!!
+			string param_name = "events.";
+			param_name += std::to_string(eid);
+			param_name += ".";
+			param_name += "timestamp";
+			string type = e.second.get<string>("timestamp.distribution.type");
+			if( type.compare("uniform") ){
+				double a = e.second.get<double>("timestamp.distribution.params.a");
+				double b = e.second.get<double>("timestamp.distribution.params.b");
+				dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
+			}
+			else if( type.compare("normal") ){
+				double mean = e.second.get<double>("timestamp.distribution.params.mean");
+				double stddev = e.second.get<double>("timestamp.distribution.params.stddev");
+				dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
+			}
+			else{
+				cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
+			}
+			
+			
+			// Mientras se incrementa la poblacion, omito population.size de los parametros
+			if( etype.compare("create") == 0 ){
+				string dist_type = e.second.get<string>("params.population.size.type");
+//				if( dist_type.compare("random") == 0 && !population_increase ){
+				if( dist_type.compare("random") == 0 ){
+//					events_params[eid].push_back("params.population.size");
+					string param_name = "events.";
+					param_name += std::to_string(eid);
+					param_name += ".";
+					param_name += "params.population.size.type";
+					string type = e.second.get<string>("params.population.size.distribution.type");
+					if( type.compare("uniform") ){
+						double a = e.second.get<double>("params.population.size.distribution.params.a");
+						double b = e.second.get<double>("params.population.size.distribution.params.b");
+						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
+					}
+					else if( type.compare("normal") ){
+						double mean = e.second.get<double>("params.population.size.distribution.params.mean");
+						double stddev = e.second.get<double>("params.population.size.distribution.params.stddev");
+						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
+					}
+					else{
+						cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
+					}
+				}
+			}
+			else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 ){
+				string dist_type = e.second.get<string>("params.source.population.percentage.type");
+				if( dist_type.compare("random") == 0 ){
+//					events_params[eid].push_back("params.source.population.percentage");
+					string param_name = "events.";
+					param_name += std::to_string(eid);
+					param_name += ".";
+					param_name += "params.source.population.percentage.type";
+					string type = e.second.get<string>("params.source.population.percentage.distribution.type");
+					if( type.compare("uniform") ){
+						double a = e.second.get<double>("params.source.population.percentage.distribution.params.a");
+						double b = e.second.get<double>("params.source.population.percentage.distribution.params.b");
+						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
+					}
+					else if( type.compare("normal") ){
+						double mean = e.second.get<double>("params.source.population.percentage.distribution.params.mean");
+						double stddev = e.second.get<double>("params.source.population.percentage.distribution.params.stddev");
+						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
+					}
+					else{
+						cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
+					}
+					
+				}
+			}
+			
+		}
+	}
+	
+	for(auto c : fresponse.get_child("individual.chromosomes")){
+		uint32_t cid = c.second.get<uint32_t>("id");
+		for(auto g : c.second.get_child("genes")){
+			uint32_t gid = g.second.get<uint32_t>("id");
+			string param_name = "chromosomes.";
+			param_name += std::to_string(cid);
+			param_name += ".genes.";
+			param_name += std::to_string(gid);
+			param_name += ".mutation.rate";
+			string type_general = g.second.get<string>("mutation.rate.type");
+			if( type_general.compare("random") == 0 ){
+				// Todo ok, pedir distribucion
+				string type = g.second.get<string>("mutation.rate.distribution.type");
+				if( type.compare("uniform") ){
+					double a = g.second.get<double>("mutation.rate.distribution.params.a");
+					double b = g.second.get<double>("mutation.rate.distribution.params.b");
+//					dists_prior[param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
+					for(unsigned int i = 0; i < s_ids.size(); ++i){
+						dists_prior[s_ids[i]][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
+					}
+				}
+				else if( type.compare("normal") ){
+					double mean = g.second.get<double>("mutation.rate.distribution.params.mean");
+					double stddev = g.second.get<double>("mutation.rate.distribution.params.stddev");
+//					dists_prior[param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
+					for(unsigned int i = 0; i < s_ids.size(); ++i){
+						dists_prior[s_ids[i]][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
+					}
+				}
+				else{
+					cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
+				}
+			}
+		}
+	}
+	
+	
 	boost::property_tree::ptree scenarios;
 	for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
 		// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
@@ -404,6 +534,18 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		
 			boost::property_tree::ptree estimation;
 			estimation.put("parameter", it->first);
+			
+			// Busqueda de distribucion prior del parametro
+			map<string, pair<string, pair<double, double>>> prior = dists_prior[s_ids[i]];
+			if( prior.find(it->first) == prior.end() ){
+				cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<" no encontrada\n";
+			}
+			else{
+				pair<string, pair<double, double>> dist = prior[it->first];
+				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
+				// Generar y agregar grafico de la dist prior
+			}
+			
 			
 			//estimation.put("min", min);
 			//estimation.put("max", max);
