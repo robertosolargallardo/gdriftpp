@@ -161,8 +161,8 @@ public:
 				interpoladoOut.push_back(1.0);
 				continue;
 			}
-			double x = xValue(interpoladoTmp[i]);
-			double xv2 = xValueOrigenNorm(interpoladoTmp[i]);
+//			double x = xValue(interpoladoTmp[i]);
+//			double xv2 = xValueOrigenNorm(interpoladoTmp[i]);
 			tmp = zValue(interpoladoTmp[i], sampleMedianNormalized, sampleStdNormalized);
 			value = kernelNormal(tmp);
 //			cout<<"SimulationStatistics::outVectorGrafico1 - inter: "<<interpoladoTmp[i]<<", x: "<<x<<", xv2: "<<xv2<<", z: "<<tmp<<", val: "<<value<<", grafico: "<<value/sampleStdNormalized<<"\n";
