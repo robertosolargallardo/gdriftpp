@@ -99,9 +99,42 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 	return sqrt(s/n);
 }
 
+const double Analyzer::sqrtOf2Pi = 2.506628274631000;
+double Analyzer::directMormalKernel(double x, double mean, double std){
+	double res = exp( - ( pow((x-mean), 2.0) ) / ( 2.0*std*std ) ) / (sqrtOf2Pi * std);
+	return res;
+}
+
+vector<pair<double, double>> Analyzer::generateDistributionGraph(unsigned int n_points, double mean, double std, double min, double max){
+	vector<pair<double, double>> res;
+	
+	// Generar datos interpolados en el rango (real)
+	vector<double> data;
+	double step = (max-min)/n_points;
+	double next = min;
+	for(unsigned int i = 0; i < n_points; ++i){
+		data.push_back(next);
+		next += step;
+	}
+	
+	// Normalizar media y std (notar que std NO debe ser trasladada, solo escalada)
+	double mean_scaled = (mean - min)/(max - min);
+	double std_scaled = std/(max - min);
+	
+	// Iterar por los datos, normalizar, y aplicar kernel directo
+	for(unsigned int i = 0; i < data.size(); ++i){
+		double x = data[i];
+		double x_scaled = (x - min)/(max - min);
+		double y = directMormalKernel(x_scaled, mean_scaled, std_scaled);
+		res.push_back(pair<double, double>(x, y));
+	}
+	
+	return res;
+}
+
 // Este metodo debe ser resistente a concurrencia
 //	- Asumo que las llamadas a db_comm son thread safe (dependen de Mongo)
-bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<double>> &estimations_map, map<string, map<string, double>> &statistics_map){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<pair<double, double>>> &estimations_map, map<string, map<string, double>> &statistics_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -201,29 +234,29 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		unsigned int opcionGraficoOut = it->second;
 		string nombre = it->first;
-		vector<double> dataGrafica;
 		DensityFunction dist = statsAnalisis.getDistribution(opcionGraficoOut);
 		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<dist.sampleMedian<<", std: "<<dist.sampleStd<<")\n";
-		//Por ahora se usa el mismo numero de puntos que muestra, lunes os comento
-		unsigned int dimG = dist.samplePostNormalized.size();
-		//Parametro con numeracion:opcionGraficoOut
-		dist.outVectorGrafico1(dimG, dataGrafica);
-//		for(unsigned int i = 0; i < dataGrafica.size(); ++i){
-//			cout<<"grafico["<<i<<"]: "<<dataGrafica[i]<<"\n";
-//		}
-		estimations_map[nombre] = dataGrafica;
+		
+//		vector<double> dataGrafica;
+//		unsigned int dimG = dist.samplePostNormalized.size();
+//		dist.outVectorGrafico1(dimG, dataGrafica);
+//		estimations_map[nombre] = dataGrafica;
+		
+		// Notar que quizas sea mejor usar los min y max a priori o algo asi (en lugar de +- N*std)
+		// Notar ademas que esto es un grafico a posteriori, por lo que siempre es normal (por ahora)
+		estimations_map[nombre] = generateDistributionGraph(30, dist.sampleMedian, dist.sampleStd, dist.sampleMedian-3*dist.sampleStd, dist.sampleMedian+3*dist.sampleStd);
 		
 		res_dist.push_back( pair<double, double>(dist.sampleMedian, dist.sampleStd) );
 		
 		// Estos datos tambien podrian retornarse al llamador (para agregarlos al resultado de training)
 //		distribution_map[nombre] = pair<double, double>( dist.sampleMedian, dist.sampleStd );
 		
-		statistics_map[nombre]["median"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleMedian;
-		statistics_map[nombre]["mean"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleMean;
-		statistics_map[nombre]["stddev"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleStd;
-		statistics_map[nombre]["var"] = statsAnalisis.getDistribution(opcionGraficoOut).sampleVariance;
-		statistics_map[nombre]["min"] = statsAnalisis.getDistribution(opcionGraficoOut).minimoV;
-		statistics_map[nombre]["max"] = statsAnalisis.getDistribution(opcionGraficoOut).maximoV;
+		statistics_map[nombre]["median"] = dist.sampleMedian;
+		statistics_map[nombre]["mean"] = dist.sampleMean;
+		statistics_map[nombre]["stddev"] = dist.sampleStd;
+		statistics_map[nombre]["var"] = dist.sampleVariance;
+		statistics_map[nombre]["min"] = dist.minimoV;
+		statistics_map[nombre]["max"] = dist.maximoV;
 		
 	}
 	
@@ -355,7 +388,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
 		// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
 		// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
-		map<string, vector<double>> estimations_map;
+		map<string, vector<pair<double, double>>> estimations_map;
 		map<string, map<string, double>> statistics_map;
 		finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map, statistics_map);
 		
@@ -367,7 +400,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 		boost::property_tree::ptree estimations;
 		
-		for(map<string, vector<double>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
+		for(map<string, vector<pair<double, double>>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
 		
 			boost::property_tree::ptree estimation;
 			estimation.put("parameter", it->first);
@@ -383,7 +416,8 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			boost::property_tree::ptree fvalue;
 			boost::property_tree::ptree fvalues;
 			for( unsigned int j = 0; j < it->second.size(); ++j ){
-				fvalue.put("y", it->second[j]);
+				fvalue.put("x", it->second[j].first);
+				fvalue.put("y", it->second[j].second);
 				fvalues.push_back(make_pair("", fvalue));
 			}
 			estimation.add_child("values", fvalues);
