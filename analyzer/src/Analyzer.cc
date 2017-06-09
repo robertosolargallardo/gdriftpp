@@ -548,6 +548,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		
 			boost::property_tree::ptree estimation;
 			estimation.put("parameter", it->first);
+//			cout<<"Parameter "<<it->first<<"\n";
 			
 			//estimation.put("min", min);
 			//estimation.put("max", max);
@@ -558,24 +559,15 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			}
 			
 			boost::property_tree::ptree curves;
+			
 			boost::property_tree::ptree curve;
-			
-			// Busqueda de distribucion prior del parametro
-			map<string, pair<string, pair<double, double>>> prior = dists_prior[s_ids[i]];
-			if( prior.find(it->first) == prior.end() ){
-				cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<" no encontrada\n";
-			}
-			else{
-				pair<string, pair<double, double>> dist = prior[it->first];
-				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
-				// Generar y agregar grafico de la dist prior
-			}
-			
 			curve.put("name", "posterior");
 			
 			boost::property_tree::ptree fvalue;
 			boost::property_tree::ptree fvalues;
+			cout<<"Posterior\n";
 			for( unsigned int j = 0; j < it->second.size(); ++j ){
+//				cout<<"graph_data\t"<<it->second[j].first<<"\t"<<it->second[j].second<<"\n";
 				fvalue.put("x", it->second[j].first);
 				fvalue.put("y", it->second[j].second);
 				fvalues.push_back(make_pair("", fvalue));
@@ -586,6 +578,66 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 			// Agrego la curva posterior a curves
 			curves.push_back(make_pair("", curve));
+			
+			
+			// Busqueda de distribucion prior del parametro
+			double min_post = it->second.front().first;
+			double max_post = it->second.back().first;
+			map<string, pair<string, pair<double, double>>> prior = dists_prior[s_ids[i]];
+			if( prior.find(it->first) == prior.end() ){
+				cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<" no encontrada\n";
+			}
+			else{
+				pair<string, pair<double, double>> dist = prior[it->first];
+				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
+				// Generar y agregar grafico de la dist prior
+				vector<pair<double, double>> vals;
+				if( dist.first.compare("normal") == 0 ){
+					double min = dist.second.first - 3*dist.second.second;
+					if(min < 0.0){
+						min = 0.0;
+					}
+					double max = dist.second.first + 3*dist.second.second;
+					vals = generateDistributionGraph(30, dist.second.first, dist.second.second, min, max);
+				}
+				else if( dist.first.compare("uniform") == 0 ){
+					// Aqui solo requiero 2 puntos, los de los extremos
+					// Sin embargo, hay que normalizar los x primero
+					// El area de la curva normalizada debe ser 1, pero aqui la curva esta entre a y b
+					// El problema es la normalizacion del eje x, deberia ser la misma usada para la posterior
+					double a = dist.second.first;
+					double b = dist.second.second;
+					double a_scaled = (a - min_post) / (max_post - min_post);
+					double b_scaled = (b - min_post) / (max_post - min_post);
+					double y = 1.0 / (b_scaled - a_scaled);
+					vals.push_back( pair<double, double>(a, y) );
+					vals.push_back( pair<double, double>(b, y) );
+				}
+				else{
+					cerr<<"Analyzer::updateTrainingResults - Distribucion a priori no soportada ("<<dist.first<<")\n";
+				}
+				
+				boost::property_tree::ptree curve_prior;
+				curve_prior.put("name", "prior");
+			
+				boost::property_tree::ptree fvalue_prior;
+				boost::property_tree::ptree fvalues_prior;
+				cout<<"Prior\n";
+				for( unsigned int j = 0; j < vals.size(); ++j ){
+//					cout<<"graph_data\t"<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+					fvalue_prior.put("x", vals[j].first);
+					fvalue_prior.put("y", vals[j].second);
+					fvalues_prior.push_back(make_pair("", fvalue_prior));
+				}
+				// Agrego values a la curva
+				curve_prior.add_child("values", fvalues_prior);
+			
+				// Agrego la curva posterior a curves
+				curves.push_back(make_pair("", curve_prior));
+				
+			}
+			
+			
 			
 			// Finalmente, agrego curves a estimation de este parametro
 			estimation.add_child("curves", curves);
