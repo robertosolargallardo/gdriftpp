@@ -460,7 +460,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 					}
 				}
 			}
-			else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 ){
+			else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
 				string dist_type = e.second.get<string>("params.source.population.percentage.type");
 				if( dist_type.compare("random") == 0 ){
 //					events_params[eid].push_back("params.source.population.percentage");

@@ -132,7 +132,7 @@ class DBCommunication{
 							field += ".params.population.size";
 							res.push_back(field);
 						}
-						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 && e_type.compare("extinction") != 0 ){
 							field += ".params.source.population.percentage";
 							res.push_back(field);
 						}
@@ -166,7 +166,7 @@ class DBCommunication{
 								events_params[eid].push_back("params.population.size");
 							}
 						}
-						else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 ){
+						else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
 							string dist_type = e.second.get<string>("params.source.population.percentage.type");
 							if( dist_type.compare("random") == 0 ){
 								events_params[eid].push_back("params.source.population.percentage");
@@ -468,7 +468,7 @@ class DBCommunication{
 						params[param_name] = size;
 //						cout<<"DBCommunication::storeResults - params["<<param_name<<"] = "<<params[param_name]<<"\n";
 					}
-					else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+					else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 && e_type.compare("extinction") != 0 ){
 						double percentage = e.second.get<double>("params.source.population.percentage");
 						string param_name = param_base + ".params.source.population.percentage";
 						params[param_name] = percentage;
@@ -702,7 +702,7 @@ class DBCommunication{
 								cout<<"DBCommunication::storeDistributions - params["<<param_name<<"] = ["<<dist.first<<", "<<dist.second.first<<", "<<dist.second.second<<"]\n";
 							}
 						}
-						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 ){
+						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 && e_type.compare("extinction") != 0 ){
 							string value_type = e.second.get<string>("params.source.population.percentage");
 							if( value_type.compare("random") == 0 ){
 								dist = parseDistribution(e.second.get_child("params.source.population.percentage.distribution"));
