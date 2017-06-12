@@ -22,6 +22,7 @@
 #include "DBCommunication.h"
 
 #include "SimulationStatistics.h"
+#include "Statistics.h"
 
 using namespace std;
 using namespace chrono;
