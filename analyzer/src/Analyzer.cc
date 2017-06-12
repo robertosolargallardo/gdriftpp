@@ -356,6 +356,9 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	return false;
 }
 
+// Esto es solo para debug
+//unsigned int training_id = 0;
+
 // Este codigo deberia ser resistente a concurrencia
 //	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
 //	- trainModel debe ser thread safe
@@ -544,6 +547,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 		boost::property_tree::ptree estimations;
 		
+//		unsigned int param_id = 0;
 		for(map<string, vector<pair<double, double>>>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
 		
 			boost::property_tree::ptree estimation;
@@ -566,12 +570,21 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			boost::property_tree::ptree fvalue;
 			boost::property_tree::ptree fvalues;
 			cout<<"Posterior\n";
+			
+			// Almaceno los datos en archivos solo para revisar los graficos luego
+//			char buff[1024];
+//			ofstream escritor;
+			
+//			sprintf(buff, "../logs/posterior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+//			escritor.open(buff, fstream::trunc | fstream::out);
 			for( unsigned int j = 0; j < it->second.size(); ++j ){
 //				cout<<"graph_data\t"<<it->second[j].first<<"\t"<<it->second[j].second<<"\n";
+//				escritor<<""<<it->second[j].first<<"\t"<<it->second[j].second<<"\n";
 				fvalue.put("x", it->second[j].first);
 				fvalue.put("y", it->second[j].second);
 				fvalues.push_back(make_pair("", fvalue));
 			}
+//			escritor.close();
 //			estimation.add_child("values", fvalues);
 			// Agrego values a la curva
 			curve.add_child("values", fvalues);
@@ -589,7 +602,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			}
 			else{
 				pair<string, pair<double, double>> dist = prior[it->first];
-				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
+//				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<it->first<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
 				// Generar y agregar grafico de la dist prior
 				vector<pair<double, double>> vals;
 				if( dist.first.compare("normal") == 0 ){
@@ -623,12 +636,17 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 				boost::property_tree::ptree fvalue_prior;
 				boost::property_tree::ptree fvalues_prior;
 				cout<<"Prior\n";
+				
+//				sprintf(buff, "../logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+//				escritor.open(buff, fstream::trunc | fstream::out);
 				for( unsigned int j = 0; j < vals.size(); ++j ){
 //					cout<<"graph_data\t"<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+//					escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
 					fvalue_prior.put("x", vals[j].first);
 					fvalue_prior.put("y", vals[j].second);
 					fvalues_prior.push_back(make_pair("", fvalue_prior));
 				}
+//				escritor.close();
 				// Agrego values a la curva
 				curve_prior.add_child("values", fvalues_prior);
 			
@@ -643,6 +661,9 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			estimation.add_child("curves", curves);
 			
 			estimations.push_back(make_pair("", estimation));
+			
+//			++param_id;
+			
 		}
 		scenario.add_child("estimations", estimations);
 		scenarios.push_back(make_pair("", scenario));
@@ -651,6 +672,8 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		
 		estimations_map.clear();
 	}
+	
+//	++training_id;
 	
 	boost::property_tree::ptree estimations;
 	estimations.add_child("scenarios", scenarios);
@@ -672,7 +695,8 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
-	
+	cout<<"Analyzer::run - Inicio 1\n";
+			
 	uint32_t id = _frequest.get<uint32_t>("id");
 	
 	switch(util::hash(_frequest.get<string>("type"))){
@@ -870,9 +894,12 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 }
 
 boost::property_tree::ptree Analyzer::run(const std::string &_body){
+	cout<<"Analyzer::run - Inicio 2\n";
 	boost::property_tree::ptree fsettings;
 
+	cout<<"Analyzer::run - MultipartFormParser...\n";
 	MultipartFormParser m(_body);
+	cout<<"Analyzer::run - MultipartFormParser terminado\n";
 
 	fsettings.put("max-number-of-simulations", m.get("max-number-of-simulations"));
 	m.remove("max-number-of-simulations");
@@ -896,10 +923,13 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 
 	/*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	 uint32_t id = ms.count();*/
+	cout<<"Analyzer::run - Seteando id y timestamp\n";
 	 uint32_t id = this->_incremental_id++;
 	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	fsettings.put("id", std::to_string(id));
 	fsettings.put("timestamp", std::to_string(timestamp));
+	
+	cout<<"Analyzer::run - id: "<<id<<", timestamp: "<<timestamp<<"\n";
 
 	map<uint32_t, map<uint32_t, map<uint32_t, vector<Marker>>>> samples;
 
@@ -919,13 +949,17 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 		uint32_t filetype = boost::lexical_cast<uint32_t>(m.get("FileType"));
 		m.remove("FileType");
 
+		cout<<"Analyzer::run - Creando FileParser\n";
 		FileParser fp(m.get("File"), FileType(filetype), MarkerType(markertype));
 		m.remove("File");
 
+		cout<<"Analyzer::run - fp.parse...\n";
 		vector<Marker> markers = fp.parse();
+		cout<<"Analyzer::run - fp.parse terminado\n";
 		samples[sample][chromosome][gene] = markers;
 	}
 
+	cout<<"Analyzer::run - Creando samples\n";
 	boost::property_tree::ptree fsamples;
 	for(auto& sample : samples){
 		boost::property_tree::ptree fsample;
@@ -933,11 +967,14 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 		fsamples.push_back(std::make_pair("",fsample));
 	}
 
+	cout<<"Analyzer::run - Creando Profile\n";
 	boost::property_tree::ptree findividual = get_profile(samples,ploidy);
+	
 	fsettings.add_child("samples", fsamples);
 	fsettings.add_child("individual", findividual);
 
 	 /*computing statistics*/
+	cout<<"Analyzer::run - Preparando estadisticos\n";
 	this->finished[id] = 0;
 
 	boost::property_tree::ptree fdata,fposterior;
@@ -959,6 +996,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
 	parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
 	
+	cout<<"Analyzer::run - Guardando data\n";
 	db_comm.writeData(fdata);
 	
 	std::stringstream ss;
@@ -966,6 +1004,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	cout << ss.str() << endl;
 	 /*computing statistics*/
 
+	cout<<"Analyzer::run - Fin\n";
 	return(fsettings);
 }
 
