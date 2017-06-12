@@ -16,21 +16,28 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
 	
 	switch(util::hash(type)){
+		case PAUSE:{
+			cout<<"Scheduler::run - PAUSE\n";
+			this->_settings[id]->pause = true;
+			break;
+		}
+		case RESUME:{
+			cout<<"Scheduler::run - RESUME\n";
+			this->_settings[id]->pause = false;
+			this->_settings[id]->resume_send(this->_settings[id]->_training_size, this->_fhosts);
+			break;
+		}
 		case CANCEL:{
 			cout<<"Scheduler::run - CANCEL\n";
-			
 			// Lo primero es activar la marca de cancelacion (o quitar la marca de continuar)
 			// Notar que _settings[id] probablemente estara corriendo (send), y NO PUEDE eliminarse mientras eso siga activo
 			// No es claro, eso si, cuando retorna del send (no desde aqui)
 			// La opcion simple es dejarla, simplemente marcarla como cancelada para que se detenga
 			// Notar que la escritura directa de una variable basica (como bool) DEBERIA ser atomica
 			this->_settings[id]->cancel = true;
-			
 			// Los controladores pueden seguir con los trabajos actuales, pero sus resultados pueden ser omitidos por el analyzer
-			
 			// Avisar al analyzer que cancele la simulacion (y borre los datos de esta), ese proceso DEBE ser thread-safe
 			comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.simulated"), _frequest);
-			
 			break;
 		}
 		case INIT:{
