@@ -6,6 +6,8 @@ SimulationSettings::SimulationSettings(){
 	this->_feedback = 0;
 	this->_training_size = 0;
 	cancel = false;
+	pause = false;
+	cur_job = 0;
 }
 
 SimulationSettings::SimulationSettings(ptree &_fsettings){
@@ -15,6 +17,8 @@ SimulationSettings::SimulationSettings(ptree &_fsettings){
 	this->_feedback = 0;
 	this->_training_size = 0;
 	cancel = false;
+	pause = false;
+	cur_job = 0;
 }
 
 SimulationSettings::~SimulationSettings(void){
@@ -174,24 +178,93 @@ ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop,
 	return(_fscenario);
 }
 
+void SimulationSettings::resume_send(const uint32_t &_batch_length, const ptree &_fhosts){
+
+	cout<<"SimulationSettings::resume_send - Inicio (_batch_length: "<<_batch_length<<" desde cur_job: "<<cur_job<<")\n";
+	
+	vector<ptree> controllers;
+	for(auto &fcontroller: _fhosts.get_child("controller")){
+		controllers.push_back(fcontroller.second);
+	}
+	
+	vector<ptree> scenarios;
+	for(auto &fscenario : this->_fsettings.get_child("scenarios")){
+		scenarios.push_back(fscenario.second);
+	}
+	
+//	vector<ptree> fjobs;
+
+//	cout<<"SimulationSettings::resume_send - Iterando "<<_batch_length<<" veces\n";
+//	for(uint32_t i = 0; i < _batch_length; i++){
+//		ptree fjob;
+//		fjob.put("id", this->_fsettings.get<std::string>("id"));
+//		fjob.put("run", this->_run++);
+//		fjob.put("batch", this->_batch);
+//		fjob.put("feedback", this->_feedback);
+//		
+//		fjob.put("batch-size", this->_fsettings.get<uint32_t>("batch-size"));
+//		
+//		unsigned int max_feedback = 0;
+//		boost::optional<ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");
+//		if( child ){
+//			max_feedback = this->_fsettings.get<uint32_t>("population-increase-phases");
+//		}
+//		
+//		fjob.put("max-number-of-simulations", this->_fsettings.get<uint32_t>("max-number-of-simulations"));
+//		fjob.add_child("individual", parse_individual(this->_fsettings.get_child("individual")));
+//		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()], 100, _feedback, max_feedback));
+//		
+//		fjobs.push_back(fjob);
+//	}
+//	random_shuffle(fjobs.begin(), fjobs.end());
+
+	for(; cur_job < fjobs.size(); cur_job++){
+		if(cancel){
+			cout<<"SimulationSettings::resume_send - Cancelando\n";
+			break;
+		}
+		
+		// Si la orden es pausa, lo ideal seria parar aqui y continuar desde esta misma iteracion con el resume
+		// Para eso habria que guardar el vector de trabajos
+		// Para eso, se necesitan dos ordenes diferentes (o un if en este metodo):
+		//  - send para CREAR la lista de trabajos
+		//  - continue para continuar con una lista ya creada
+		// Notar que el pause NO cancela y no envia la señal al analyzer, por lo que no se perderian trabajos
+		if(pause){
+			cout<<"SimulationSettings::send - Pausando\n";
+			break;
+		}
+		
+		uint32_t pos = cur_job%controllers.size();
+		cout<<"SimulationSettings::resume_send - Enviando trabajo "<<cur_job<<" a controler "<<pos<<"\n";
+		comm::send(controllers[pos].get<string>("host"), controllers[pos].get<string>("port"), controllers[pos].get<string>("resource"), fjobs[cur_job]);
+	}
+	
+	scenarios.clear();
+	controllers.clear();
+	
+	if( !pause ){
+		fjobs.clear();
+		this->_run = 0;
+		this->_batch++;
+	}
+}
+
 void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhosts){
 
 	cout<<"SimulationSettings::send - Inicio (_batch_length: "<<_batch_length<<")\n";
 	
 	vector<ptree> controllers;
-	for(auto &fcontroller: _fhosts.get_child("controller"))
-	controllers.push_back(fcontroller.second);
+	for(auto &fcontroller: _fhosts.get_child("controller")){
+		controllers.push_back(fcontroller.second);
+	}
 	
 	vector<ptree> scenarios;
-	for(auto &fscenario : this->_fsettings.get_child("scenarios"))
-	scenarios.push_back(fscenario.second);
+	for(auto &fscenario : this->_fsettings.get_child("scenarios")){
+		scenarios.push_back(fscenario.second);
+	}
 	
-	vector<ptree> fjobs;
-	
-	// Por que usa batch * n_controller?
-	// Es mas claro DISTRIBUIR el batch entre los controllers
-//	cout<<"SimulationSettings::send - Iterando "<<(_batch_length*controllers.size())<<" veces\n";
-//	for(uint32_t i = 0; i < (_batch_length*controllers.size()); i++){
+//	vector<ptree> fjobs;
 
 	cout<<"SimulationSettings::send - Iterando "<<_batch_length<<" veces\n";
 	for(uint32_t i = 0; i < _batch_length; i++){
@@ -217,22 +290,36 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 	}
 	random_shuffle(fjobs.begin(), fjobs.end());
 
-	for(uint32_t i = 0; i < fjobs.size(); i++){
+	for(cur_job = 0; cur_job < fjobs.size(); cur_job++){
 		if(cancel){
 			cout<<"SimulationSettings::send - Cancelando\n";
 			break;
 		}
-		uint32_t pos = i%controllers.size();
-		cout<<"SimulationSettings::send - Enviando trabajo "<<i<<" a controler "<<pos<<"\n";
-		comm::send(controllers[pos].get<string>("host"),controllers[pos].get<string>("port"),controllers[pos].get<string>("resource"), fjobs[i]);
+		
+		// Si la orden es pausa, lo ideal seria parar aqui y continuar desde esta misma iteracion con el resume
+		// Para eso habria que guardar el vector de trabajos
+		// Para eso, se necesitan dos ordenes diferentes (o un if en este metodo):
+		//  - send para CREAR la lista de trabajos
+		//  - continue para continuar con una lista ya creada
+		// Notar que el pause NO cancela y no envia la señal al analyzer, por lo que no se perderian trabajos
+		if(pause){
+			cout<<"SimulationSettings::send - Pausando\n";
+			break;
+		}
+		
+		uint32_t pos = cur_job%controllers.size();
+		cout<<"SimulationSettings::send - Enviando trabajo "<<cur_job<<" a controler "<<pos<<"\n";
+		comm::send(controllers[pos].get<string>("host"), controllers[pos].get<string>("port"), controllers[pos].get<string>("resource"), fjobs[cur_job]);
 	}
-
-	fjobs.clear();
+	
 	scenarios.clear();
 	controllers.clear();
-
-	this->_run = 0;
-	this->_batch++;
+	
+	if( !pause ){
+		fjobs.clear();
+		this->_run = 0;
+		this->_batch++;
+	}
 }
 
 

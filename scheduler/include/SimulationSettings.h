@@ -36,6 +36,9 @@ public:
 	uint32_t _training_size;
 	
 	bool cancel;
+	bool pause;
+	uint32_t cur_job;
+	vector<ptree> fjobs;
 
 	SimulationSettings();
 	SimulationSettings(ptree &_fsettings);
@@ -45,6 +48,7 @@ public:
 	ptree parse_individual(ptree);
 	ptree parse_scenario(ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback);
 	void send(const uint32_t&,const ptree&);
+	void resume_send(const uint32_t&,const ptree&);
 
 };
 	
