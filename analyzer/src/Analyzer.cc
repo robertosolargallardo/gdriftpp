@@ -322,144 +322,22 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	}
 	finish = false;
 	
-	// Almacenamiento de distribuciones a priori, con el esquema de nombre de "parameter name"
-	// Hay que agrega el escenario, por ahora lo parcho como:
+	// La idea es cargar distribuciones de cada feedback aqui
+	// La dist de feedback 0 es prior, la de cada otro valor es propuesta, y la estiamcion actual es posterior
 	// scen_id -> name -> dist
-	
-	// El codigo que sigue debe ser una llamada a db_comm para leer las distribuciones de CADA feedback hasta el actual
-	// Asi, la dist de feedback 0 es prior, la de cada otro valor es propuesta, y la estiamcion actual es posterior
-	
-	map<uint32_t, map<string, Distribution>> dists_prior;
-	string type;
-	double val1 = 0.0;
-	double val2 = 0.0;
-	
-	for(auto s : fresponse.get_child("scenarios")){
-		uint32_t s_id = s.second.get<uint32_t>("id");
-		for(auto e : s.second.get_child("events")){
-			// En principio cada evento tiene timestamp y parametros
-			// Los parametros que tengan type random deben ser agregados
-			
-			uint32_t eid = e.second.get<uint32_t>("id");
-			string etype = e.second.get<string>("type");
-			cout<<"Analyzer::updateTrainingResults - Almacenando priori de evento events."<<eid<<"."<<etype<<"\n";
-			
-//			events_params[eid].push_back("timestamp");
-			// ESTOY ASUMIENDO TIMESTAMP RANDOM !!!
-			string param_name = "events.";
-			param_name += std::to_string(eid);
-			param_name += ".";
-			param_name += "timestamp";
-			type = e.second.get<string>("timestamp.distribution.type");
-			// El if que sigue SOLO existe porque los parametros tienen nombre dependiendo de la distribucion
-			// Obviamente la forma correcta es que los parametros tengan el mismo nombre (val1 y val2, por ejemplo)
-			if( type.compare("uniform") == 0 ){
-				val1 = e.second.get<double>("timestamp.distribution.params.a");
-				val2 = e.second.get<double>("timestamp.distribution.params.b");
-			}
-			else if( type.compare("normal") == 0 ){
-				val1 = e.second.get<double>("timestamp.distribution.params.mean");
-				val2 = e.second.get<double>("timestamp.distribution.params.stddev");
-			}
-			else{
-				cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
-			}
-//			cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_id<<"]["<<param_name<<"]: "<<type<<" ("<<val1<<", "<<val2<<")\n";
-			dists_prior[s_id][param_name] = Distribution(type, val1, val2);
-			
-			// Mientras se incrementa la poblacion, omito population.size de los parametros
-			if( etype.compare("create") == 0 ){
-				string dist_type = e.second.get<string>("params.population.size.type");
-//				if( dist_type.compare("random") == 0 && !population_increase ){
-				if( dist_type.compare("random") == 0 ){
-//					events_params[eid].push_back("params.population.size");
-					string param_name = "events.";
-					param_name += std::to_string(eid);
-					param_name += ".";
-					param_name += "params.population.size";
-					type = e.second.get<string>("params.population.size.distribution.type");
-					val1 = val2 = 0.0;
-					if( type.compare("uniform") == 0 ){
-						val1 = e.second.get<double>("params.population.size.distribution.params.a");
-						val2 = e.second.get<double>("params.population.size.distribution.params.b");
-//						cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_id<<"]["<<param_name<<"]: "<<type<<" ("<<a<<", "<<b<<")\n";
-//						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
-					}
-					else if( type.compare("normal") == 0 ){
-						val1 = e.second.get<double>("params.population.size.distribution.params.mean");
-						val2 = e.second.get<double>("params.population.size.distribution.params.stddev");
-//						cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_id<<"]["<<param_name<<"]: "<<type<<" ("<<mean<<", "<<stddev<<")\n";
-//						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
-					}
-					else{
-						cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
-					}
-					dists_prior[s_id][param_name] = Distribution(type, val1, val2);
-				}
-			}
-			else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
-				string dist_type = e.second.get<string>("params.source.population.percentage.type");
-				if( dist_type.compare("random") == 0 ){
-//					events_params[eid].push_back("params.source.population.percentage");
-					string param_name = "events.";
-					param_name += std::to_string(eid);
-					param_name += ".";
-					param_name += "params.source.population.percentage";
-					type = e.second.get<string>("params.source.population.percentage.distribution.type");
-					val1 = val2 = 0.0;
-					if( type.compare("uniform") == 0 ){
-						val1 = e.second.get<double>("params.source.population.percentage.distribution.params.a");
-						val2 = e.second.get<double>("params.source.population.percentage.distribution.params.b");
-//						cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_id<<"]["<<param_name<<"]: "<<type<<" ("<<a<<", "<<b<<")\n";
-//						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(a, b));
-					}
-					else if( type.compare("normal") == 0 ){
-						val1 = e.second.get<double>("params.source.population.percentage.distribution.params.mean");
-						val2 = e.second.get<double>("params.source.population.percentage.distribution.params.stddev");
-//						cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_id<<"]["<<param_name<<"]: "<<type<<" ("<<mean<<", "<<stddev<<")\n";
-//						dists_prior[s_id][param_name] = pair<string, pair<double, double>>(type, pair<double, double>(mean, stddev));
-					}
-					else{
-						cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
-					}
-					dists_prior[s_id][param_name] = Distribution(type, val1, val2);
-				}
-			}
-			
-		}
-	}
-	
-	for(auto c : fresponse.get_child("individual.chromosomes")){
-		uint32_t cid = c.second.get<uint32_t>("id");
-		for(auto g : c.second.get_child("genes")){
-			uint32_t gid = g.second.get<uint32_t>("id");
-			string param_name = "chromosomes.";
-			param_name += std::to_string(cid);
-			param_name += ".genes.";
-			param_name += std::to_string(gid);
-			param_name += ".mutation.rate";
-			string type_general = g.second.get<string>("mutation.rate.type");
-			if( type_general.compare("random") == 0 ){
-				// Todo ok, pedir distribucion
-				type = g.second.get<string>("mutation.rate.distribution.type");
-				val1 = val2 = 0.0;
-				if( type.compare("uniform") == 0 ){
-					val1 = g.second.get<double>("mutation.rate.distribution.params.a");
-					val2 = g.second.get<double>("mutation.rate.distribution.params.b");
-				}
-				else if( type.compare("normal") == 0 ){
-					val1 = g.second.get<double>("mutation.rate.distribution.params.mean");
-					val2 = g.second.get<double>("mutation.rate.distribution.params.stddev");
-				}
-				else{
-					cerr<<"Analyzer::updateTrainingResults - Unsopported distribution ("<<type<<")\n";
-				}
-				for(unsigned int i = 0; i < s_ids.size(); ++i){
-//					cout<<"Analyzer::updateTrainingResults - dists_prior["<<s_ids[i]<<"]["<<param_name<<"]: "<<type<<" ("<<val1<<", "<<val2<<")\n";
-					dists_prior[s_ids[i]][param_name] = Distribution(type, val1, val2);
-				}
-			}
-		}
+	// Ahroa es feedback -> scen_id -> name -> dist
+//	map<uint32_t, map<string, Distribution>> dists_prior = db_comm.getDistributions(id, feedback);
+	map<uint32_t, map<uint32_t, map<string, Distribution>>> dists_prior;
+	for(unsigned int f = 0; f <= feedback; ++f){
+		dists_prior[f] = db_comm.getDistributions(id, f);
+		
+//		cout<<"Analyzer::updateTrainingResults - Revisando distribuciones feedback "<<f<<"\n";
+//		for( auto scenario_dist : dists_prior[f] ){
+//			for( auto dist : scenario_dist.second ){
+//				cout<<"Analyzer::updateTrainingResults - dists_prior["<<f<<"]["<<scenario_dist.first<<"]["<<dist.first<<"]: "<<dist.second.to_string()<<"\n";
+//			}
+//		}
+		
 	}
 	
 	boost::property_tree::ptree scenarios;
@@ -476,7 +354,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		string name = "Scenario " + std::to_string(s_ids[i]);
 		scenario.put("name", name);
 		scenario.put("id", s_ids[i]);
-			
+		
 		boost::property_tree::ptree estimations;
 		
 		unsigned int param_id = 0;
@@ -510,7 +388,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			boost::property_tree::ptree curves;
 			
 			boost::property_tree::ptree curve;
-			curve.put("name", "posterior");
+			curve.put("name", "Posterior");
 			
 			boost::property_tree::ptree fvalue;
 			boost::property_tree::ptree fvalues;
@@ -518,9 +396,10 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 			char buff[1024];
 			ofstream escritor;
+			
+			vals = Statistics::generateDistributionGraph(dist_posterior, min_post, max_post, min_post, max_post);
 			sprintf(buff, "logs/posterior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
 			escritor.open(buff, fstream::trunc | fstream::out);
-			vals = Statistics::generateDistributionGraph(dist_posterior, min_post, max_post, min_post, max_post);
 			for(unsigned int j = 0; j < vals.size(); ++j){
 				escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
 				fvalue.put("x", vals[j].first);
@@ -538,41 +417,63 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 			
 			// Busqueda de distribucion prior del parametro
-			map<string, Distribution> prior = dists_prior[s_ids[i]];
-			if( prior.find(dist_name) == prior.end() ){
-				cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<" no encontrada\n";
-			}
-			else{
-				Distribution dist_prior = prior[dist_name];
-//				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<": "<<dist.first<<" ("<<dist.second.first<<", "<<dist.second.second<<")\n";
-				// Para la distribucion prior, no tengo necesariamente min y max
-				// Por ello, en ese caso pido minimos y maximos analiticos
-				// La distribucion conoce valores razonables
-				vals = Statistics::generateDistributionGraph(dist_prior, dist_prior.getMinValue(), dist_prior.getMaxValue(), min_post, max_post);
-				
-				boost::property_tree::ptree curve_prior;
-				curve_prior.put("name", "prior");
-			
-				boost::property_tree::ptree fvalue_prior;
-				boost::property_tree::ptree fvalues_prior;
-				cout<<"Prior\n";
-				
-				sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-				escritor.open(buff, fstream::trunc | fstream::out);
-				for( unsigned int j = 0; j < vals.size(); ++j ){
-					escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
-					fvalue_prior.put("x", vals[j].first);
-					fvalue_prior.put("y", vals[j].second);
-					fvalues_prior.push_back(make_pair("", fvalue_prior));
+			// Aqui hay que iterar por cada feedback
+			// Con 0 es la verdadera prior, en los demas casos es la proposal N
+			for( unsigned f = 0; f <= feedback; ++f ){
+				map<uint32_t, map<string, Distribution>> dists_feedback = dists_prior[f];
+				map<string, Distribution> prior = dists_feedback[s_ids[i]];
+				if( prior.find(dist_name) == prior.end() ){
+					cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<" no encontrada\n";
 				}
-				escritor.close();
-				// Agrego values a la curva
-				curve_prior.add_child("values", fvalues_prior);
-			
-				// Agrego la curva posterior a curves
-				curves.push_back(make_pair("", curve_prior));
+				else{
+					Distribution dist_prior = prior[dist_name];
+	//				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<": "<<dist_prior.to_string()<<"\n";
 				
-			}
+					string curve_name;
+					if(f == 0){
+						curve_name = "Prior";
+					}
+					else{
+						curve_name = "Proposal ";
+						curve_name += std::to_string(f);
+					}
+					boost::property_tree::ptree curve_prior;
+					curve_prior.put("name", curve_name);
+					
+					boost::property_tree::ptree fvalue_prior;
+					boost::property_tree::ptree fvalues_prior;
+					cout<<""<<curve_name<<"\n";
+				
+					// Para la distribucion prior, no tengo necesariamente min y max
+					// Por ello, en ese caso pido minimos y maximos analiticos
+					// La distribucion conoce valores razonables
+					double min_prior = dist_prior.getMinValue();
+					if(min_prior < 0.0){
+						min_prior = 0.0;
+					}
+					vals = Statistics::generateDistributionGraph(dist_prior, min_prior, dist_prior.getMaxValue(), min_post, max_post);
+					sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+					escritor.open(buff, fstream::trunc | fstream::out);
+					for( unsigned int j = 0; j < vals.size(); ++j ){
+						escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+						fvalue_prior.put("x", vals[j].first);
+						fvalue_prior.put("y", vals[j].second);
+						fvalues_prior.push_back(make_pair("", fvalue_prior));
+					}
+					escritor.close();
+					// Agrego values a la curva
+					curve_prior.add_child("values", fvalues_prior);
+			
+					// Agrego la curva posterior a curves
+					curves.push_back(make_pair("", curve_prior));
+				
+				}
+			}// for... cada feedback
+			
+			
+			// Aqui se puede agregar la curva de otra distribucion, por ejemplo la ajustada
+			
+			
 			
 			// Finalmente, agrego curves a estimation de este parametro
 			estimation.add_child("curves", curves);
