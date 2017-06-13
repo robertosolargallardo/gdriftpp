@@ -13,6 +13,7 @@
 
 #include "Const.h"
 #include "Mongo.h"
+#include "Statistics.h"
 
 using namespace std;
 using boost::property_tree::ptree;
@@ -738,6 +739,138 @@ class DBCommunication{
 		}
 		
 		
+		map<uint32_t, map<string, Distribution>> getDistributions(uint32_t id, uint32_t feedback){
+			
+			// scenario_id -> param_name -> distribution
+			map<uint32_t, map<string, Distribution>> distributions;
+			string type;
+			double val1 = 0.0;
+			double val2 = 0.0;
+			
+			ptree settings = readSettings(id, feedback);
+			
+			// Guardo los scen ids para agregar los datos del individuo
+			vector<uint32_t> s_ids;
+			for(auto s : settings.get_child("scenarios")){
+				uint32_t s_id = s.second.get<uint32_t>("id");
+				s_ids.push_back(s_id);
+				for(auto e : s.second.get_child("events")){
+					// En principio cada evento tiene timestamp y parametros
+					// Los parametros que tengan type random deben ser agregados
+					
+					uint32_t eid = e.second.get<uint32_t>("id");
+					string etype = e.second.get<string>("type");
+					cout<<"DBCommunication::getDistributions - Almacenando distribuciones de events."<<eid<<"."<<etype<<"\n";
+					
+					string dist_type = e.second.get<string>("timestamp.type");
+					if( dist_type.compare("random") == 0 ){
+						string param_name = "events.";
+						param_name += std::to_string(eid);
+						param_name += ".";
+						param_name += "timestamp";
+						type = e.second.get<string>("timestamp.distribution.type");
+						// El if que sigue SOLO existe porque los parametros tienen nombre dependiendo de la distribucion
+						// Obviamente la forma correcta es que los parametros tengan el mismo nombre (val1 y val2, por ejemplo)
+						if( type.compare("uniform") == 0 ){
+							val1 = e.second.get<double>("timestamp.distribution.params.a");
+							val2 = e.second.get<double>("timestamp.distribution.params.b");
+						}
+						else if( type.compare("normal") == 0 ){
+							val1 = e.second.get<double>("timestamp.distribution.params.mean");
+							val2 = e.second.get<double>("timestamp.distribution.params.stddev");
+						}
+						else{
+							cerr<<"DBCommunication::getDistributions - Unsopported distribution ("<<type<<")\n";
+						}
+						distributions[s_id][param_name] = Distribution(type, val1, val2);
+					}
+			
+					// Mientras se incrementa la poblacion, omito population.size de los parametros
+					if( etype.compare("create") == 0 ){
+						dist_type = e.second.get<string>("params.population.size.type");
+//						if( dist_type.compare("random") == 0 && !population_increase ){
+						if( dist_type.compare("random") == 0 ){
+							string param_name = "events.";
+							param_name += std::to_string(eid);
+							param_name += ".";
+							param_name += "params.population.size";
+							type = e.second.get<string>("params.population.size.distribution.type");
+							val1 = val2 = 0.0;
+							if( type.compare("uniform") == 0 ){
+								val1 = e.second.get<double>("params.population.size.distribution.params.a");
+								val2 = e.second.get<double>("params.population.size.distribution.params.b");
+							}
+							else if( type.compare("normal") == 0 ){
+								val1 = e.second.get<double>("params.population.size.distribution.params.mean");
+								val2 = e.second.get<double>("params.population.size.distribution.params.stddev");
+							}
+							else{
+								cerr<<"DBCommunication::getDistributions - Unsopported distribution ("<<type<<")\n";
+							}
+							distributions[s_id][param_name] = Distribution(type, val1, val2);
+						}
+					}
+					else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
+						dist_type = e.second.get<string>("params.source.population.percentage.type");
+						if( dist_type.compare("random") == 0 ){
+							string param_name = "events.";
+							param_name += std::to_string(eid);
+							param_name += ".";
+							param_name += "params.source.population.percentage";
+							type = e.second.get<string>("params.source.population.percentage.distribution.type");
+							val1 = val2 = 0.0;
+							if( type.compare("uniform") == 0 ){
+								val1 = e.second.get<double>("params.source.population.percentage.distribution.params.a");
+								val2 = e.second.get<double>("params.source.population.percentage.distribution.params.b");
+							}
+							else if( type.compare("normal") == 0 ){
+								val1 = e.second.get<double>("params.source.population.percentage.distribution.params.mean");
+								val2 = e.second.get<double>("params.source.population.percentage.distribution.params.stddev");
+							}
+							else{
+								cerr<<"DBCommunication::getDistributions - Unsopported distribution ("<<type<<")\n";
+							}
+							distributions[s_id][param_name] = Distribution(type, val1, val2);
+						}
+					}
+			
+				}
+			}
+	
+			for(auto c : settings.get_child("individual.chromosomes")){
+				uint32_t cid = c.second.get<uint32_t>("id");
+				for(auto g : c.second.get_child("genes")){
+					uint32_t gid = g.second.get<uint32_t>("id");
+					string param_name = "chromosomes.";
+					param_name += std::to_string(cid);
+					param_name += ".genes.";
+					param_name += std::to_string(gid);
+					param_name += ".mutation.rate";
+					string type_general = g.second.get<string>("mutation.rate.type");
+					if( type_general.compare("random") == 0 ){
+						// Todo ok, pedir distribucion
+						type = g.second.get<string>("mutation.rate.distribution.type");
+						val1 = val2 = 0.0;
+						if( type.compare("uniform") == 0 ){
+							val1 = g.second.get<double>("mutation.rate.distribution.params.a");
+							val2 = g.second.get<double>("mutation.rate.distribution.params.b");
+						}
+						else if( type.compare("normal") == 0 ){
+							val1 = g.second.get<double>("mutation.rate.distribution.params.mean");
+							val2 = g.second.get<double>("mutation.rate.distribution.params.stddev");
+						}
+						else{
+							cerr<<"DBCommunication::getDistributions - Unsopported distribution ("<<type<<")\n";
+						}
+						for(unsigned int i = 0; i < s_ids.size(); ++i){
+							distributions[s_ids[i]][param_name] = Distribution(type, val1, val2);
+						}
+					}
+				}
+			}
+			
+			return distributions;
+		}
 		
 		
 		
