@@ -112,6 +112,35 @@ public:
 		}
 		return res;
 	}
+	
+	string to_string(){
+		string res;
+		switch( type ){
+			case UNIFORM : {
+				res += "Uniform (";
+				break;
+			}
+			case NORMAL : {
+				// Estoy usando +- 3 stddev como valor razonable
+				res += "Normal (";
+				break;
+			}
+			case UNKNOWN : {
+				res += "Unknown (";
+				break;
+			}
+		}
+		if( values.size() > 0 ){
+			res += std::to_string(values[0]);
+		}
+		for(unsigned int i = 1; i < values.size(); ++i){
+			res += ", ";
+			res += std::to_string(values[i]);
+		}
+		res += ")";
+		return res;
+	}
+	
 };
 
 class Statistics{
