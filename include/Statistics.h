@@ -68,12 +68,56 @@ public:
 	unsigned int getNumValue(){
 		return values.size();
 	}
+	
+	// Retorna un valor minimo razonable para graficar la distribucion
+	// Notar que esto NO IMPLICA que no puedan obtenerse valores menores, es un minimo RAZONABLE
+	double getMinValue(){
+		double res = 0.0;
+		switch( type ){
+			case UNIFORM : {
+				res = getValue(0);
+				break;
+			}
+			case NORMAL : {
+				// Estoy usando +- 3 stddev como valor razonable
+				res = getValue(0) - 3*getValue(1);
+				break;
+			}
+			case UNKNOWN : {
+				cerr<<"Statistics::generateDistributionGraph - Unknown distribution.\n";
+				break;
+			}
+		}
+		return res;
+	}
+	
+	// Retorna un valor maximo razonable para graficar la distribucion
+	// Notar que esto NO IMPLICA que no puedan obtenerse valores mayores, es un maximo RAZONABLE
+	double getMaxValue(){
+		double res = 0.0;
+		switch( type ){
+			case UNIFORM : {
+				res = getValue(1);
+				break;
+			}
+			case NORMAL : {
+				// Estoy usando +- 3 stddev como valor razonable
+				res = getValue(0) + 3*getValue(1);
+				break;
+			}
+			case UNKNOWN : {
+				cerr<<"Statistics::generateDistributionGraph - Unknown distribution.\n";
+				break;
+			}
+		}
+		return res;
+	}
 };
 
 class Statistics{
 public:
 	
-	static vector<pair<double, double>> generateDistributionGraph(Distribution dist, double start, double finish, double min_scale, double max_scale){
+	static vector<pair<double, double>> generateDistributionGraph(Distribution &dist, double start, double finish, double min_scale, double max_scale){
 		vector<pair<double, double>> res;
 		switch( dist.getType() ){
 			case UNIFORM : {
