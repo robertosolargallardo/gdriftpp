@@ -55,27 +55,13 @@ private:
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
 	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
-	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, vector<pair<double, double>>> &estimations_map, map<string, map<string, double>> &statistics_map);
-	
-	// Retorna true si el ultimo batch de simulacion es lo suficientemente bueno (es decir, si hay que parar)
-	// Recibe los P parametros de las N simulaciones
-	// ...las E estadisticas de esas mismas N simulaciones
-	// ...las E estadsiticas target
-	// Entrega las P distribuciones como un par <media, varianza> para cada parametro
-//	bool computeDistributions(vector<vector<double>> &params, vector<vector<double>> &statistics, vector<double> &target, vector< pair<double, double> > &res_dist);
-	
-//	pair<double, double> evaluateDistribution(vector<double> values);
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &distributions_map, map<string, map<string, double>> &statistics_map);
 	
 	static string log_file;
 
 	boost::property_tree::ptree get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
 	
 	boost::property_tree::ptree updateTrainingResults(uint32_t id, uint32_t feedback, bool &finish);
-	
-	// Este metodo deberia ser estatico de una clase estadistica (StatisticsUtils o algo asi)
-	vector<pair<double, double>> generateDistributionGraph(unsigned int n_points, double mean, double std, double min = 0, double max = 1);
-	double directMormalKernel(double x, double mean, double std);
-	static const double sqrtOf2Pi;
 	
 public: 
 	Analyzer(boost::property_tree::ptree&);
