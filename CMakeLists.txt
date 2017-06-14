@@ -48,7 +48,7 @@ include_directories(${CMAKE_SOURCE_DIR}/include ${MONGOCXX_INCLUDE} ${RESTBED_IN
 file(GLOB analyzer_SOURCES "${CMAKE_SOURCE_DIR}/analyzer/src/*.cc" ${SOURCES})
 include_directories(analyzer ${CMAKE_SOURCE_DIR}/analyzer/include)
 add_executable(analyzer ${analyzer_SOURCES})
-target_link_libraries(analyzer mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
+target_link_libraries(analyzer mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl armadillo)
 
 file(GLOB controller_SOURCES "${CMAKE_SOURCE_DIR}/controller/src/*.cc" ${SOURCES})
 include_directories(controller ${CMAKE_SOURCE_DIR}/controller/include)
