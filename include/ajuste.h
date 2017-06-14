@@ -81,7 +81,8 @@ public:
 		mat A = I*Xt;
 		mat beta = A*W*pB;
 		mat ajuste = X*beta;
-		ajuste.print("Ajuste: ");
+		
+//		ajuste.print("Ajuste: ");
 
 		//Para proximos ajustes que usan entropia
 		//mat residuos = pB - ajuste;
