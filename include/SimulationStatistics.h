@@ -11,8 +11,10 @@
 #include <vector>
 #include <set>
 #include <map>
-//Libs extras
+
 #include "DensityFunction.h"
+#include "ajuste.h"
+
 #define END_OF_STREAM 999999999
 
 using namespace std;
@@ -67,12 +69,50 @@ private:
 	//Data-params for fase of training
 	vector<pair<double, double> > medianVar;
 
+
+
+	//NUEVAS VERSION 1.2 X.V2
+	Ajuste ajustePosteriori;
+	
+	//Matriz <pair> with statistics normalized of the posteriori - Future use
+	vector< pair<int,vector<double> > > setStatsSimNormalizadoPost;
+	
+	//Matriz with statistics normalized of the posteriori
+	vector< vector<double> > matrizStatsNormalizadoPost;
+	
+	//Map with statistics normalized of the priori
+	map<int,vector<double> > setStatsSimNormalizado;
+		
+	//vector target noramlized
+	vector<double> setTargetsNormalizado;
+	
+	 //Matriz with statistics normalized of the posteriori
+	vector< vector<double> > matrizParamsPost;
+	
+	//Distancias
+	vector<double> distanciasModel;
+	
+	//FIN VARIABLES NUEVAS
+	
+	
 public:
 
 	SimulationStatistics(){}
 
 	//Falta construir destructores
 	~SimulationStatistics(){}
+
+	//NUEVA VERSION 1.2 X.V2
+	void ajustarWLS(){
+		//Carga stats(normalizados), params y target(normalizado)
+		cout<<"SimulationStatistics::ajustarWLS - cargaBuildDataAjuste...\n";
+		ajustePosteriori.cargaBuildDataAjuste(matrizStatsNormalizadoPost, matrizParamsPost, setTargetsNormalizado, distanciasModel);
+		cout<<"SimulationStatistics::ajustarWLS - homoRegresion...\n";
+		ajustePosteriori.homoRegresion();
+		cout<<"SimulationStatistics::ajustarWLS - Fin\n";
+		//ajustePosteriori.paramsAjustados[i]; forma de capturar info
+		
+	}
 
 	//Add simulacion
 	void addSimulation(SimulationData simIn){
@@ -150,6 +190,11 @@ public:
 				normalizedDataLimits(targets, dataMaximos, dataMinimos, dataInSimTargetN);
 				/*Almacena vector<pair<int,double>> de errores*/
 				vectorErrores(dataInSimTargetN, dataInSimStatsN, medidaDistancia, setDistancias);
+				
+				//NUEVO VERSION 1.2 X.V2
+				//Almacenamiento de datos normalizados para ajuste de distribucion posterior
+				almacenarDataNormalized(dataInSimStatsN, dataInSimTargetN);
+				
 				break;
 			};
 			default:{
@@ -157,6 +202,21 @@ public:
 			};
 		}
 	}
+	
+	//NUEVO VERSION 1.2 X.V2
+	//Almacenamiento de estadisticos y target normalizado - Se utiliza en el ajuste
+	void almacenarDataNormalized(vector <vector<double> > dataInSimStatsNIn, vector<double> dataInSimTargetNIn){
+		cout<<"SimulationStatistics::almacenarDataNormalized - Inicio\n";
+		setTargetsNormalizado = dataInSimTargetNIn;
+		size_t sizeStas  = dataInSimStatsNIn.size();
+		int posSelect;
+		for(size_t k = 0; k < sizeStas; k++){
+			posSelect = (int)k;
+			setStatsSimNormalizado.insert( pair<int, vector<double> > (posSelect, dataInSimStatsNIn[posSelect]));
+		}
+		cout<<"SimulationStatistics::almacenarDataNormalized - Fin\n";	
+	}
+	//FIN NUEVO
 
 	//Ordenamiento de un vector <pair<int, double>> por *.second
 	void sortDistances(){
@@ -181,6 +241,18 @@ public:
 			mean += setDistancias[k].second;
 			// setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].outParametros()));
 			setSample.push_back( pair<int, vector<double> > (posSelect, setSimulaciones[posSelect].params));
+			
+			//NUEVO VERSION 1.2 - Se utiliza en el ajuste ***********************************************************
+			// X.V2
+			vector<double> tmp;
+//			matrizParamsPost.push_back(setSimulaciones[posSelect].outParametros());
+			matrizParamsPost.push_back(setSimulaciones[posSelect].params);
+			tmp = setStatsSimNormalizado.find(posSelect)->second;
+			setStatsSimNormalizadoPost.push_back( pair<int, vector<double> > (posSelect, tmp));
+			matrizStatsNormalizadoPost.push_back(tmp);
+			distanciasModel.push_back(setDistancias[k].second);
+			//FIN NUEVO *********************************************************************************************
+			
 		}
 		mean /= dim;
 		cout<<"SimulationStatistics::selectSample - Fin (min: "<<min<<", max: "<<max<<", mean: "<<mean<<")\n";
