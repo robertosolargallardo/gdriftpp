@@ -173,6 +173,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	cout<<"Analyzer::trainModel - distPosterior...\n";
 	/*Obtiene la distribucion posterior*/ 
 	statsAnalisis.distPosterior(tipoDistribucion);
+	
+	cout<<"Analyzer::trainModel - ajustarWLS...\n";
+	statsAnalisis.ajustarWLS();
+	
 	/**** Fin analisis *****/
 	
 	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";
