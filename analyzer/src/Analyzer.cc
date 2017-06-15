@@ -158,16 +158,17 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
 	cout<<"Analyzer::trainModel - computeDistances...\n";
+	// Antes de esto abria que leer o calcular y guardar los min/max por stat
 	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar);
 	cout<<"Analyzer::trainModel - selectSample...\n";
-	double min = 0;
-	double max = 0;
-	double mean = 0;
+	double min_dist = 0;
+	double max_dist = 0;
+	double mean_dist = 0;
 	/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
-	unsigned int used_elements = statsAnalisis.selectSample(0.1, min, max, mean);
+	unsigned int used_data = statsAnalisis.selectSample(0.1, min_dist, max_dist, mean_dist);
 	
 	ofstream escritor(log_file, ofstream::app);
-	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min "<<min<<", max "<<max<<", mean "<<mean<<"\n";
+	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<"\n";
 	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
@@ -192,7 +193,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		double adjust_median = Statistics::getMean(statsAnalisis.getAdjustmentData(pos_param));
 		double adjust_var = Statistics::getVariance(statsAnalisis.getAdjustmentData(pos_param));
 		double adjust_stddev = pow(adjust_var, 0.5);
-		cout<<"Analyzer::trainModel - Ajuste ("<<used_elements<<") med: "<<adjust_median<<", std: "<<adjust_stddev<<"\n";
+		cout<<"Analyzer::trainModel - Ajuste ("<<used_data<<") med: "<<adjust_median<<", std: "<<adjust_stddev<<"\n";
 		adjustment_map[nombre] = Distribution("normal", adjust_median, adjust_stddev);
 		
 		posterior_map[nombre] = Distribution("normal", dist.sampleMedian, dist.sampleStd);
@@ -205,6 +206,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		statistics_map[nombre]["var"] = dist.sampleVariance;
 		statistics_map[nombre]["min"] = dist.minimoV;
 		statistics_map[nombre]["max"] = dist.maximoV;
+		statistics_map[nombre]["used_data"] = used_data;
+		statistics_map[nombre]["threshold"] = max_dist;
 		
 	}
 	

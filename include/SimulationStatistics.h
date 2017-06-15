@@ -168,6 +168,7 @@ public:
 	}
 
 	/*Calcula distancias <medida de distancia,normalizar (no=0, o si=1)>*/ 
+	// Notar que este metodo puede recibir vectores con minimos y maximos globales para normalizar
 	void computeDistances(int medidaDistancia, int opcionNormalizar){
 		cout<<"SimulationStatistics::computeDistances - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
 		switch(opcionNormalizar){
@@ -185,6 +186,8 @@ public:
 				vector<double> dataMaximos;//Maximos de cada estadistico
 				vector<double> dataMinimos;//Minimos de cada estadistico
 				/*Normaliza matriz de estadisticos*/
+				// El metod que sigue NO USA los min/max, solo los calcula
+				// En el nuevo modelo, se calculan antes si es necesario
 				normalizedDataMatriz(setStatsSim, dataMaximos, dataMinimos, dataInSimStatsN);
 				/*Normaliza target*/
 				normalizedDataLimits(targets, dataMaximos, dataMinimos, dataInSimTargetN);

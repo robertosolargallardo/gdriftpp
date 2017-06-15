@@ -88,34 +88,33 @@ using namespace std;
       Ademas, almacena dos vectores de maximos y minimos detectados
       para normalizar el target.
     */
-    static void normalizedDataMatriz(vector< vector<double> > dataIn,vector<double> &max, vector<double> &min,vector< vector<double> > &dataOut)
-    {
-		
+    static void normalizedDataMatriz(vector< vector<double> > dataIn,vector<double> &max, vector<double> &min,vector< vector<double> > &dataOut){
+
 		size_t mSizeFilas = dataIn.size();
 		size_t mSizeColumnas = dataIn[0].size();
-		 
-        dataOut.resize(mSizeFilas);
-        for (unsigned int i = 0; i < mSizeFilas; i++)
- 		dataOut[i].resize(mSizeColumnas);
 
-			for(size_t col=0;col<mSizeColumnas;col++)	
-			{
-				vector<double> tmp;
-				vector<double> tmpNorm;
-				for(size_t fil=0;fil<mSizeFilas;fil++)
-				{
-							tmp.push_back( dataIn[fil][col] );						
-				}
+		dataOut.resize(mSizeFilas);
+		for (unsigned int i = 0; i < mSizeFilas; i++){
+			dataOut[i].resize(mSizeColumnas);
+		}
 
-				max.push_back(maximoValor(tmp));
-				min.push_back(minimoValor(tmp));
-				normalizedData(tmp,tmpNorm);
-				
-				for(size_t fil=0;fil<mSizeFilas;fil++)
-				{
-					dataOut[fil][col] = tmpNorm[fil];						
-				}
+		for(size_t col = 0; col < mSizeColumnas; col++){
+		
+			vector<double> tmp;
+			vector<double> tmpNorm;
+			for(size_t fil=0;fil<mSizeFilas;fil++){
+				tmp.push_back( dataIn[fil][col] );						
 			}
+
+			max.push_back(maximoValor(tmp));
+			min.push_back(minimoValor(tmp));
+			
+			normalizedData(tmp, tmpNorm);
+
+			for(size_t fil=0;fil<mSizeFilas;fil++){
+				dataOut[fil][col] = tmpNorm[fil];						
+			}
+		}
 	}
     
     /*Calculo de la mediana*/
