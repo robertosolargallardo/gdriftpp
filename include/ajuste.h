@@ -89,7 +89,7 @@ public:
 		//residuos.print("Residuos: ");
 
 
-		guardaDataSTL(ajuste,paramsAjustados);
+		guardaDataSTL(ajuste, paramsAjustados);
 		//mostrarMatriz(paramsAjustados,"Matriz paramsAjustados");
    	}
 	
@@ -144,7 +144,7 @@ public:
 	}
 
 	//Save Matrix Armadillo to STL Matrix
-	void guardaDataSTL(mat dataIn,vector< vector<double> > &dOut)
+	void guardaDataSTL(mat dataIn, vector< vector<double> > &dOut)
 	{
 		mat dataInTraspose = dataIn.t();
 		int cols = dataInTraspose.n_cols;

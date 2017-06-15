@@ -15,7 +15,7 @@
 #include "DensityFunction.h"
 #include "ajuste.h"
 
-#define END_OF_STREAM 999999999
+#define MIN_SAMPLE 50
 
 using namespace std;
 
@@ -226,9 +226,14 @@ public:
 	// Se selecciona un % de la muestra de las top-dim distancias
 	// Recibe 3 argumentos para fines estadisticos, escribe las min, max y media distancias consideradas
 	// Retorna la distancia threshold (igual a max, ahora ese return es innecesario)
-	double selectSample(double percentage, double &min, double &max, double &mean){
+	unsigned int selectSample(double percentage, double &min, double &max, double &mean){
 		cout<<"SimulationStatistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
 		unsigned int dim = (unsigned int) ( floor (setDistancias.size()*percentage) );
+		// Deberia haber un minimo de datos para usar
+		// Si el percentage es muy pequeño para el numero de datos, usar el minimo (o todos los datos)
+		if( dim < MIN_SAMPLE ){
+			dim = (MIN_SAMPLE < setDistancias.size())?MIN_SAMPLE:setDistancias.size();
+		}
 		cout<<"SimulationStatistics::selectSample - dim: "<<dim<<"\n";
 		// size_t sizeStas  = setDistancias.size();
 		sortDistances();
@@ -256,7 +261,7 @@ public:
 		}
 		mean /= dim;
 		cout<<"SimulationStatistics::selectSample - Fin (min: "<<min<<", max: "<<max<<", mean: "<<mean<<")\n";
-		return max;	
+		return dim;	
 	}
 
 	//Se almacena la traspuesta de la matriz setSample 
@@ -296,6 +301,14 @@ public:
 	
 	DensityFunction &getDistribution(unsigned int pos){
 		return setDistPosterior[pos];
+	}
+	
+	Ajuste getAdjustment(){
+		return ajustePosteriori;
+	}
+	
+	vector<double> &getAdjustmentData(unsigned int pos){
+		return ajustePosteriori.paramsAjustados[pos];
 	}
 	
 };
