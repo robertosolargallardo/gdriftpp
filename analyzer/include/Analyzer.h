@@ -55,7 +55,7 @@ private:
 	unsigned int parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices);
 	
 	// Retorna true si la simulacion debe terminar (en efecto, el mismo retorno de computeDistributions)
-	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &distributions_map, map<string, map<string, double>> &statistics_map);
+	bool trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map);
 	
 	static string log_file;
 

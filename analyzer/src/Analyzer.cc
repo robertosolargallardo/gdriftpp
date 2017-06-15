@@ -79,7 +79,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 
 // Este metodo debe ser resistente a concurrencia
 //	- Asumo que las llamadas a db_comm son thread safe (dependen de Mongo)
-bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &estimations_map, map<string, map<string, double>> &statistics_map){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -164,7 +164,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	double max = 0;
 	double mean = 0;
 	/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
-	statsAnalisis.selectSample(0.1, min, max, mean);
+	unsigned int used_elements = statsAnalisis.selectSample(0.1, min, max, mean);
 	
 	ofstream escritor(log_file, ofstream::app);
 	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min "<<min<<", max "<<max<<", mean "<<mean<<"\n";
@@ -181,12 +181,21 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
-		unsigned int opcionGraficoOut = it->second;
+		unsigned int pos_param = it->second;
 		string nombre = it->first;
-		DensityFunction dist = statsAnalisis.getDistribution(opcionGraficoOut);
-		cout<<"Analyzer::trainModel - Mostrando resultados["<<opcionGraficoOut<<"] ("<<nombre<<", med: "<<dist.sampleMedian<<", std: "<<dist.sampleStd<<")\n";
+		DensityFunction dist = statsAnalisis.getDistribution(pos_param);
+		cout<<"Analyzer::trainModel - Mostrando resultados["<<pos_param<<"] ("<<nombre<<", med: "<<dist.sampleMedian<<", std: "<<dist.sampleStd<<")\n";
 		
-		estimations_map[nombre] = Distribution("normal", dist.sampleMedian, dist.sampleStd);
+		// Notar que para usar el ajuste, se necesita un minimo de datos
+		// Una forma es comparar si son razonablemente similares a la posterior (por ejemplo x0.5 - x2)
+		// La otra forma (mas simple, pero quizas mas insegura) es solo usarla si se usaron > X datos en el entrenamiento
+		double adjust_median = Statistics::getMean(statsAnalisis.getAdjustmentData(pos_param));
+		double adjust_var = Statistics::getVariance(statsAnalisis.getAdjustmentData(pos_param));
+		double adjust_stddev = pow(adjust_var, 0.5);
+		cout<<"Analyzer::trainModel - Ajuste ("<<used_elements<<") med: "<<adjust_median<<", std: "<<adjust_stddev<<"\n";
+		adjustment_map[nombre] = Distribution("normal", adjust_median, adjust_stddev);
+		
+		posterior_map[nombre] = Distribution("normal", dist.sampleMedian, dist.sampleStd);
 		
 		res_dist.push_back( pair<double, double>(dist.sampleMedian, dist.sampleStd) );
 		
@@ -349,11 +358,12 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
 		// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
 		// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
-		map<string, Distribution> estimations_map;
+		map<string, Distribution> posterior_map;
+		map<string, Distribution> adjustment_map;
 		map<string, map<string, double>> statistics_map;
-		finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, estimations_map, statistics_map);
+		finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, posterior_map, adjustment_map, statistics_map);
 		
-		// Agregar estimations_map al json de resultados de entrenamiento
+		// Agregar posterior_map al json de resultados de entrenamiento
 		boost::property_tree::ptree scenario;
 		string name = "Scenario " + std::to_string(s_ids[i]);
 		scenario.put("name", name);
@@ -362,7 +372,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		boost::property_tree::ptree estimations;
 		
 		unsigned int param_id = 0;
-		for(map<string, Distribution>::iterator it = estimations_map.begin(); it != estimations_map.end(); it++){
+		for(map<string, Distribution>::iterator it = posterior_map.begin(); it != posterior_map.end(); it++){
 			
 			string dist_name = it->first;
 			Distribution dist_posterior = it->second;
@@ -476,8 +486,37 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 			
 			// Aqui se puede agregar la curva de otra distribucion, por ejemplo la ajustada
+			if( adjustment_map.find(dist_name) != adjustment_map.end() ){
+				Distribution dist_adjustment = adjustment_map[dist_name];
+				
+				boost::property_tree::ptree curve_adjustment;
+				curve_adjustment.put("name", "Adjustment");
+					
+				boost::property_tree::ptree fvalue_adjustment;
+				boost::property_tree::ptree fvalues_adjustment;
+				cout<<"Adjustment\n";
+				
+				double min_adjustment = dist_adjustment.getMinValue();
+				if(min_adjustment < 0.0){
+					min_adjustment = 0.0;
+				}
+				vals = Statistics::generateDistributionGraph(dist_adjustment, min_adjustment, dist_adjustment.getMaxValue(), min_post, max_post);
+//				sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+//				escritor.open(buff, fstream::trunc | fstream::out);
+				for( unsigned int j = 0; j < vals.size(); ++j ){
+//					escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+					fvalue_adjustment.put("x", vals[j].first);
+					fvalue_adjustment.put("y", vals[j].second);
+					fvalues_adjustment.push_back(make_pair("", fvalue_adjustment));
+				}
+//				escritor.close();
+				// Agrego values a la curva
+				curve_adjustment.add_child("values", fvalues_adjustment);
+		
+				// Agrego la curva posterior a curves
+				curves.push_back(make_pair("", curve_adjustment));
 			
-			
+			}
 			
 			// Finalmente, agrego curves a estimation de este parametro
 			estimation.add_child("curves", curves);
@@ -492,7 +531,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		
 		scenario.add_child("estimations", estimations);
 		
-		estimations_map.clear();
+		posterior_map.clear();
 	}
 	
 	++training_id;
