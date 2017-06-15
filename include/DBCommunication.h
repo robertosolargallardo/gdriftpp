@@ -31,6 +31,7 @@ class DBCommunication{
 		string collection_results;
 		string collection_settings;
 		string collection_training;
+		string collection_status;
 
 	public:
 		DBCommunication(){
@@ -39,6 +40,7 @@ class DBCommunication{
 			collection_results = "results";
 			collection_settings = "settings";
 			collection_training = "training";
+			collection_status = "status";
 		}
 		
 		DBCommunication(string _uri, string _db_name, string _collection_data, string _collection_results, string _collection_settings, string _collection_training){
@@ -49,6 +51,7 @@ class DBCommunication{
 			collection_results = _collection_results;
 			collection_settings = _collection_settings;
 			collection_training = _collection_training;
+			collection_status = "status";
 			cout<<"DBCommunication - db_name: \""<<db_name<<"\", collections: \""<<collection_data<<"\", \""<<collection_results<<"\", \""<<collection_settings<<"\"\n";
 		}
 		
@@ -69,6 +72,10 @@ class DBCommunication{
 		
 		void writeData(boost::property_tree::ptree &json){
 			mongo.write(db_name, collection_data, json);
+		}
+		
+		void setStatus(uint32_t id, string status){
+			mongo.setStatus(db_name, collection_settings, id, status);
 		}
 		
 		// Este metodo esta guardando directamente las rutas a los valores que genere Scheduler

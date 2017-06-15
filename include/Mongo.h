@@ -193,7 +193,25 @@ class Mongo{
 			return inserted;
 		}
 		
+		void setStatus(const string &db_name, const string &collection_name, uint32_t id, string status){
+			client[db_name][collection_name].update_many(
+				document{} << "id" << std::to_string(id) << finalize,
+				document{} << "$set" << open_document << "status" << status << close_document << finalize
+			);
+		}
 		
 };
+
+
+
+
+
+
+
+
+
+
+
+
 }
 #endif
