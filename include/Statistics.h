@@ -5,6 +5,8 @@
 #include <math.h>
 #include <algorithm>
 #include <iostream>
+#include <float.h>
+
 #include <vector>
 
 // sqrt root of 2 pi
@@ -201,6 +203,45 @@ public:
 		double res = exp( - ( pow((x-mean), 2.0) ) / ( 2.0*stddev*stddev ) ) / (STAT_SQR2PI * stddev);
 		return res;
 	}
+	
+	
+	static double getMean(vector<double> &data){
+		double suma = 0.0;
+		for(unsigned int i = 0; i < data.size(); ++i){
+			suma += data[i];
+		}
+		return suma/data.size();
+	}
+	
+	// Si se recibe mean, se usa. De otro modo, se calcula.
+	static double getVariance(vector<double> &data, double mean = DBL_MAX){
+		double suma = 0.0;
+		if(mean == DBL_MAX){
+			mean = getMean(data);
+		}
+		for(unsigned int i = 0; i < data.size(); ++i){
+			suma += pow(data[i] - mean, 2.0);
+		}
+		return suma/data.size();
+	}
+	
+	// Notar que realizo una copia local de data para ordenarlo sin modificar los originales
+	static double getMedian(vector<double> &data){
+		double median;
+		vector<double> copia = data;
+		size_t size = copia.size();
+		sort(copia.begin(), copia.end());
+		// Si es par, promedio los dos elementos medios
+		if( (size % 0x1) == 0 ){
+			median = copia[ (size / 2) - 1 ] + copia[ size / 2 ];
+			median /= 2.0;
+		}
+		else{
+			median = copia[ size / 2 ];
+		}
+		return median;
+	}
+	
 
 };
 
