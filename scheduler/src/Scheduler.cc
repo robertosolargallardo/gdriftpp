@@ -18,23 +18,32 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	switch(util::hash(type)){
 		case PAUSE:{
 			cout<<"Scheduler::run - PAUSE\n";
+			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "paused");
 			this->_settings[id]->pause = true;
 			break;
 		}
 		case RESUME:{
 			cout<<"Scheduler::run - RESUME\n";
+			if( _settings.find(id) == _settings.end() ){
+				cout<<"Scheduler::run - Simulacion NO encontrada.\n";
+				break;
+			}
+			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
 			this->_settings[id]->pause = false;
 			this->_settings[id]->resume_send(this->_settings[id]->_training_size, this->_fhosts);
 			break;
 		}
 		case CANCEL:{
 			cout<<"Scheduler::run - CANCEL\n";
+			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "canceled");
 			// Lo primero es activar la marca de cancelacion (o quitar la marca de continuar)
 			// Notar que _settings[id] probablemente estara corriendo (send), y NO PUEDE eliminarse mientras eso siga activo
 			// No es claro, eso si, cuando retorna del send (no desde aqui)
 			// La opcion simple es dejarla, simplemente marcarla como cancelada para que se detenga
 			// Notar que la escritura directa de una variable basica (como bool) DEBERIA ser atomica
 			this->_settings[id]->cancel = true;
+			// Duermo 1 segundo para que settings termine de procesar antes de borrarlo
+			std::this_thread::sleep_for (std::chrono::seconds(1));
 			// Los controladores pueden seguir con los trabajos actuales, pero sus resultados pueden ser omitidos por el analyzer
 			// Avisar al analyzer que cancele la simulacion (y borre los datos de esta), ese proceso DEBE ser thread-safe
 			comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.simulated"), _frequest);
@@ -42,6 +51,8 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 		}
 		case INIT:{
 			cout<<"Scheduler::run - INIT\n";
+			// Notar que aqui NO se puede actualizar porque aun no se ha guardado, pero lo puedo agregar como el feedback
+//			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
 			boost::optional<boost::property_tree::ptree&> test_child;
 			
 			// Agregar cualquier informacion al json antes de guardarlo en la BD
@@ -49,6 +60,11 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			test_child = _frequest.get_child_optional("feedback");
 			if( ! test_child ){
 				_frequest.put("feedback", 0);
+			}
+			
+			test_child = _frequest.get_child_optional("status");
+			if( ! test_child ){
+				_frequest.put("status", "running");
 			}
 			
 			uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -114,6 +130,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 		}
 		case FINALIZE:{
 			cout<<"Scheduler::run - FINALIZE\n";
+			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "ended");
 			this->_semaphore->lock();
 			this->_settings.erase(this->_settings.find(id));
 			this->_semaphore->unlock();

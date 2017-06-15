@@ -248,6 +248,7 @@ void SimulationSettings::resume_send(const uint32_t &_batch_length, const ptree 
 		this->_run = 0;
 		this->_batch++;
 	}
+	cout<<"SimulationSettings::resume_send - Fin\n";
 }
 
 void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhosts){
@@ -320,6 +321,7 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 		this->_run = 0;
 		this->_batch++;
 	}
+	cout<<"SimulationSettings::send - Fin\n";
 }
 
 
