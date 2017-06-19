@@ -256,8 +256,10 @@ public:
 	}
 	
 	static void getMinMax(vector<vector<double>> &data, vector<double> &min, vector<double> &max){
+		cout<<"Statistics::getMinMax - Inicio ("<<data.size()<<")\n";
 		unsigned int n_fils = data.size();
 		unsigned int n_cols = data[0].size();
+		cout<<"Statistics::getMinMax - n_fils: "<<n_fils<<", n_cols: "<<n_cols<<"\n";
 		min.resize(n_cols);
 		max.resize(n_cols);
 		vector<double> data_col;
