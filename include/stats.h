@@ -40,82 +40,83 @@ using namespace std;
    }
    
    //Normaliza vector entre [0,1]
-    static void normalizedData(vector<double> dataIn, vector<double> &dataOut)
-    {
-    
-//    cout<<"normalizedData - Inicio ("<<dataIn.size()<<" datos)\n";
-//    for(unsigned int i = 0; i < dataIn.size(); ++i){
-//    	cout<<"dataIn["<<i<<"]: "<<dataIn[i]<<"\n";
+//    static void normalizedData(vector<double> dataIn, vector<double> &dataOut)
+//    {
+//    
+////    cout<<"normalizedData - Inicio ("<<dataIn.size()<<" datos)\n";
+////    for(unsigned int i = 0; i < dataIn.size(); ++i){
+////    	cout<<"dataIn["<<i<<"]: "<<dataIn[i]<<"\n";
+////    }
+//    
+//      double tmp;
+//      double maximo = maximoValor(dataIn);
+//      double minimo = minimoValor(dataIn);
+//      double dif = (maximo - minimo);
+//   
+//	    for (std::vector<double>::iterator it = dataIn.begin() ; it != dataIn.end(); ++it)
+//	    { 
+//	      tmp =  *it;
+//	      if(dif!=0) //Para que no sea infinito
+//	      dataOut.push_back((tmp - minimo)/dif);
+//	      else
+//	      {
+//	      dataOut.push_back(1.0);  
+////	      cout<<"Calculo raro:"<<endl;
+//	      }
+//	    }
 //    }
     
-      double tmp;
-      double maximo = maximoValor(dataIn);
-      double minimo = minimoValor(dataIn);
-      double dif = (maximo - minimo);
-   
-	    for (std::vector<double>::iterator it = dataIn.begin() ; it != dataIn.end(); ++it)
-	    { 
-	      tmp =  *it;
-	      if(dif!=0) //Para que no sea infinito
-	      dataOut.push_back((tmp - minimo)/dif);
-	      else
-	      {
-	      dataOut.push_back(1.0);  
-//	      cout<<"Calculo raro:"<<endl;
-	      }
-	    }
-    }
-    
     /*Normaliza un vector de entrada entre limites max y min (usado para normalizar el target) */
-    static void normalizedDataLimits(vector<double> dataIn,vector<double> dataInMax,vector<double> dataInMin,vector<double> &dataOut)
-    {
+//    static void normalizedDataLimits(vector<double> dataIn, vector<double> dataInMax, vector<double> dataInMin, vector<double> &dataOut)
+//    {
 
-    size_t mSizeCol = dataIn.size();
-    double dif,minTmp;
-    
-            for(size_t col=0;col<mSizeCol;col++)
-			{
-			   minTmp = dataInMin[col];
-			   dif = dataInMax[col] - minTmp;
-			   if(dif!=0) //Para que no sea infinito
-               dataOut.push_back((dataIn[col] - minTmp)/dif);
-			   else
-			   dataOut.push_back(1.0);  												
-			}
-    }
+//    size_t mSizeCol = dataIn.size();
+//    double dif,minTmp;
+//    
+//            for(size_t col=0;col<mSizeCol;col++)
+//			{
+//			   minTmp = dataInMin[col];
+//			   dif = dataInMax[col] - minTmp;
+//			   if(dif!=0) //Para que no sea infinito
+//               dataOut.push_back((dataIn[col] - minTmp)/dif);
+//			   else
+//			   dataOut.push_back(1.0);  												
+//			}
+//    }
        
     /*Normaliza por valores (max.min) de columnas una matriz de datos. 
       Ademas, almacena dos vectores de maximos y minimos detectados
       para normalizar el target.
     */
-    static void normalizedDataMatriz(vector< vector<double> > dataIn,vector<double> &max, vector<double> &min,vector< vector<double> > &dataOut){
+//    static void normalizedDataMatriz(vector< vector<double> > dataIn, vector<double> &max, vector<double> &min, vector< vector<double> > &dataOut){
+//    static void normalizedDataMatriz(vector< vector<double> > &dataIn, vector< vector<double> > &dataOut){
 
-		size_t mSizeFilas = dataIn.size();
-		size_t mSizeColumnas = dataIn[0].size();
+//		size_t mSizeFilas = dataIn.size();
+//		size_t mSizeColumnas = dataIn[0].size();
 
-		dataOut.resize(mSizeFilas);
-		for (unsigned int i = 0; i < mSizeFilas; i++){
-			dataOut[i].resize(mSizeColumnas);
-		}
+//		dataOut.resize(mSizeFilas);
+//		for (unsigned int i = 0; i < mSizeFilas; i++){
+//			dataOut[i].resize(mSizeColumnas);
+//		}
 
-		for(size_t col = 0; col < mSizeColumnas; col++){
-		
-			vector<double> tmp;
-			vector<double> tmpNorm;
-			for(size_t fil=0;fil<mSizeFilas;fil++){
-				tmp.push_back( dataIn[fil][col] );						
-			}
+//		for(size_t col = 0; col < mSizeColumnas; col++){
+//		
+//			vector<double> tmp;
+//			vector<double> tmpNorm;
+//			for(size_t fil=0;fil<mSizeFilas;fil++){
+//				tmp.push_back( dataIn[fil][col] );						
+//			}
 
-			max.push_back(maximoValor(tmp));
-			min.push_back(minimoValor(tmp));
-			
-			normalizedData(tmp, tmpNorm);
+////			max.push_back(maximoValor(tmp));
+////			min.push_back(minimoValor(tmp));
+//			
+//			normalizedData(tmp, tmpNorm);
 
-			for(size_t fil=0;fil<mSizeFilas;fil++){
-				dataOut[fil][col] = tmpNorm[fil];						
-			}
-		}
-	}
+//			for(size_t fil=0;fil<mSizeFilas;fil++){
+//				dataOut[fil][col] = tmpNorm[fil];						
+//			}
+//		}
+//	}
     
     /*Calculo de la mediana*/
 	static double median(vector<double> dataIn)
