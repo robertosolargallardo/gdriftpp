@@ -164,10 +164,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	
 	/**** Comienzo analisis *****/
 	SimulationStatistics statsAnalisis;
-	cout<<"Analyzer::trainModel - storeTarget...\n";
-	statsAnalisis.storeTarget(target);
 	cout<<"Analyzer::trainModel - loadData...\n";
-	statsAnalisis.loadData(stats, params);
+	statsAnalisis.loadData(stats, params, target);
 	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
 	cout<<"Analyzer::trainModel - computeDistances...\n";
