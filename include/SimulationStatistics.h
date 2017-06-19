@@ -12,6 +12,7 @@
 #include <set>
 #include <map>
 
+#include "Statistics.h"
 #include "DensityFunction.h"
 #include "ajuste.h"
 
@@ -125,9 +126,9 @@ public:
 	}
 
 	/*Almacena en una matriz el set de estadisticos - creo que asi lo tienes victor*/
-	void storeSetSimulationStats(vector< vector<double> > &dataIn){
-		setStatsSim = dataIn;
-	}
+//	void storeSetSimulationStats(vector< vector<double> > &dataIn){
+//		setStatsSim = dataIn;
+//	}
 
 	/*Almacena vector de distancias*/
 	void loadData(vector< vector<double> > &dataStats, vector< vector<double> > &dataParams){
@@ -137,7 +138,8 @@ public:
 			exit(EXIT_FAILURE);
 		}
 		//Se almacena como matriz - creo que asi lo tienes o algo parecido
-		storeSetSimulationStats(dataStats);		
+		setStatsSim = dataStats;
+//		storeSetSimulationStats(dataStats);		
 		//En lo que sigue se utilizan objetos, el proceso es tan rapido que puede que no necesite optimizacion
 		//en el sentido de solo usar vectores y matrices
 		//Se usan objetos, en caso de usar multiples simulaciones para distintos identificadores
@@ -169,7 +171,7 @@ public:
 
 	/*Calcula distancias <medida de distancia,normalizar (no=0, o si=1)>*/ 
 	// Notar que este metodo puede recibir vectores con minimos y maximos globales para normalizar
-	void computeDistances(int medidaDistancia, int opcionNormalizar){
+	void computeDistances(int medidaDistancia, int opcionNormalizar, vector<double> min_stats = {}, vector<double> max_stats = {}){
 		cout<<"SimulationStatistics::computeDistances - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
 		switch(opcionNormalizar){
 			//Sin Normalizar	
@@ -183,15 +185,25 @@ public:
 				//Para procesamiento normalizado
 				vector< vector<double> > dataInSimStatsN;//Matriz normalizada de estadisticos
 				vector<double>  dataInSimTargetN;//Target normalizado
-				vector<double> dataMaximos;//Maximos de cada estadistico
-				vector<double> dataMinimos;//Minimos de cada estadistico
+//				vector<double> dataMaximos;//Maximos de cada estadistico
+//				vector<double> dataMinimos;//Minimos de cada estadistico
+				
+				if(min_stats.size() == 0 || max_stats.size() == 0){
+					Statistics::getMinMax(setStatsSim, min_stats, max_stats);
+				}
+				
 				/*Normaliza matriz de estadisticos*/
 				// El metod que sigue NO USA los min/max, solo los calcula
 				// En el nuevo modelo, se calculan antes si es necesario
-				normalizedDataMatriz(setStatsSim, dataMaximos, dataMinimos, dataInSimStatsN);
+//				normalizedDataMatriz(setStatsSim, dataInSimStatsN);
+				normalizeMatrix(setStatsSim, dataInSimStatsN, min_stats, max_stats);
+				
 				/*Normaliza target*/
-				normalizedDataLimits(targets, dataMaximos, dataMinimos, dataInSimTargetN);
+//				normalizedDataLimits(targets, max_stats, min_stats, dataInSimTargetN);
+				normalizeTarget(dataInSimTargetN, min_stats, max_stats);
+
 				/*Almacena vector<pair<int,double>> de errores*/
+				// Esto calcula las distancias reales (aka errores)
 				vectorErrores(dataInSimTargetN, dataInSimStatsN, medidaDistancia, setDistancias);
 				
 				//NUEVO VERSION 1.2 X.V2
@@ -203,6 +215,37 @@ public:
 			default:{
 				cout<<"SimulationStatistics::computeDistances - Opcion invalida ("<<opcionNormalizar<<", 0: sin normalizar, 1: normalizar)\n";
 			};
+		}
+	}
+	
+	// Normaliza una matriz de entrada usando minimos y maximos POR COLUMNA
+	void normalizeMatrix(vector<vector<double>> &data_in, vector<vector<double>> &data_out, vector<double> &min, vector<double> &max){
+		// Reservo espacio en la matriz de salida
+		unsigned int n_fils = data_in.size();
+		unsigned int n_cols = data_in[0].size();
+		if( min.size() != n_cols || max.size() != n_cols ){
+			cerr<<"SimulationStatistics::normalizeMatrix - Error, min o max incorrectos ("<<n_cols<<", "<<min.size()<<", "<<max.size()<<").\n";
+			return;
+		}
+		data_out.resize(n_fils);
+		for(unsigned int i = 0; i < n_fils; ++i){
+			data_out[i].resize(n_cols);
+		}
+		for(unsigned int i = 0; i < n_fils; ++i){
+			for(unsigned int j = 0; j < n_cols; ++j){
+				data_out[i][j] = Statistics::getScaled(data_in[i][j], min[j], max[j]);
+			}
+		}
+	}
+	
+	void normalizeTarget(vector<double> &data_out, vector<double> &min_stats, vector<double> &max_stats){
+		if(targets.size() != min_stats.size() || targets.size() != max_stats.size() ){
+			cerr<<"SimulationStatistics::normalizeTarget - Error, min o max incorrectos\n";
+			return;
+		}
+		data_out.resize(targets.size());
+		for(unsigned int i = 0; i < targets.size(); ++i){
+			data_out[i] = Statistics::getScaled( targets[i], min_stats[i], max_stats[i] );
 		}
 	}
 	

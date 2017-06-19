@@ -242,6 +242,56 @@ public:
 		return median;
 	}
 	
+	static void getMinMax(vector<double> &data, double &min, double &max){
+		min = DBL_MAX;
+		max = -DBL_MAX;
+		for(unsigned int i = 0; i < data.size(); ++i){
+			if(data[i] < min){
+				min = data[i];
+			}
+			if(data[i] > max){
+				max = data[i];
+			}
+		}
+	}
+	
+	static void getMinMax(vector<vector<double>> &data, vector<double> &min, vector<double> &max){
+		unsigned int n_fils = data.size();
+		unsigned int n_cols = data[0].size();
+		min.resize(n_cols);
+		max.resize(n_cols);
+		vector<double> data_col;
+		for(unsigned int col = 0; col < n_cols; ++col){
+			for(unsigned int fil = 0; fil < n_fils; ++fil){
+				data_col.push_back(data[fil][col]);
+			}
+			getMinMax(data_col, min[col], max[col]);
+			data_col.clear();
+		}
+		
+		// Debug
+		for(unsigned int i = 0; i < n_cols; ++i){
+			cout<<"Statistics::getMinMax - MinMax["<<i<<"]: ("<<min[i]<<", "<<max[i]<<")\n";
+		}
+		
+	}
+	
+	static void getScaled(vector<double> &data_in, vector<double> &data_out, double min, double max){
+		data_out.resize(data_in.size());
+		for(unsigned int i = 0; i < data_in.size(); ++i){
+			data_out[i] = getScaled(data_in[i], min, max);
+		}
+	}
+	
+	static double getScaled(double value, double min, double max){
+		if(min == max || value > max){
+			return 1.0;
+		}
+		if(value < min){
+			return 0.0;
+		}
+		return (value - min) / (max - min);
+	}
 
 };
 

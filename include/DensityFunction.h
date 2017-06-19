@@ -72,11 +72,14 @@ public:
 		//Sort para distribuciones y uso posterior sin necesidad de ordenar más de una vez     
 		sort(sampleIn.begin(), sampleIn.end()); 
 		sample = sampleIn;
-		normalizedData(sampleIn,sampleNormalized);
+//		normalizedData(sampleIn, sampleNormalized);
 
 		//Datos de limites
-		maximoV = maximoValor(sampleIn);
-		minimoV = minimoValor(sampleIn);
+//		maximoV = maximoValor(sampleIn);
+//		minimoV = minimoValor(sampleIn);
+
+		Statistics::getMinMax(sampleIn, minimoV, maximoV);
+		Statistics::getScaled(sampleIn, sampleNormalized, minimoV, maximoV);
 
 		//Valores de entrada
 		sampleMedian = median(sampleIn);
@@ -243,17 +246,17 @@ public:
 		return tmp/dataNormIn.size();
 	}
 
-	//K-Density
-	void distKDensidad(vector<double> xIn,vector<double> salidas){
-		vector<double> dataNorm;
-		normalizedData(xIn,dataNorm);
-		double h=sqrt(variance(dataNorm));
-		//revisar a futuro
-		sort(dataNorm.begin(), dataNorm.end());
-		for(unsigned int i=1;i<dataNorm.size();i++){
-			salidas.push_back(ksden(dataNorm, i, h));
-		}
-	}
+//	//K-Density
+//	void distKDensidad(vector<double> xIn,vector<double> salidas){
+//		vector<double> dataNorm;
+//		normalizedData(xIn,dataNorm);
+//		double h=sqrt(variance(dataNorm));
+//		//revisar a futuro
+//		sort(dataNorm.begin(), dataNorm.end());
+//		for(unsigned int i=1;i<dataNorm.size();i++){
+//			salidas.push_back(ksden(dataNorm, i, h));
+//		}
+//	}
 
 	/****** Function Epanechnikov *********/ 
 	//Kernel Epanechnikov 
