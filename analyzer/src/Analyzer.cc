@@ -11,9 +11,14 @@ Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
 Analyzer::~Analyzer(void){
 }
 
-unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices){
+unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &posterior, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices){
 	unsigned int inserts = 0;
-	for(auto& p : json.get_child("populations")){
+	boost::optional<const boost::property_tree::ptree&> test_child;
+	test_child = posterior.get_child_optional("populations");
+	if( ! test_child ){
+		return 0;
+	}
+	for(auto& p : posterior.get_child("populations")){
 		string pop_name = p.second.get<string>("name");
 		for(auto c : p.second.get_child("chromosomes")){
 			uint32_t cid = c.second.get<uint32_t>("id");
@@ -543,7 +548,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	estimations.add_child("scenarios", scenarios);
 	
 	boost::property_tree::ptree training_results;
-	training_results.put("id", boost::lexical_cast<std::string>(id));
+	training_results.put("id", std::to_string(id));
 	training_results.put("feedback", feedback);
 		
 	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -824,12 +829,12 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	boost::property_tree::ptree fsamples;
 	for(auto& sample : samples){
 		boost::property_tree::ptree fsample;
-		fsample.put("name","sample" + boost::lexical_cast<string>(sample.first));
-		fsamples.push_back(std::make_pair("",fsample));
+		fsample.put("name","sample" + std::to_string(sample.first));
+		fsamples.push_back(std::make_pair("", fsample));
 	}
 
 	cout<<"Analyzer::run - Creando Profile\n";
-	boost::property_tree::ptree findividual = get_profile(samples,ploidy);
+	boost::property_tree::ptree findividual = get_profile(samples, ploidy);
 	
 	fsettings.add_child("samples", fsamples);
 	fsettings.add_child("individual", findividual);
@@ -838,20 +843,20 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	cout<<"Analyzer::run - Preparando estadisticos\n";
 	this->finished[id] = 0;
 
-	boost::property_tree::ptree fdata,fposterior;
+	boost::property_tree::ptree fdata, fposterior;
 	fdata.put("id", fsettings.get<std::string>("id"));
 	fdata.put("type", "data");
 
 	boost::property_tree::ptree fpopulations;
 	Sample all("summary");
 	for(auto& sample : samples){
-		Sample p("sample"+boost::lexical_cast<std::string>(sample.first),sample.second,fsettings);
+		Sample p("sample" + std::to_string(sample.first), sample.second, fsettings);
 		fpopulations.push_back(std::make_pair("", p.indices()));
 		all.merge(&p);
 	}
 	fpopulations.push_back(std::make_pair("", all.indices()));
 	fposterior.push_back(make_pair("populations", fpopulations));
-	fdata.push_back(make_pair("posterior",fposterior));
+	fdata.push_back(make_pair("posterior", fposterior));
 	
 	this->_data[id] = fdata;
 	_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
@@ -872,7 +877,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 boost::property_tree::ptree Analyzer::get_profile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy) {
 	boost::property_tree::ptree findividual;
 
-	findividual.put("ploidy",boost::lexical_cast<std::string>(_ploidy));
+	findividual.put("ploidy", std::to_string(_ploidy));
 
 	for(auto& sample : _samples){
 		boost::property_tree::ptree fchromosomes;
@@ -886,15 +891,15 @@ boost::property_tree::ptree Analyzer::get_profile(const map<uint32_t,map<uint32_
 				fgene.put("id",gene.first);
 
 				Marker m=gene.second.back();
-				fgene.put("type",boost::lexical_cast<std::string>(uint32_t(m.type())));
+				fgene.put("type",std::to_string(uint32_t(m.type())));
 				switch(m.type()){
 					case SEQUENCE:{
-						fgene.put("nucleotides",boost::lexical_cast<string>(m.sequence()->data().length()));
+						fgene.put("nucleotides", std::to_string(m.sequence()->data().length()));
 						break;
 					}
 					case MICROSATELLITE:{
-						fgene.put("number-of-repeats",boost::lexical_cast<string>(m.microsatellite()->repeats()));
-						fgene.put("tandem-length",boost::lexical_cast<string>(m.microsatellite()->tandem().length()));
+						fgene.put("number-of-repeats", std::to_string(m.microsatellite()->repeats()));
+						fgene.put("tandem-length", std::to_string(m.microsatellite()->tandem().length()));
 						break;
 					}
 					default:{
