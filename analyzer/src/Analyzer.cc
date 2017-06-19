@@ -128,8 +128,16 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	}
 	
 	vector<vector<double>> params;
-	vector<vector<double>> statistics;
-	db_comm.getResults(id, scenario_id, feedback, params, events_params, statistics);
+	vector<vector<double>> stats;
+	db_comm.getResults(id, scenario_id, feedback, params, events_params, stats);
+	
+	// Los minimos y maximos (para normalizar y otras cosas) los puedo leer de la base de datos, o calcular
+	vector<double> min_stats;
+	vector<double> max_stats;
+	vector<double> min_params;
+	vector<double> max_params;
+	Statistics::getMinMax(params, min_params, max_params);
+	Statistics::getMinMax(stats, min_stats, max_stats);
 	
 	// Por ahora, asumimos que las distribuciones son normales
 	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
@@ -159,12 +167,12 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	cout<<"Analyzer::trainModel - storeTarget...\n";
 	statsAnalisis.storeTarget(target);
 	cout<<"Analyzer::trainModel - loadData...\n";
-	statsAnalisis.loadData(statistics, params);
+	statsAnalisis.loadData(stats, params);
 	int medidaDistancia = 4;
 	int opcionNormalizar = 1;
 	cout<<"Analyzer::trainModel - computeDistances...\n";
 	// Antes de esto abria que leer o calcular y guardar los min/max por stat
-	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar);
+	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar, min_stats, max_stats);
 	cout<<"Analyzer::trainModel - selectSample...\n";
 	double min_dist = 0;
 	double max_dist = 0;
