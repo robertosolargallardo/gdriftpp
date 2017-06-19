@@ -308,7 +308,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 }
 
 // Esto es solo para debug
-unsigned int training_id = 0;
+//unsigned int training_id = 0;
 
 // Este codigo deberia ser resistente a concurrencia
 //	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
@@ -379,7 +379,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		
 		boost::property_tree::ptree estimations;
 		
-		unsigned int param_id = 0;
+//		unsigned int param_id = 0;
 		for(map<string, Distribution>::iterator it = posterior_map.begin(); it != posterior_map.end(); it++){
 			
 			string dist_name = it->first;
@@ -416,19 +416,19 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			boost::property_tree::ptree fvalues;
 			cout<<"Posterior\n";
 			
-			char buff[1024];
-			ofstream escritor;
+//			char buff[1024];
+//			ofstream escritor;
 			
 			vals = Statistics::generateDistributionGraph(dist_posterior, min_post, max_post, min_post, max_post);
-			sprintf(buff, "logs/posterior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-			escritor.open(buff, fstream::trunc | fstream::out);
+//			sprintf(buff, "logs/posterior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+//			escritor.open(buff, fstream::trunc | fstream::out);
 			for(unsigned int j = 0; j < vals.size(); ++j){
-				escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+//				escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
 				fvalue.put("x", vals[j].first);
 				fvalue.put("y", vals[j].second);
 				fvalues.push_back(make_pair("", fvalue));
 			}
-			escritor.close();
+//			escritor.close();
 			vals.clear();
 			
 			// Agrego values a la curva
@@ -474,15 +474,15 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 						min_prior = 0.0;
 					}
 					vals = Statistics::generateDistributionGraph(dist_prior, min_prior, dist_prior.getMaxValue(), min_post, max_post);
-					sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-					escritor.open(buff, fstream::trunc | fstream::out);
+//					sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
+//					escritor.open(buff, fstream::trunc | fstream::out);
 					for( unsigned int j = 0; j < vals.size(); ++j ){
-						escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
+//						escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
 						fvalue_prior.put("x", vals[j].first);
 						fvalue_prior.put("y", vals[j].second);
 						fvalues_prior.push_back(make_pair("", fvalue_prior));
 					}
-					escritor.close();
+//					escritor.close();
 					// Agrego values a la curva
 					curve_prior.add_child("values", fvalues_prior);
 			
@@ -531,7 +531,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 			
 			estimations.push_back(make_pair("", estimation));
 			
-			++param_id;
+//			++param_id;
 			
 		}
 		scenario.add_child("estimations", estimations);
@@ -542,7 +542,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 		posterior_map.clear();
 	}
 	
-	++training_id;
+//	++training_id;
 	
 	boost::property_tree::ptree estimations;
 	estimations.add_child("scenarios", scenarios);
