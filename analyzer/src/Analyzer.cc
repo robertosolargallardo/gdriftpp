@@ -84,7 +84,7 @@ double Analyzer::distance(uint32_t id, const boost::property_tree::ptree &_simul
 
 // Este metodo debe ser resistente a concurrencia
 //	- Asumo que las llamadas a db_comm son thread safe (dependen de Mongo)
-bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &fresponse, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map){
+bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, uint32_t max_feedback, boost::property_tree::ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map){
 	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<" / "<<max_feedback<<")\n";
 	
 //	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
@@ -108,7 +108,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 		}
 	}
 	// chromosomas
-	for(auto &c : fresponse.get_child("individual.chromosomes")){
+	for(auto &c : settings.get_child("individual.chromosomes")){
 		uint32_t cid = c.second.get<uint32_t>("id");
 		for(auto g : c.second.get_child("genes")){
 			uint32_t gid = g.second.get<uint32_t>("id");
@@ -142,11 +142,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	// Por ahora, asumimos que las distribuciones son normales
 	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
 	// El metodo entonces debe entregar exactamente params_positions.size() pares de valores
-	// Luego, itero por el escenario en fresponse
+	// Luego, itero por el escenario en settings
 	// En cada evento y chromosoma, genero el string absoluto de la ruta del parametro, y reemplazo los valores con los de la nueva distribucion
 	
 	bool finish = false;
-	vector< pair<double, double> > res_dist;
 	
 	vector<double> target;
 	for(auto p : _data_indices[id]){
@@ -175,11 +174,14 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	double min_dist = 0;
 	double max_dist = 0;
 	double mean_dist = 0;
+	double worst_dist = 0;
 	/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
 	unsigned int used_data = statsAnalisis.selectSample(0.1, min_dist, max_dist, mean_dist);
 	
+	worst_dist = statsAnalisis.getWorstDistance();
+	
 	ofstream escritor(log_file, ofstream::app);
-	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<"\n";
+	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<", worst_dist: "<<worst_dist<<"\n";
 	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
@@ -195,30 +197,26 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		unsigned int pos_param = it->second;
 		string nombre = it->first;
-		DensityFunction dist = statsAnalisis.getDistribution(pos_param);
-		cout<<"Analyzer::trainModel - Mostrando resultados["<<pos_param<<"] ("<<nombre<<", med: "<<dist.sampleMedian<<", std: "<<dist.sampleStd<<")\n";
+		Distribution dist = statsAnalisis.getDistribution(pos_param);
+		cout<<"Analyzer::trainModel - Mostrando resultados["<<pos_param<<"] ("<<nombre<<", med: "<<dist.getValue(0)<<", std: "<<dist.getValue(1)<<")\n";
 		
-		// Notar que para usar el ajuste, se necesita un minimo de datos
-		// Una forma es comparar si son razonablemente similares a la posterior (por ejemplo x0.5 - x2)
-		// La otra forma (mas simple, pero quizas mas insegura) es solo usarla si se usaron > X datos en el entrenamiento
+		posterior_map[nombre] = dist;
+		
+		statistics_map[nombre]["median"] = dist.getSampleMedian();
+		statistics_map[nombre]["mean"] = dist.getSampleMean();
+		statistics_map[nombre]["stddev"] = dist.getSampleStddev();
+		statistics_map[nombre]["var"] = dist.getSampleVar();
+		statistics_map[nombre]["min"] = dist.getSampleMin();
+		statistics_map[nombre]["max"] = dist.getSampleMax();
+		statistics_map[nombre]["used_data"] = used_data;
+		statistics_map[nombre]["threshold"] = max_dist;
+		
+		// Distribucion de Ajuste
 		double adjust_median = Statistics::getMean(statsAnalisis.getAdjustmentData(pos_param));
 		double adjust_var = Statistics::getVariance(statsAnalisis.getAdjustmentData(pos_param));
 		double adjust_stddev = pow(adjust_var, 0.5);
 		cout<<"Analyzer::trainModel - Ajuste ("<<used_data<<") med: "<<adjust_median<<", std: "<<adjust_stddev<<"\n";
 		adjustment_map[nombre] = Distribution("normal", adjust_median, adjust_stddev);
-		
-		posterior_map[nombre] = Distribution("normal", dist.sampleMedian, dist.sampleStd);
-		
-		res_dist.push_back( pair<double, double>(dist.sampleMedian, dist.sampleStd) );
-		
-		statistics_map[nombre]["median"] = dist.sampleMedian;
-		statistics_map[nombre]["mean"] = dist.sampleMean;
-		statistics_map[nombre]["stddev"] = dist.sampleStd;
-		statistics_map[nombre]["var"] = dist.sampleVariance;
-		statistics_map[nombre]["min"] = dist.minimoV;
-		statistics_map[nombre]["max"] = dist.maximoV;
-		statistics_map[nombre]["used_data"] = used_data;
-		statistics_map[nombre]["threshold"] = max_dist;
 		
 	}
 	
@@ -228,7 +226,7 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	}
 	
 	cout<<"Analyzer::trainModel - Actualizando Genes\n";
-	for(auto &c : fresponse.get_child("individual.chromosomes")){
+	for(auto &c : settings.get_child("individual.chromosomes")){
 		uint32_t cid = c.second.get<uint32_t>("id");
 		for(auto &g : c.second.get_child("genes")){
 			uint32_t gid = g.second.get<uint32_t>("id");
@@ -242,13 +240,13 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 			// Elimino parametros previos
 			g.second.get_child("mutation.rate.distribution").erase("params");
 			g.second.get_child("mutation.rate.distribution").put_child("params", boost::property_tree::ptree());
-			g.second.get_child("mutation.rate.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
-			g.second.get_child("mutation.rate.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
+			g.second.get_child("mutation.rate.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
+			g.second.get_child("mutation.rate.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
 		}
 	}
 	
 	cout<<"Analyzer::trainModel - Actualizando Eventos\n";
-	for(auto &s : fresponse.get_child("scenarios")){
+	for(auto &s : settings.get_child("scenarios")){
 		uint32_t s_id = s.second.get<uint32_t>("id");
 		if(s_id == scenario_id){
 			for(auto &e : s.second.get_child("events")){
@@ -268,8 +266,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 					// Elimino parametros previos
 					e.second.get_child("timestamp.distribution").erase("params");
 					e.second.get_child("timestamp.distribution").put_child("params", boost::property_tree::ptree());
-					e.second.get_child("timestamp.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
-					e.second.get_child("timestamp.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
+					e.second.get_child("timestamp.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
+					e.second.get_child("timestamp.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
 				}
 				
 				param_name = "events.";
@@ -282,8 +280,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 					// Elimino parametros previos
 					e.second.get_child("params.population.size.distribution").erase("params");
 					e.second.get_child("params.population.size.distribution").put_child("params", boost::property_tree::ptree());
-					e.second.get_child("params.population.size.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
-					e.second.get_child("params.population.size.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
+					e.second.get_child("params.population.size.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
+					e.second.get_child("params.population.size.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
 				}
 				
 				param_name = "events.";
@@ -296,8 +294,8 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 					// Elimino parametros previos
 					e.second.get_child("params.source.population.percentage.distribution").erase("params");
 					e.second.get_child("params.source.population.percentage.distribution").put_child("params", boost::property_tree::ptree());
-					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("mean", res_dist[params_positions[param_name]].first);
-					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("stddev", res_dist[params_positions[param_name]].second);
+					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
+					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
 				}
 				
 //				cout<<"Analyzer::trainModel - Evento resultante:\n";
@@ -326,7 +324,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
 	// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
 	// Por ultimo, notar que hay que guardar las distribuciones a priori antes de modificarlo
-	boost::property_tree::ptree fresponse = db_comm.readSettings(id, feedback);
+	boost::property_tree::ptree settings = db_comm.readSettings(id, feedback);
 	boost::optional<boost::property_tree::ptree&> test_child;
 	
 	// Creo que esto hay que hacerlo para CADA escenario del setting
@@ -336,14 +334,14 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	// trainModel PODRIA usar max_feedback para algo
 	// Por ahora lo usara para descartar events.create.size durante las fases de crecimiento de poblacion
 	uint32_t max_feedback = 0;
-	test_child = fresponse.get_child_optional("population-increase-phases");
+	test_child = settings.get_child_optional("population-increase-phases");
 	if( test_child ){
-		max_feedback = fresponse.get<uint32_t>("population-increase-phases");
+		max_feedback = settings.get<uint32_t>("population-increase-phases");
 	}
 	
-	// Por seguridad (del iterador) primero extraigo los scenario.id de fresponse
+	// Por seguridad (del iterador) primero extraigo los scenario.id de settings
 	vector<uint32_t> s_ids;
-	for(auto s : fresponse.get_child("scenarios")){
+	for(auto s : settings.get_child("scenarios")){
 		uint32_t s_id = s.second.get<uint32_t>("id");
 		s_ids.push_back(s_id);
 	}
@@ -369,13 +367,13 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	
 	boost::property_tree::ptree scenarios;
 	for(unsigned int i = 0; i < s_ids.size() && !finish; ++i){
-		// Notar que es valido pasarle el mismo ptree fresponse para cada escenario
+		// Notar que es valido pasarle el mismo ptree settings para cada escenario
 		// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
-		// Al final del ciclo, todos los escenarios han sido actualizados en fresponse
+		// Al final del ciclo, todos los escenarios han sido actualizados en settings
 		map<string, Distribution> posterior_map;
 		map<string, Distribution> adjustment_map;
 		map<string, map<string, double>> statistics_map;
-		finish = trainModel(id, s_ids[i], feedback, max_feedback, fresponse, posterior_map, adjustment_map, statistics_map);
+		finish = trainModel(id, s_ids[i], feedback, max_feedback, settings, posterior_map, adjustment_map, statistics_map);
 		
 		// Agregar posterior_map al json de resultados de entrenamiento
 		boost::property_tree::ptree scenario;
@@ -566,7 +564,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 	// Almacenar el json de resultados de entrenamiento
 	db_comm.storeTrainingResults(training_results);
 	
-	return fresponse;	
+	return settings;	
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
