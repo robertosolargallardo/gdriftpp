@@ -22,7 +22,8 @@ using namespace std;
     bool operator()(const std::pair<int,double> &left, const std::pair<int,double> &right) {
         return left.second < right.second;
     }
-};
+	};
+	
    /*Maximo valor de un vector*/
    static double maximoValor(vector<double> v)
    { 
@@ -118,17 +119,17 @@ using namespace std;
 //		}
 //	}
     
-    /*Calculo de la mediana*/
-	static double median(vector<double> dataIn)
-	{
-	  double median;
-	  size_t size = dataIn.size();
-	  sort(dataIn.begin(), dataIn.end());
+//    /*Calculo de la mediana*/
+//	static double median(vector<double> dataIn)
+//	{
+//	  double median;
+//	  size_t size = dataIn.size();
+//	  sort(dataIn.begin(), dataIn.end());
 
-	  if (size  % 2 == 0){ median = (dataIn[size / 2.0 - 1.0] + dataIn[size / 2.0]) / 2.0;}
-	  else {median = dataIn[size / 2.0];}
-	  return median;
-	}
+//	  if (size  % 2 == 0){ median = (dataIn[size / 2.0 - 1.0] + dataIn[size / 2.0]) / 2.0;}
+//	  else {median = dataIn[size / 2.0];}
+//	  return median;
+//	}
 
     /*Calculo del promedio*/
 	static double mean(vector<double> dataIn)
@@ -455,17 +456,17 @@ using namespace std;
 
 	}
 
-   static void interpolarDistribucion(vector<double> dataIn, int nElementos,vector<double> &interpolado)
-   {
-	  double tmp = 0;//minimo;
-      double saltosDif = 1.0/nElementos;
-      interpolado.push_back(tmp);
-      for(int i=1;i<nElementos;i++)
-      {
-		  tmp = tmp + saltosDif;
-		  interpolado.push_back(tmp);
-	  }   
-	   
-   }
+//   static void interpolarDistribucion(vector<double> dataIn, int nElementos,vector<double> &interpolado)
+//   {
+//	  double tmp = 0;//minimo;
+//      double saltosDif = 1.0/nElementos;
+//      interpolado.push_back(tmp);
+//      for(int i=1;i<nElementos;i++)
+//      {
+//		  tmp = tmp + saltosDif;
+//		  interpolado.push_back(tmp);
+//	  }   
+//	   
+//   }
    
 #endif
