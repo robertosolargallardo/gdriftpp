@@ -18,14 +18,29 @@ enum DistributionType{ UNKNOWN = 0, UNIFORM = 1, NORMAL = 2 };
 
 using namespace std;
 
+//// Comparador para ordenar los arreglos de sample basado en la distancia 
+//struct sort_pred {
+//bool operator()(const std::pair<int,double> &left, const std::pair<int,double> &right) {
+//    return left.second < right.second;
+//}
+
 class Distribution{
 private:
 	DistributionType type;
 	vector<double> values;
 	
+	// Campos opcionales del sample usado para esta distribucion
+	double sample_min;
+	double sample_max;
+	double sample_mean;
+	double sample_median;
+	double sample_var;
+	double sample_stddev;
+	
 public:
 	Distribution(){
 		type = UNKNOWN;
+		sample_min = sample_max = sample_mean = sample_median = sample_var = sample_stddev = 0.0;
 	}
 	// Por ahora preparo un constructor para dos valores especificamente
 	// Notar que estoy asumiendo que los parametros tienen un orden obvio y natural (o al menos, bien documentado)
@@ -34,10 +49,12 @@ public:
 		type = _type;
 		values.push_back(value1);
 		values.push_back(value2);
+		sample_min = sample_max = sample_mean = sample_median = sample_var = sample_stddev = 0.0;
 	}
 	Distribution(DistributionType _type, vector<double> &_values){
 		type = _type;
 		values.insert(values.begin(), _values.begin(), _values.end());
+		sample_min = sample_max = sample_mean = sample_median = sample_var = sample_stddev = 0.0;
 	}
 	Distribution(string _type, double value1, double value2){
 		if( _type.compare("uniform") == 0 ){
@@ -141,6 +158,44 @@ public:
 		}
 		res += ")";
 		return res;
+	}
+	
+	double getSampleMin(){
+		return sample_min;
+	}
+	double getSampleMax(){
+		return sample_max;
+	}
+	double getSampleMean(){
+		return sample_mean;
+	}
+	double getSampleMedian(){
+		return sample_median;
+	}
+	double getSampleVar(){
+		return sample_var;
+	}
+	double getSampleStddev(){
+		return sample_stddev;
+	}
+	
+	void setSampleMin(double _sample_min){
+		sample_min = _sample_min;
+	}
+	void setSampleMax(double _sample_max){
+		sample_max = _sample_max;
+	}
+	void setSampleMean(double _sample_mean){
+		sample_mean = _sample_mean;
+	}
+	void setSampleMedian(double _sample_median){
+		sample_median = _sample_median;
+	}
+	void setSampleVar(double _sample_var){
+		sample_var = _sample_var;
+	}
+	void setSampleStddev(double _sample_stddev){
+		sample_stddev = _sample_stddev;
 	}
 	
 };
