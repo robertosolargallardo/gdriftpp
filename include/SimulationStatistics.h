@@ -13,7 +13,7 @@
 #include <map>
 
 #include "Statistics.h"
-#include "DensityFunction.h"
+#include "stats.h"
 #include "ajuste.h"
 
 #define MIN_SAMPLE 50
@@ -49,9 +49,14 @@ private:
 	vector<pair<int, vector<double> > > sample_params;
 	
 	//Vector of objects of Function density for each params de la seleccion de datos de la simulacion
-	vector< DensityFunction > setDistPosterior;
-
-
+	vector< Distribution > posterior_distributions;
+	
+	// distancias usadas durante el proceso de sampling (la mejor, la peor del sample)
+	// Tambien guardo la peor observada para, potencialmente, usarla para normalizar
+	double min_sample_dist;
+	double max_sample_dist;
+	double mean_sample_dist;
+	double worst_dist;
 
 	//NUEVAS VERSION 1.2 X.V2
 	Ajuste ajustePosteriori;
@@ -128,8 +133,11 @@ public:
 			//Con Normalizar   
 			case 1:{
 				//Para procesamiento normalizado
-				vector< vector<double> > dataInSimStatsN;//Matriz normalizada de estadisticos
-				vector<double>  dataInSimTargetN;//Target normalizado
+				
+				//Matriz normalizada de estadisticos
+				vector< vector<double> > stats_norm;
+				//Target normalizado
+				vector<double> target_norm;
 				
 				if(min_stats.size() == 0 || max_stats.size() == 0){
 					Statistics::getMinMax(data_stats, min_stats, max_stats);
@@ -138,19 +146,19 @@ public:
 				/*Normaliza matriz de estadisticos*/
 				// El metod que sigue NO USA los min/max, solo los calcula
 				// En el nuevo modelo, se calculan antes si es necesario
-				normalizeMatrix(data_stats, dataInSimStatsN, min_stats, max_stats);
+				normalizeStats(stats_norm, min_stats, max_stats);
 				
 				/*Normaliza target*/
-//				normalizedDataLimits(target, max_stats, min_stats, dataInSimTargetN);
-				normalizeTarget(dataInSimTargetN, min_stats, max_stats);
+//				normalizedDataLimits(target, max_stats, min_stats, target_norm);
+				normalizeTarget(target_norm, min_stats, max_stats);
 
 				/*Almacena vector<pair<int,double>> de errores*/
 				// Esto calcula las distancias reales (aka errores)
-				vectorErrores(dataInSimTargetN, dataInSimStatsN, medidaDistancia, distances);
+				vectorErrores(target_norm, stats_norm, medidaDistancia, distances);
 				
 				//NUEVO VERSION 1.2 X.V2
 				//Almacenamiento de datos normalizados para ajuste de distribucion posterior
-				almacenarDataNormalized(dataInSimStatsN, dataInSimTargetN);
+				almacenarDataNormalized(stats_norm, target_norm);
 				
 				break;
 			};
@@ -161,10 +169,10 @@ public:
 	}
 	
 	// Normaliza una matriz de entrada usando minimos y maximos POR COLUMNA
-	void normalizeMatrix(vector<vector<double>> &data_in, vector<vector<double>> &data_out, vector<double> &min, vector<double> &max){
+	void normalizeStats(vector<vector<double>> &data_out, vector<double> &min, vector<double> &max){
 		// Reservo espacio en la matriz de salida
-		unsigned int n_fils = data_in.size();
-		unsigned int n_cols = data_in[0].size();
+		unsigned int n_fils = data_stats.size();
+		unsigned int n_cols = data_stats[0].size();
 		if( min.size() != n_cols || max.size() != n_cols ){
 			cerr<<"SimulationStatistics::normalizeMatrix - Error, min o max incorrectos ("<<n_cols<<", "<<min.size()<<", "<<max.size()<<").\n";
 			return;
@@ -175,7 +183,7 @@ public:
 		}
 		for(unsigned int i = 0; i < n_fils; ++i){
 			for(unsigned int j = 0; j < n_cols; ++j){
-				data_out[i][j] = Statistics::getScaled(data_in[i][j], min[j], max[j]);
+				data_out[i][j] = Statistics::getScaled(data_stats[i][j], min[j], max[j]);
 			}
 		}
 	}
@@ -206,24 +214,30 @@ public:
 	}
 	//FIN NUEVO
 
-	// Se selecciona un % de la muestra de las top-dim distancias
-	// Recibe 3 argumentos para fines estadisticos, escribe las min, max y media distancias consideradas
-	// Retorna la distancia threshold (igual a max, ahora ese return es innecesario)
+	// Se selecciona un % de la muestra de las top-k distancias
+	// Recibe 3 argumentos para fines estadisticos, escribe las min, max y media distancias seleccionadas
+	// Retorna el total REAL de datos considerados
 	unsigned int selectSample(double percentage, double &min, double &max, double &mean){
 		cout<<"SimulationStatistics::selectSample - Inicio (percentage: "<<percentage<<")\n";
-		unsigned int dim = (unsigned int)(percentage * distances.size());
+		unsigned int n_usar = (unsigned int)(percentage * distances.size());
 		// Deberia haber un minimo de datos para usar
 		// Si el percentage es muy pequeño para el numero de datos, usar el minimo (o todos los datos)
-		if( dim < MIN_SAMPLE ){
-			dim = (MIN_SAMPLE < distances.size())?MIN_SAMPLE:distances.size();
+		if( n_usar < MIN_SAMPLE ){
+			n_usar = (MIN_SAMPLE < distances.size())?MIN_SAMPLE:distances.size();
 		}
-		cout<<"SimulationStatistics::selectSample - dim: "<<dim<<"\n";
+		cout<<"SimulationStatistics::selectSample - n_usar: "<<n_usar<<"\n";
 		sort(distances.begin(), distances.end(), sort_pred());
 		int posSelect;
 		mean = 0.0;
 		min = distances[0].second;
-		max = distances[dim-1].second;
-		for(size_t k = 0; k < dim; ++k){
+		max = distances[n_usar-1].second;
+		
+		min_sample_dist = min;
+		max_sample_dist = max;
+		mean_sample_dist = mean;
+		worst_dist = distances.back().second;
+		
+		for(size_t k = 0; k < n_usar; ++k){
 			posSelect = distances[k].first;
 			mean += distances[k].second;
 			sample_params.push_back( pair<int, vector<double> > (posSelect, data_params[posSelect]));
@@ -239,29 +253,56 @@ public:
 			//FIN NUEVO *********************************************************************************************
 			
 		}
-		mean /= dim;
-		cout<<"SimulationStatistics::selectSample - Fin (min: "<<min<<", max: "<<max<<", mean: "<<mean<<")\n";
-		return dim;	
+		mean /= n_usar;
+		cout<<"SimulationStatistics::selectSample - Fin (min: "<<min<<", max: "<<max<<", mean: "<<mean<<", worst: "<<worst_dist<<")\n";
+		return n_usar;	
 	}
 
 	// Se almacena la distribucion posterior
 	void distPosterior(int opcion){
 		vector<double> sample_param;
+		posterior_distributions.resize(n_params);
+		// Estadisticos que se consideran del sample
+		double sample_min, sample_max, sample_mean, sample_median, sample_var, sample_stddev;
 		for(size_t p = 0; p < n_params; ++p){
-			// DistPosterior
-			DensityFunction fden;
+		
 			// Tomo los datos de sample para este parametro
 			for(unsigned int i = 0; i < sample_params.size(); ++i){
 				sample_param.push_back(sample_params[i].second[p]);
 			}
-			fden.computeDensityFunction(sample_param, opcion);
-			setDistPosterior.push_back(fden);
+			
+			// Calculo de estadisticos del sampling para generar las distribuciones
+			// En realidad no necesito todos estos datos, pero podrian servir luego
+			sample_min = sample_max = sample_mean = sample_median = sample_var = sample_stddev = 0.0;
+			Statistics::getMinMax(sample_param, sample_min, sample_max);
+			sample_mean = Statistics::getMean(sample_param);
+			sample_median = Statistics::getMedian(sample_param);
+			sample_var = Statistics::getVariance(sample_param, sample_mean);
+			sample_stddev = pow(sample_var, 0.5);
+			
+			// Notar que aqui estoy fijando la posterior como NORMAL
+			posterior_distributions[p] = Distribution(NORMAL, sample_median, sample_stddev);
+			// Agrego los estadisticos del sample usado
+			posterior_distributions[p].setSampleMin(sample_min);
+			posterior_distributions[p].setSampleMax(sample_max);
+			posterior_distributions[p].setSampleMean(sample_mean);
+			posterior_distributions[p].setSampleMedian(sample_median);
+			posterior_distributions[p].setSampleVar(sample_var);
+			posterior_distributions[p].setSampleStddev(sample_stddev);
+			
 			sample_param.clear();
 		}
 	}
 	
-	DensityFunction &getDistribution(unsigned int pos){
-		return setDistPosterior[pos];
+	Distribution &getDistribution(unsigned int pos){
+//		if(pos >= posterior_distributions.size()){
+//			return Distribucion();
+//		}
+		return posterior_distributions[pos];
+	}
+	
+	double getWorstDistance(){
+		return worst_dist;
 	}
 	
 	Ajuste getAdjustment(){
