@@ -1,4 +1,4 @@
-TARGET=controller
+TARGET=../build/bin/gdrift_service_controller
 CXX=g++
 LIBRARIES=-L/usr/local/lib
 INCLUDES=-I/usr/local/include/bsoncxx/v_noabi/ -I/usr/local/include/mongocxx/v_noabi/ -I/usr/local/include -I./include -I../include -I/usr/local/include/gdrift++

@@ -29,7 +29,7 @@ check_restart() {
 		sleep 1
 		# Notar que estoy agregando $2 a todos los comandos
 		# Como solo entrego ese parametro para controller, los demas usan null y funciona
-		screen -dmS screen_${1} /home/vsepulve/gdrift_services/build/bin/gdrift_service_${1} /home/vsepulve/gdrift_services/hosts_local.json ${2}
+		screen -dmS screen_${1} /home/gdrift/services/build/bin/gdrift_service_${1} /home/gdrift/services/hosts.json ${2}
 	else
 		echo "$ts: Service Ok"
 	fi
