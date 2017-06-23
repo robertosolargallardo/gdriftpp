@@ -1,17 +1,50 @@
 #include "Analyzer.h"
 
-string Analyzer::log_file = "logs/analyzer.log";
+//string Analyzer::log_file = "logs/analyzer.log";
 uint32_t Analyzer::update_results = 100;
 
 Analyzer::Analyzer(boost::property_tree::ptree &fhosts) : Node(fhosts){
-	this->_incremental_id=0U;
+
+	cout<<"Analyzer - Inicio\n";
+	
 	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
+	// Default del path
+	logs_path = "~";
+	boost::optional<boost::property_tree::ptree&> test_child;
+	test_child = fhosts.get_child_optional("globals.logs");
+	if( test_child ){
+		logs_path = fhosts.get<string>("globals.logs");
+	}
+	// Archivos de log
+	log_file = logs_path + "/analyzer.log";
+	id_file = logs_path + "/analyzer_id.log";
+	cout<<"Analyzer - logs_path: "<<logs_path<<", log_file: "<<log_file<<", id_file: "<<id_file<<"\n";
+	// Carga de datos iniciales (o de config)
+	// Por ahora cargo el id como texto (para facilitar el debug)
+	incremental_id = 0;
+	ifstream lector(id_file, ifstream::in);
+	if( lector.is_open() && lector.good() ){
+		unsigned int buff_size = 128;
+		char buff[buff_size];
+		buff[0] = 0;
+		lector.getline(buff, buff_size);
+		if( strlen(buff) > 0 ){
+			incremental_id = atoi(buff);
+		}
+		lector.close();
+	}
+//	fstream lector(id_file, fstream::in | fstream::binary);
+//	if( lector.is_open() && lector.good() ){
+//		lector.read((char*)&incremental_id, sizeof(int));
+//		lector.close();
+//	}
+	cout<<"Analyzer - Fin (incremental_id: "<<incremental_id<<")\n";
 }
 Analyzer::~Analyzer(void){
 }
 
-unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &posterior, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices){
+unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &posterior, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices, bool mostrar){
 	unsigned int inserts = 0;
 	boost::optional<const boost::property_tree::ptree&> test_child;
 	test_child = posterior.get_child_optional("populations");
@@ -32,18 +65,20 @@ unsigned int Analyzer::parseIndices(const boost::property_tree::ptree &posterior
 		}
 	}
 	
-//	// Prueba de resultados
-//	cout<<"Analyzer::parseIndices - Statistics:\t";
-//	for(auto p : indices){
-//		for(auto c : p.second){
-//			for(auto g : c.second){
-//				for(auto i : g.second){
-//					cout<<i.second<<"\t";
-//				}
-//			}
-//		}
-//	}
-//	cout<<"\n";
+	if(mostrar){
+		// Prueba de resultados
+		cout<<"Analyzer::parseIndices - Statistics:\t";
+		for(auto p : indices){
+			for(auto c : p.second){
+				for(auto g : c.second){
+					for(auto i : g.second){
+						cout<<i.second<<"\t";
+					}
+				}
+			}
+		}
+		cout<<"\n";
+	}
 	
 	return inserts;
 }
@@ -568,11 +603,49 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
-	cout<<"Analyzer::run - Inicio 1\n";
-			
-	uint32_t id = _frequest.get<uint32_t>("id");
+
+	boost::optional<boost::property_tree::ptree&> test_child;
+	uint32_t id = 0;
+	string type = "unknown";
+	
+	test_child = _frequest.get_child_optional("id");
+	if( test_child ){
+		id = _frequest.get<uint32_t>("id");
+	}
+	
+	test_child = _frequest.get_child_optional("type");
+	if( test_child ){
+		type = _frequest.get<string>("type");
+	}
+	
+	cout<<"Analyzer::run - Inicio 1 (id: "<<id<<", type: "<<type<<")\n";
 	
 	switch(util::hash(_frequest.get<string>("type"))){
+		case RESTORE:  {
+			cout<<"Analyzer::run - RESTORE ("<<id<<")\n";
+			
+			finished[id] = 0;
+			test_child = _frequest.get_child_optional("finished");
+			if( test_child ){
+				finished[id] = _frequest.get<uint32_t>("finished");
+			}
+			cout<<"Analyzer::run - Finished: "<<finished[id]<<"\n";
+			
+			// Tambien hay que actualizar next_batch y next_results con finished
+			// Uso (finished / batch_size) + 1 por batch_size para reestablecer el valor dependiendo del punto actual
+//			this->next_batch.emplace(id, ((uint32_t)(finished[id]/batch_size) + 1) * batch_size );
+//			this->next_results.emplace(id, ((uint32_t)(finished[id]/update_results) + 1) * update_results );
+//			cout<<"Analyzer::run - next_batch: "<<next_batch[id]<<", next_results: "<<next_results[id]<<"\n";
+			
+			// En esta version, data DEBE estar guardado en la bd (pues el restore parte de scheduler que necesita haber pasado por el inicio de analyzer)
+			boost::property_tree::ptree fdata = db_comm.readData(id);
+			this->_data[id] = fdata;
+			
+			_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
+			parseIndices(this->_data[id].get_child("posterior"), _data_indices[id], true);
+			
+			break;
+		};
 		case CANCEL: {
 			cout<<"Analyzer::run - CANCEL ("<<id<<")\n";
 			break;
@@ -592,9 +665,6 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				
 			}
 			
-			// Nodo de prueba para buscar atributos
-			boost::optional<boost::property_tree::ptree&> test_child;
-			
 			uint32_t scenario_id = 0;
 			test_child = _frequest.get_child_optional("scenario.id");
 			if( test_child ){
@@ -609,8 +679,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			}
 			
 //			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi en adelante se mantiene la suma de feedback * batch_size[i];
-			this->next_batch.emplace(id, batch_size);
-			this->next_results.emplace(id, update_results);
+			unsigned int next_batch_emplace = ((unsigned int)(finished[id] / batch_size) + 1) * batch_size;
+			unsigned int update_results_emplace = ((unsigned int)(finished[id] / update_results) + 1) * update_results;
+			this->next_batch.emplace(id, next_batch_emplace);
+			this->next_results.emplace(id, update_results_emplace);
 			
 			unsigned int feedback = 0;
 			test_child = _frequest.get_child_optional("feedback");
@@ -734,7 +806,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 			boost::property_tree::ptree fposterior;
 			fposterior.put("id", _frequest.get<string>("id"));
 			fposterior.put("type", "data");
-
+			
 			boost::property_tree::ptree fpopulations;
 			Sample all("summary");
 			for(auto& population : _frequest.get_child("populations")){
@@ -746,10 +818,10 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 
 			fposterior.push_back(make_pair("populations", fpopulations));
 
-			_frequest.push_back(make_pair("posterior",fposterior));
+			_frequest.push_back(make_pair("posterior", fposterior));
 			this->_data[id] = _frequest;
 			_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
-			parseIndices(this->_data[id].get_child("posterior"), _data_indices[id]);
+			parseIndices(this->_data[id].get_child("posterior"), _data_indices[id], true);
 
 			db_comm.writeData(_frequest);
 
@@ -794,7 +866,19 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	/*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
 	 uint32_t id = ms.count();*/
 	cout<<"Analyzer::run - Seteando id y timestamp\n";
-	 uint32_t id = this->_incremental_id++;
+	
+	uint32_t id = this->incremental_id++;
+	
+	// global_mutex.lock();
+	// Por ahora lo guardo como texto (para facilitar el debug) pero la forma correcta es sizeof(int) en binario
+	ofstream escritor(id_file, fstream::trunc | fstream::out);
+	escritor<<incremental_id<<"\n";
+//	fstream escritor(id_file, fstream::trunc | fstream::out | fstream::binary);
+//	escritor.write((char*)&incremental_id, sizeof(int));
+	escritor.close();
+	// global_mutex.unlock();
+	 
+	 
 	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	fsettings.put("id", std::to_string(id));
 	fsettings.put("timestamp", std::to_string(timestamp));

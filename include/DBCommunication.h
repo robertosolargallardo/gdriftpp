@@ -78,6 +78,12 @@ class DBCommunication{
 			mongo.write(db_name, collection_data, json);
 		}
 		
+		ptree readData(uint32_t id){
+			list<ptree> results;
+			mongo.read(results, db_name, collection_data, id);
+			return results.front();
+		}
+		
 		void setStatus(uint32_t id, string status){
 			mongo.setStatus(db_name, collection_settings, id, status);
 		}
