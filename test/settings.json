@@ -2,7 +2,7 @@
 	"id": "0",
 	"type": "init",
 	"max-number-of-simulations": "100000",
-	"batch-size": "2000",
+	"batch-size": "10000",
 	"population-increase-phases": "0",
 	"name": "Test Simulation 01",
 	"user": "0",

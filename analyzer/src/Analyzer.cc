@@ -853,7 +853,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	m.remove("user");
 
 	fsettings.put("type", "init");
-	fsettings.put("batch-size", "2000");
+	fsettings.put("batch-size", "10000");
 	fsettings.put("population-increase-phases", "0");
 	fsettings.put("feedback", "0");
 
