@@ -103,6 +103,37 @@ class Mongo{
 			return inserted;
 		}
 		
+		// Versiones de read_all que reciben id y feedback
+		// Notar que lo ideal seria un mapa de parametros variables (asumiendo igualdad al menos)
+		list<boost::property_tree::ptree> read_all(const string &db_name, const string &collection_name, uint32_t id, uint32_t feedback){
+			list<boost::property_tree::ptree> results;
+			read_all(results, db_name, collection_name);
+			return results;
+		}
+		
+		unsigned int read_all(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t feedback){
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "feedback" << std::to_string(feedback) << finalize);
+			boost::property_tree::ptree json;
+			unsigned int inserted = 0;
+			for(auto doc : cursor){
+				istringstream is(bsoncxx::to_json(doc));
+				read_json(is, json);
+				results.push_back(json);
+				++inserted;
+			}
+			return inserted;
+		}
+		
+		unsigned int count_all(const string &db_name, const string &collection_name, uint32_t id, uint32_t feedback){
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "feedback" << std::to_string(feedback) << finalize);
+			unsigned int inserted = 0;
+//			for(auto doc : cursor){
+			for(auto it = cursor.begin(); it != cursor.end(); it++){
+				++inserted;
+			}
+			return inserted;
+		}
+		
 		list<boost::property_tree::ptree> readStatistics(const string &db_name, const string &collection_name, uint32_t id){
 			list<boost::property_tree::ptree> results;
 			read(results, db_name, collection_name, id);

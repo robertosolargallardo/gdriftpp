@@ -1,8 +1,10 @@
 #include "Scheduler.h"
 
-Scheduler::Scheduler(const boost::property_tree::ptree &_fhosts) : Node(_fhosts){
-	this->_mongo=make_shared<util::Mongo>(this->_fhosts.get<string>("database.uri"));
-	this->_semaphore=make_shared<util::Semaphore>(1);
+Scheduler::Scheduler(const boost::property_tree::ptree &fhosts) : Node(fhosts){
+//	this->_mongo = make_shared<util::Mongo>(this->fhosts.get<string>("database.uri"));
+	this->_semaphore = make_shared<util::Semaphore>(1);
+	
+	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
 }
 
@@ -29,13 +31,55 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	cout<<"Scheduler::run - Inicio (id: "<<id<<", type: "<<type<<")\n";
 	
 	switch(util::hash(type)){
+		case RESTORE:{
+			cout<<"Scheduler::run - RESTORE\n";
+			
+			// Buscar cada simulacion incompleta
+			list<boost::property_tree::ptree> pending_settings = db_comm.readUnfinishedSettings();
+			cout<<"Scheduler::run - Pending simulations: "<<pending_settings.size()<<"\n";
+			
+			for( auto &fsettings : pending_settings ){
+			
+				cout<<"Scheduler::run - Procesando fsettings\n";
+				id = 0;
+				test_child = fsettings.get_child_optional("id");
+				if( test_child ){
+					id = fsettings.get<uint32_t>("id");
+				}
+				
+				cout<<"Scheduler::run - Creando settings["<<id<<"]\n";
+				// Realizar el procedimiento de resume para CADA simulacion incompleta
+				// Creo que el setStatus... running NO es necesario (porque solo considero esas para este resume)
+				// Antes del resume, hay que simular el init
+				this->_semaphore->lock();
+				this->_settings[id] = make_shared<SimulationSettings>(fsettings);
+				this->_semaphore->unlock();
+				
+				// Modificar settings[id] para agregar el trabajo ya realizado (trabajos terminados)
+				uint32_t finished_jobs = db_comm.countFinishedJobs(id, this->_settings[id]->feedback);
+				cout<<"Scheduler::run - finished_jobs de sim "<<id<<": "<<finished_jobs<<" / "<<this->_settings[id]->training_size<<"\n";
+				this->_settings[id]->generateJobs(this->_settings[id]->training_size);
+				this->_settings[id]->cur_job = finished_jobs;
+				
+				// Antes de enviar las simulaciones, hay que recargar los datos en analyzer
+				// Para eso hay que agregar un comando en analyzer que lea directamente de la bd
+				
+				cout<<"Scheduler::run - Continuando trabajos\n";
+				// db_comm.setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
+				this->_settings[id]->resume_send(this->_settings[id]->training_size, this->_fhosts);
+				
+			}
+			cout<<"Scheduler::run - Fin RESTORE\n";
+			
+			break;
+		}
 		case PAUSE:{
 			cout<<"Scheduler::run - PAUSE\n";
 			if( _settings.find(id) == _settings.end() ){
 				cout<<"Scheduler::run - Simulacion NO encontrada.\n";
 				break;
 			}
-			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "paused");
+			db_comm.setStatus(id, "paused");
 			this->_settings[id]->pause = true;
 			break;
 		}
@@ -45,9 +89,9 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 				cout<<"Scheduler::run - Simulacion NO encontrada.\n";
 				break;
 			}
-			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
+			db_comm.setStatus(id, "running");
 			this->_settings[id]->pause = false;
-			this->_settings[id]->resume_send(this->_settings[id]->_training_size, this->_fhosts);
+			this->_settings[id]->resume_send(this->_settings[id]->training_size, this->_fhosts);
 			break;
 		}
 		case CANCEL:{
@@ -56,7 +100,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 				cout<<"Scheduler::run - Simulacion NO encontrada.\n";
 				break;
 			}
-			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "canceled");
+			db_comm.setStatus(id, "canceled");
 			// Lo primero es activar la marca de cancelacion (o quitar la marca de continuar)
 			// Notar que _settings[id] probablemente estara corriendo (send), y NO PUEDE eliminarse mientras eso siga activo
 			// No es claro, eso si, cuando retorna del send (no desde aqui)
@@ -73,7 +117,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 		case INIT:{
 			cout<<"Scheduler::run - INIT\n";
 			// Notar que aqui NO se puede actualizar porque aun no se ha guardado, pero lo puedo agregar como el feedback
-//			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
+//			db_comm.setStatus(id, "running");
 			
 			// Agregar cualquier informacion al json antes de guardarlo en la BD
 			
@@ -91,25 +135,15 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			cout<<"Scheduler::run - Agregando timestamp "<<timestamp<<"\n";
 			_frequest.put("timestamp", std::to_string(timestamp));
 			
-			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			db_comm.writeSettings(_frequest);
 			
 			this->_semaphore->lock();
 			this->_settings[id] = make_shared<SimulationSettings>(_frequest);
 			this->_semaphore->unlock();
 			
-			this->_settings[id]->_training_size = BATCH_LENGTH;
-			test_child = _frequest.get_child_optional("batch-size");
-			if( test_child ){
-				this->_settings[id]->_training_size = _frequest.get<uint32_t>("batch-size");
-			}
-			// No es necesaria la verificacion si pongo valores por defecto mas arriba
-//			test_child = _frequest.get_child_optional("feedback");
-//			if( test_child ){
-				this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
-//			}
-			
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
-			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
+			this->_settings[id]->send(this->_settings[id]->training_size, this->_fhosts);
+			
 			break;
 		}
 		case CONTINUE:{
@@ -119,7 +153,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 				break;
 			}
 //			this->_settings[id]->send(BATCH_LENGTH, this->_fhosts);
-			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
+			this->_settings[id]->send(this->_settings[id]->training_size, this->_fhosts);
 			break;
 		}
 		case RELOAD:{
@@ -140,19 +174,17 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 //			write_json(ss, _frequest);
 //			cout << ss.str() << endl;
 			
-			this->_mongo->write(this->_fhosts.get<string>("database.name"), this->_fhosts.get<string>("database.collections.settings"), _frequest);
+			db_comm.writeSettings(_frequest);
 			this->_semaphore->lock();
 			// Antes de resetear settings, guardo cualquier cosa que pudiera necesitar
-			unsigned int training_size = this->_settings[id]->_training_size;
+			unsigned int training_size = this->_settings[id]->training_size;
 			// Recreo settings
 			this->_settings[id].reset(new SimulationSettings(_frequest));
 			// Reestablezco valores antiguos
-			this->_settings[id]->_training_size = training_size;
+			this->_settings[id]->training_size = training_size;
 			this->_semaphore->unlock();
-			// Asigno independientemente el feedback, quzas podria definirse en el constructo si se encuentra (para ser resistente al init)
-			this->_settings[id]->_feedback = _frequest.get<uint32_t>("feedback");
 			// Continuo directamente (ya no esperare el continue para evitar el problema del doble mensaje del analizer)
-			this->_settings[id]->send(this->_settings[id]->_training_size, this->_fhosts);
+			this->_settings[id]->send(this->_settings[id]->training_size, this->_fhosts);
 			
 			break;
 		}
@@ -162,7 +194,7 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 				cout<<"Scheduler::run - Simulacion NO encontrada.\n";
 				break;
 			}
-			_mongo->setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "ended");
+			db_comm.setStatus(id, "finished");
 			this->_semaphore->lock();
 			this->_settings.erase(this->_settings.find(id));
 			this->_semaphore->unlock();

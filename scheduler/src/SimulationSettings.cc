@@ -1,46 +1,61 @@
 #include "SimulationSettings.h"
 
 SimulationSettings::SimulationSettings(){
-	this->_run = 0;
-	this->_batch = 0;
-	this->_feedback = 0;
-	this->_training_size = 0;
+	run = 0;
+	batch = 0;
+	feedback = 0;
+	training_size = 0;
 	cancel = false;
 	pause = false;
 	cur_job = 0;
 }
 
 SimulationSettings::SimulationSettings(ptree &_fsettings){
-	this->_fsettings = _fsettings;
-	this->_run = 0;
-	this->_batch = 0;
-	this->_feedback = 0;
-	this->_training_size = 0;
+	// Archivo settings
+	fsettings = _fsettings;
+	// Valores por defecto
+	run = 0;
+	batch = 0;
+	feedback = 0;
+	training_size = BATCH_LENGTH;
 	cancel = false;
 	pause = false;
 	cur_job = 0;
+	// Cargo las variables que encuentre en settings
+	boost::optional<boost::property_tree::ptree&> test_child;
+	
+	test_child = fsettings.get_child_optional("batch-size");
+	if( test_child ){
+		training_size = fsettings.get<uint32_t>("batch-size");
+	}
+	
+	test_child = fsettings.get_child_optional("feedback");
+	if( test_child ){
+		feedback = fsettings.get<uint32_t>("feedback");
+	}
+	
 }
 
 SimulationSettings::~SimulationSettings(void){
 }
 
 template<class T>
-T SimulationSettings::generate(const ptree &_fdistribution, bool force_limits, double forced_min, double forced_max){
+T SimulationSettings::generate(const ptree &fdistribution, bool force_limits, double forced_min, double forced_max){
 	
 //	cout<<"SimulationSettings::generate - Inicio\n";
 	
 //	std::stringstream ss;
-//	write_json(ss,_fdistribution);
+//	write_json(ss, fdistribution);
 //	cout << ss.str() << endl;
 	
-	uint32_t type = util::hash(_fdistribution.get<string>("type"));
+	uint32_t type = util::hash(fdistribution.get<string>("type"));
 	double value = 0.0;
 	
 	switch(type){
-		case UNIFORM:{
+		case UNIFORM_HASH:{
 //			cout<<"SimulationSettings::generate - UNIFORM\n";
-			double a = _fdistribution.get<double>("params.a");
-			double b = _fdistribution.get<double>("params.b");
+			double a = fdistribution.get<double>("params.a");
+			double b = fdistribution.get<double>("params.b");
 			std::uniform_real_distribution<> uniform(a, b);
 			value = uniform(rng);
 			if(force_limits){
@@ -53,10 +68,10 @@ T SimulationSettings::generate(const ptree &_fdistribution, bool force_limits, d
 			}
 			break;
 		}
-		case NORMAL:{
+		case NORMAL_HASH:{
 //			cout<<"SimulationSettings::generate - NORMAL\n";
-			double mean = _fdistribution.get<double>("params.mean");
-			double stddev = _fdistribution.get<double>("params.stddev");
+			double mean = fdistribution.get<double>("params.mean");
+			double stddev = fdistribution.get<double>("params.stddev");
 			std::normal_distribution<> normal(mean, stddev);
 			value = normal(rng);
 			if(force_limits){
@@ -70,10 +85,10 @@ T SimulationSettings::generate(const ptree &_fdistribution, bool force_limits, d
 //			cout<<"Scheduler::generate - Normal (params: "<<mean<<", "<<stddev<<", value: "<<value<<")\n";
 			break;
 		}
-		case GAMMA:{
+		case GAMMA_HASH:{
 //			cout<<"SimulationSettings::generate - GAMMA\n";
-			double alpha = _fdistribution.get<double>("params.alpha");
-			double beta = _fdistribution.get<double>("params.beta");
+			double alpha = fdistribution.get<double>("params.alpha");
+			double beta = fdistribution.get<double>("params.beta");
 			std::gamma_distribution<double> gamma(alpha, beta);
 			value = gamma(rng);
 			if(force_limits){
@@ -94,22 +109,22 @@ T SimulationSettings::generate(const ptree &_fdistribution, bool force_limits, d
 	return(static_cast<T>(value));
 }
 
-ptree SimulationSettings::parse_individual(ptree _findividual){
-	for(auto &fchromosome : _findividual.get_child("chromosomes")){
+ptree SimulationSettings::parse_individual(ptree findividual){
+	for(auto &fchromosome : findividual.get_child("chromosomes")){
 		for(auto &fgene: fchromosome.second.get_child("genes")){
 			ptree frate=fgene.second.get_child("mutation.rate");
 			fgene.second.get_child("mutation").erase("rate");
 			fgene.second.get_child("mutation").put<double>("rate",util::hash(frate.get<string>("type"))==RANDOM?generate<double>(frate.get_child("distribution"), true, 0.0, 1.0):frate.get<double>("value"));
 		}
 	}
-	return(_findividual);
+	return(findividual);
 }
 
 // Este metodo puede recibir el escalamiento de poblacion (feedback / max_feedback)
-ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
+ptree SimulationSettings::parse_scenario(ptree fscenario, unsigned int min_pop, unsigned int feedback, unsigned int max_feedback){
 
 //	std::stringstream ss;
-//	write_json(ss,_fscenario);
+//	write_json(ss, fscenario);
 //	cout << ss.str() << endl;
 
 	uint32_t last_timestamp = 0;
@@ -117,7 +132,7 @@ ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop,
 	// Necesitamos una mejor manera de validar que el numero sea correcto
 	// Lo dejo activado pues el generador retorno 2^32 por alguna razon
 	uint32_t max_population = 100000000;
-	for(auto &fevent : _fscenario.get_child("events")){
+	for(auto &fevent : fscenario.get_child("events")){
 		ptree ftimestamp = fevent.second.get_child("timestamp");
 		fevent.second.erase("timestamp");
 		uint32_t timestamp = util::hash(ftimestamp.get<string>("type"))==RANDOM?generate<uint32_t>(ftimestamp.get_child("distribution"), true):ftimestamp.get<uint32_t>("value");
@@ -171,52 +186,21 @@ ptree SimulationSettings::parse_scenario(ptree _fscenario, unsigned int min_pop,
 	
 //	cout<<"SimulationSettings::parse_scenario\n";
 //	std::stringstream ss;
-//	write_json(ss,_fscenario);
+//	write_json(ss, fscenario);
 //	cout << ss.str() << endl;
 //	cout<<"-----      ------\n";
 	
-	return(_fscenario);
+	return(fscenario);
 }
 
-void SimulationSettings::resume_send(const uint32_t &_batch_length, const ptree &_fhosts){
+void SimulationSettings::resume_send(const uint32_t batch_length, const ptree &fhosts){
 
-	cout<<"SimulationSettings::resume_send - Inicio (_batch_length: "<<_batch_length<<" desde cur_job: "<<cur_job<<")\n";
+	cout<<"SimulationSettings::resume_send - Inicio (batch_length: "<<batch_length<<" desde cur_job: "<<cur_job<<")\n";
 	
 	vector<ptree> controllers;
-	for(auto &fcontroller: _fhosts.get_child("controller")){
+	for(auto &fcontroller: fhosts.get_child("controller")){
 		controllers.push_back(fcontroller.second);
 	}
-	
-	vector<ptree> scenarios;
-	for(auto &fscenario : this->_fsettings.get_child("scenarios")){
-		scenarios.push_back(fscenario.second);
-	}
-	
-//	vector<ptree> fjobs;
-
-//	cout<<"SimulationSettings::resume_send - Iterando "<<_batch_length<<" veces\n";
-//	for(uint32_t i = 0; i < _batch_length; i++){
-//		ptree fjob;
-//		fjob.put("id", this->_fsettings.get<std::string>("id"));
-//		fjob.put("run", this->_run++);
-//		fjob.put("batch", this->_batch);
-//		fjob.put("feedback", this->_feedback);
-//		
-//		fjob.put("batch-size", this->_fsettings.get<uint32_t>("batch-size"));
-//		
-//		unsigned int max_feedback = 0;
-//		boost::optional<ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");
-//		if( child ){
-//			max_feedback = this->_fsettings.get<uint32_t>("population-increase-phases");
-//		}
-//		
-//		fjob.put("max-number-of-simulations", this->_fsettings.get<uint32_t>("max-number-of-simulations"));
-//		fjob.add_child("individual", parse_individual(this->_fsettings.get_child("individual")));
-//		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()], 100, _feedback, max_feedback));
-//		
-//		fjobs.push_back(fjob);
-//	}
-//	random_shuffle(fjobs.begin(), fjobs.end());
 
 	for(; cur_job < fjobs.size(); cur_job++){
 		if(cancel){
@@ -235,61 +219,66 @@ void SimulationSettings::resume_send(const uint32_t &_batch_length, const ptree 
 			break;
 		}
 		
-		uint32_t pos = cur_job%controllers.size();
+		uint32_t pos = cur_job % controllers.size();
 		cout<<"SimulationSettings::resume_send - Enviando trabajo "<<cur_job<<" a controler "<<pos<<"\n";
 		comm::send(controllers[pos].get<string>("host"), controllers[pos].get<string>("port"), controllers[pos].get<string>("resource"), fjobs[cur_job]);
 	}
 	
-	scenarios.clear();
 	controllers.clear();
 	
 	if( !pause ){
 		fjobs.clear();
-		this->_run = 0;
-		this->_batch++;
+		run = 0;
+		batch++;
 	}
 	cout<<"SimulationSettings::resume_send - Fin\n";
 }
 
-void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhosts){
-
-	cout<<"SimulationSettings::send - Inicio (_batch_length: "<<_batch_length<<")\n";
-	
-	vector<ptree> controllers;
-	for(auto &fcontroller: _fhosts.get_child("controller")){
-		controllers.push_back(fcontroller.second);
-	}
+void SimulationSettings::generateJobs(const uint32_t batch_length){
+	fjobs.clear();
 	
 	vector<ptree> scenarios;
-	for(auto &fscenario : this->_fsettings.get_child("scenarios")){
+	for(auto &fscenario : fsettings.get_child("scenarios")){
 		scenarios.push_back(fscenario.second);
 	}
 	
-//	vector<ptree> fjobs;
-
-	cout<<"SimulationSettings::send - Iterando "<<_batch_length<<" veces\n";
-	for(uint32_t i = 0; i < _batch_length; i++){
+	cout<<"SimulationSettings::generateJobs - Iterando "<<batch_length<<" veces\n";
+	for(uint32_t i = 0; i < batch_length; i++){
 		ptree fjob;
-		fjob.put("id", this->_fsettings.get<std::string>("id"));
-		fjob.put("run", this->_run++);
-		fjob.put("batch", this->_batch);
-		fjob.put("feedback", this->_feedback);
+		fjob.put("id", fsettings.get<std::string>("id"));
+		fjob.put("run", run++);
+		fjob.put("batch", batch);
+		fjob.put("feedback", feedback);
 		
-		fjob.put("batch-size", this->_fsettings.get<uint32_t>("batch-size"));
+		fjob.put("batch-size", fsettings.get<uint32_t>("batch-size"));
 		
 		unsigned int max_feedback = 0;
-		boost::optional<ptree&> child = this->_fsettings.get_child_optional("population-increase-phases");
+		boost::optional<ptree&> child = fsettings.get_child_optional("population-increase-phases");
 		if( child ){
-			max_feedback = this->_fsettings.get<uint32_t>("population-increase-phases");
+			max_feedback = fsettings.get<uint32_t>("population-increase-phases");
 		}
 		
-		fjob.put("max-number-of-simulations", this->_fsettings.get<uint32_t>("max-number-of-simulations"));
-		fjob.add_child("individual", parse_individual(this->_fsettings.get_child("individual")));
-		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()], 100, _feedback, max_feedback));
+		fjob.put("max-number-of-simulations", fsettings.get<uint32_t>("max-number-of-simulations"));
+		fjob.add_child("individual", parse_individual(fsettings.get_child("individual")));
+		fjob.add_child("scenario", parse_scenario(scenarios[i%scenarios.size()], 100, feedback, max_feedback));
 		
 		fjobs.push_back(fjob);
 	}
 	random_shuffle(fjobs.begin(), fjobs.end());
+	scenarios.clear();
+	
+}
+
+void SimulationSettings::send(const uint32_t batch_length, const ptree &fhosts){
+
+	cout<<"SimulationSettings::send - Inicio (batch_length: "<<batch_length<<")\n";
+	
+	vector<ptree> controllers;
+	for(auto &fcontroller: fhosts.get_child("controller")){
+		controllers.push_back(fcontroller.second);
+	}
+	
+	generateJobs(batch_length);
 
 	for(cur_job = 0; cur_job < fjobs.size(); cur_job++){
 		if(cancel){
@@ -313,13 +302,12 @@ void SimulationSettings::send(const uint32_t &_batch_length, const ptree &_fhost
 		comm::send(controllers[pos].get<string>("host"), controllers[pos].get<string>("port"), controllers[pos].get<string>("resource"), fjobs[cur_job]);
 	}
 	
-	scenarios.clear();
 	controllers.clear();
 	
 	if( !pause ){
 		fjobs.clear();
-		this->_run = 0;
-		this->_batch++;
+		run = 0;
+		batch++;
 	}
 	cout<<"SimulationSettings::send - Fin\n";
 }

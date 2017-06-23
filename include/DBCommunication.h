@@ -62,15 +62,19 @@ class DBCommunication{
 		
 		~DBCommunication(){}
 		
-		void writeResults(boost::property_tree::ptree &json){
+		void writeResults(ptree &json){
 			mongo.write(db_name, collection_results, json);
 		}
 		
-		boost::property_tree::ptree readSettings(uint32_t id, uint32_t feedback){
+		ptree readSettings(uint32_t id, uint32_t feedback){
 			return mongo.readSettings(db_name, collection_settings, id, feedback);
 		}
 		
-		void writeData(boost::property_tree::ptree &json){
+		void writeSettings(ptree &json){
+			mongo.write(db_name, collection_settings, json);
+		}
+		
+		void writeData(ptree &json){
 			mongo.write(db_name, collection_data, json);
 		}
 		
@@ -86,7 +90,7 @@ class DBCommunication{
 			res.push_back("id");
 			res.push_back("scenario.id");
 			
-			boost::property_tree::ptree settings = mongo.readSettings(db_name, collection_settings, id, feedback);
+			ptree settings = mongo.readSettings(db_name, collection_settings, id, feedback);
 			
 //			std::stringstream ss;
 //			write_json(ss, settings);
@@ -880,7 +884,75 @@ class DBCommunication{
 		}
 		
 		
+		list<ptree> readUnfinishedSettings(){
+			list<ptree> res;
+			// Por ahora lo implemento del modo mas directo
+			// Leo TODOS los settings de la base de datos y los agrupo localmente
+			// Despues hay que implementar esto de modo mas eficiente
+			list<ptree> all_settings;
+			mongo.read_all(all_settings, db_name, collection_settings);
+			boost::optional<ptree> test_child;
+			
+			map<uint32_t, vector<pair<uint64_t, ptree>>> map_settings;
+			for(list<ptree>::iterator it = all_settings.begin(); it != all_settings.end(); it++){
+				
+				uint32_t id = 0;
+				test_child = it->get_child_optional("id");
+				if( test_child ){
+					id = it->get<uint32_t>("id");
+				}
+				
+				uint64_t timestamp = 0;
+				test_child = it->get_child_optional("timestamp");
+				if( test_child ){
+					timestamp = it->get<uint64_t>("timestamp");
+				}
+				
+				map_settings[id].push_back(pair<uint64_t, ptree>(timestamp, *it));
+				
+			}// for... cada settings
+			
+			// Ordeno por timestamp
+			for(map<uint32_t, vector<pair<uint64_t, ptree>>>::iterator it = map_settings.begin(); it != map_settings.end(); it++){
+				uint32_t id = it->first;
+				vector<pair<uint64_t, ptree>> arr_settings = it->second;
+				
+				uint64_t max_timestamp = 0; 
+				ptree settings;
+				for(unsigned int i = 0; i < arr_settings.size(); ++i){
+					cout<<"DBCommunication::readUnfinishedSettings - timestamp: "<<arr_settings[i].first<<"\n";
+					if( arr_settings[i].first > max_timestamp ){
+						max_timestamp = arr_settings[i].first;
+						settings = arr_settings[i].second;
+					}
+				}
+				
+				cout<<"DBCommunication::readUnfinishedSettings - id: "<<id<<", max_timestamp: "<<max_timestamp<<"\n";
+				
+//				std::stringstream ss;
+//				write_json(ss, settings);
+//				cout<<ss.str()<<"\n";
+				
+				string status = "";
+				test_child = settings.get_child_optional("status");
+				if( test_child ){
+					status = settings.get<string>("status");
+				}
+				cout<<"DBCommunication::readUnfinishedSettings - status: "<<status<<"\n";
+				
+				if( status.compare("running") == 0 ){
+					cout<<"DBCommunication::readUnfinishedSettings - Agregando sim "<<id<<" para restore\n";
+					res.push_back(settings);
+				}
+				
+			}
+			
+			return res;
+		}
 		
+		uint32_t countFinishedJobs(uint32_t id, uint32_t feedback){
+			return mongo.count_all(db_name, collection_results, id, feedback);
+		}
 		
 		
 		
