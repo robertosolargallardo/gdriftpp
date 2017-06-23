@@ -15,12 +15,11 @@ check_process() {
 # Check + Restart, usa check_process para revisar si el servicio esta corriendo
 # Si la prueba falla, termina el screen (si lo encuentra) y relanza el servicio en un nuevo screen
 check_restart() {
-	echo "$ts: begin checking..."
 	check_process "gdrift_service_${1}"
 	CHECK_RET=$?
 	if [ $CHECK_RET -eq 0 ];
 	then
-		echo "$ts: Service not running, restarting..."
+		echo "$ts: Not running, restarting"
 		killall screen_${1}
 		sleep 1
 		# Notar que estoy agregando $2 a todos los comandos
@@ -42,18 +41,18 @@ ts=`date +%T`
 restore=0
 
 check_restart "analyzer" 
-echo "-----     -----"
+echo "-----"
 check_restart "controller" "0"
-echo "-----     -----"
+echo "-----"
 check_restart "scheduler" 
-echo "-----     -----"
+echo "-----"
 
 if [ $restore -eq 1 ];
 then
 	# send restore command
-	echo "RESTORE"
+	echo "Sending Restore Command"
 	curl -H "Content-Type: application/json" -X POST http://localhost:2002/scheduler --data-binary "@/home/vsepulve/gdrift_services/test/restore.json"
-	echo "-----     -----"
+	echo "-----"
 fi
 
 #sleep 3
