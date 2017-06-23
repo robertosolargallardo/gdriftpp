@@ -47,6 +47,11 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 					id = fsettings.get<uint32_t>("id");
 				}
 				
+				if( _settings.find(id) != _settings.end() ){
+					cout<<"Scheduler::run - Simulacion YA existe, omitiendo.\n";
+					continue;
+				}
+				
 				cout<<"Scheduler::run - Creando settings["<<id<<"]\n";
 				// Realizar el procedimiento de resume para CADA simulacion incompleta
 				// Creo que el setStatus... running NO es necesario (porque solo considero esas para este resume)
@@ -55,17 +60,26 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 				this->_settings[id] = make_shared<SimulationSettings>(fsettings);
 				this->_semaphore->unlock();
 				
-				// Modificar settings[id] para agregar el trabajo ya realizado (trabajos terminados)
+				// Leer numero de simulaciones terminadas (notar que esto usa this->_settings[id])
 				uint32_t finished_jobs = db_comm.countFinishedJobs(id, this->_settings[id]->feedback);
+				
+				// Antes de enviar las simulaciones, hay que recargar los datos en analyzer
+				// Para eso hay que agregar un comando en analyzer que lea directamente de la bd
+				boost::property_tree::ptree frestore;
+				frestore.put("id", id);
+				frestore.put("type", "restore");
+				frestore.put("finished", finished_jobs);
+				comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.simulated"), frestore);
+				// Por seguridad, agrego un sleep a este thread entre el analyzer -> restore y el resume_send
+				// Notar que lo ideal seria una respueste de analyer, esta forma no es muy elegante
+				std::this_thread::sleep_for (std::chrono::seconds(1));
+				
+				// Modificar settings[id] para agregar el trabajo ya realizado (trabajos terminados)
 				cout<<"Scheduler::run - finished_jobs de sim "<<id<<": "<<finished_jobs<<" / "<<this->_settings[id]->training_size<<"\n";
 				this->_settings[id]->generateJobs(this->_settings[id]->training_size);
 				this->_settings[id]->cur_job = finished_jobs;
 				
-				// Antes de enviar las simulaciones, hay que recargar los datos en analyzer
-				// Para eso hay que agregar un comando en analyzer que lea directamente de la bd
-				
 				cout<<"Scheduler::run - Continuando trabajos\n";
-				// db_comm.setStatus(_fhosts.get<string>("database.name"), _fhosts.get<string>("database.collections.settings"), id, "running");
 				this->_settings[id]->resume_send(this->_settings[id]->training_size, this->_fhosts);
 				
 			}
