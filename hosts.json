@@ -23,6 +23,9 @@
 			"resource" : "/controller"
 		}
 	],
+	"globals" : {
+		"logs" : "/home/gdrift/services/logs"
+	},
 	"database" : {
 		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
 		"name" : "gdrift",
