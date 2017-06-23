@@ -26,6 +26,7 @@ check_restart() {
 		# Notar que estoy agregando $2 a todos los comandos
 		# Como solo entrego ese parametro para controller, los demas usan null y funciona
 		screen -dmS screen_${1} /home/vsepulve/gdrift_services/build/bin/gdrift_service_${1} /home/vsepulve/gdrift_services/hosts_local.json ${2}
+		restore=1
 	else
 		echo "$ts: Service Ok"
 	fi
@@ -38,6 +39,7 @@ check_restart() {
 
 # timestamp
 ts=`date +%T`
+restore=0
 
 check_restart "analyzer" 
 echo "-----     -----"
@@ -45,6 +47,14 @@ check_restart "controller" "0"
 echo "-----     -----"
 check_restart "scheduler" 
 echo "-----     -----"
+
+if [ $restore -eq 1 ];
+then
+	# send restore command
+	echo "RESTORE"
+	curl -H "Content-Type: application/json" -X POST http://localhost:2002/scheduler --data-binary "@/home/vsepulve/gdrift_services/test/restore.json"
+	echo "-----     -----"
+fi
 
 #sleep 3
 #done
