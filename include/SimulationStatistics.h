@@ -24,10 +24,10 @@ using namespace std;
 class SimulationStatistics{
 private:
 	
-	//descripcion parametros
+	// Descripcion parametros
 	vector<string> paramsDesc;
 	
-	// estadisticos del target
+	// Estadisticos del target
 	vector<double> target; 
 	
 	// Matrix of statistics, it has N simulations (rows) per S statistics (columns) 
@@ -43,26 +43,26 @@ private:
 	
 	// Vector of computed distances where first is the position in data, second is the distance
 	// This is because they will be sorted by distance but we need to access the data later	
-	vector<pair<int, double> > distances; 
+	vector< pair<int, double> > distances; 
 	
-	// set of data for use a compute f.distribution 
-	vector<pair<int, vector<double> > > sample_params;
+	// Sample of the best parameters to compute distribution posterior 
+	vector< pair<int, vector<double> > > sample_params;
 	
-	//Vector of objects of Function density for each params de la seleccion de datos de la simulacion
+	// Vector of Function density for each param
 	vector< Distribution > posterior_distributions;
 	
-	// distancias usadas durante el proceso de sampling (la mejor, la peor del sample)
+	// Distancias usadas durante el proceso de sampling (la mejor, la peor del sample)
 	// Tambien guardo la peor observada para, potencialmente, usarla para normalizar
 	double min_sample_dist;
 	double max_sample_dist;
 	double mean_sample_dist;
 	double worst_dist;
-
+	
 	//NUEVAS VERSION 1.2 X.V2
 	Ajuste ajustePosteriori;
 	
 	//Matriz <pair> with statistics normalized of the posteriori - Future use
-	vector< pair<int,vector<double> > > dataStatsNormalizadoPost;
+	vector< pair<int, vector<double> > > dataStatsNormalizadoPost;
 	
 	//Matriz with statistics normalized of the posteriori
 	vector< vector<double> > matrizStatsNormalizadoPost;
@@ -118,8 +118,7 @@ public:
 		n_params = data_params[0].size();
 		
 	}
-
-	/*Calcula distancias <medida de distancia,normalizar (no=0, o si=1)>*/ 
+	
 	// Notar que este metodo puede recibir vectores con minimos y maximos globales para normalizar
 	void computeDistances(int medidaDistancia, int opcionNormalizar, vector<double> min_stats = {}, vector<double> max_stats = {}){
 		cout<<"SimulationStatistics::computeDistances - Inicio (medidaDistancia: "<<medidaDistancia<<", opcionNormalizar: "<<opcionNormalizar<<")\n";
@@ -143,16 +142,15 @@ public:
 					Statistics::getMinMax(data_stats, min_stats, max_stats);
 				}
 				
-				/*Normaliza matriz de estadisticos*/
+				// Normaliza matriz de estadisticos
 				// El metod que sigue NO USA los min/max, solo los calcula
 				// En el nuevo modelo, se calculan antes si es necesario
 				normalizeStats(stats_norm, min_stats, max_stats);
 				
-				/*Normaliza target*/
-//				normalizedDataLimits(target, max_stats, min_stats, target_norm);
+				// Normaliza target
 				normalizeTarget(target_norm, min_stats, max_stats);
-
-				/*Almacena vector<pair<int,double>> de errores*/
+				
+				// Almacena vector<pair<int,double>> de distancias (errores)
 				// Esto calcula las distancias reales (aka errores)
 				vectorErrores(target_norm, stats_norm, medidaDistancia, distances);
 				
@@ -204,11 +202,9 @@ public:
 	void almacenarDataNormalized(vector <vector<double> > &dataInSimStatsNIn, vector<double> &dataInSimTargetNIn){
 		cout<<"SimulationStatistics::almacenarDataNormalized - Inicio\n";
 		setTargetNormalizado = dataInSimTargetNIn;
-		size_t sizeStas  = dataInSimStatsNIn.size();
-		int posSelect;
-		for(size_t k = 0; k < sizeStas; k++){
-			posSelect = (int)k;
-			dataStatsNormalizado.insert( pair<int, vector<double> > (posSelect, dataInSimStatsNIn[posSelect]));
+		size_t sizeStas = dataInSimStatsNIn.size();
+		for(unsigned int k = 0; k < sizeStas; ++k){
+			dataStatsNormalizado.insert( pair<int, vector<double> > (k, dataInSimStatsNIn[k]) );
 		}
 		cout<<"SimulationStatistics::almacenarDataNormalized - Fin\n";	
 	}
@@ -295,9 +291,6 @@ public:
 	}
 	
 	Distribution &getDistribution(unsigned int pos){
-//		if(pos >= posterior_distributions.size()){
-//			return Distribucion();
-//		}
 		return posterior_distributions[pos];
 	}
 	

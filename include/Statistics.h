@@ -38,6 +38,7 @@ private:
 	double sample_stddev;
 	
 public:
+	
 	Distribution(){
 		type = UNKNOWN;
 		sample_min = sample_max = sample_mean = sample_median = sample_var = sample_stddev = 0.0;

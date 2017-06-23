@@ -94,13 +94,13 @@ public:
    	}
 	
 	//Kernel Epanechnikov 
-	double pesoEpanechnikov(double x,double umbralIn)
+	double pesoEpanechnikov(double x, double umbralIn)
 	{
-		return 3.0/(4.0*umbralIn)*(1.0-pow(x/umbralIn,2.0));
+		return 3.0/(4.0*umbralIn)*(1.0-pow(x/umbralIn, 2.0));
 	}
 	
 	 //Preparation of system <stats,params,target,distances>
-	void cargaBuildDataAjuste(vector< vector<double> > sIn, vector< vector<double> > pIn, vector<double>  tIn, vector<double> distanciasIn)
+	void cargaBuildDataAjuste(vector< vector<double> > &sIn, vector< vector<double> > &pIn, vector<double> &tIn, vector<double> &distanciasIn)
 	{
 		size_t mSizeFils = sIn.size();
 //		size_t mSizeParams = sIn.size();
@@ -122,7 +122,7 @@ public:
 		W.zeros();
 		for(size_t i=0;i<n;i++)
 		{
-			W(i,i) = pesoEpanechnikov(distancias[i],umbral);
+			W(i,i) = pesoEpanechnikov(distancias[i], umbral);
 		}
 		
 	}
@@ -144,7 +144,7 @@ public:
 	}
 
 	//Save Matrix Armadillo to STL Matrix
-	void guardaDataSTL(mat dataIn, vector< vector<double> > &dOut)
+	void guardaDataSTL(mat &dataIn, vector< vector<double> > &dOut)
 	{
 		mat dataInTraspose = dataIn.t();
 		int cols = dataInTraspose.n_cols;
@@ -161,7 +161,7 @@ public:
 	}
 
 	//Save Matrix STL to Matrix Armadillo
-	void cargaDataMatrix(vector< vector<double> > dIn, mat &dataOut)
+	void cargaDataMatrix(vector< vector<double> > &dIn, mat &dataOut)
 	{	
 		size_t mSizeFils = dIn.size();
 		size_t nSizeCols = dIn[0].size();
