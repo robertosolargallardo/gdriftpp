@@ -10,7 +10,7 @@
 
 # Check simple de proceso (retorna el numero de procesos corriendo dado el nombre)
 check_process() {
-	echo "$ts: checking $1"
+#	echo "$ts: checking $1"
 	[ "$1" = "" ]  && return 0
 #	[ `pgrep -f $1 | wc -l` ] && return 1 || return 0
 	return `pgrep -f $1 | wc -l`
@@ -23,7 +23,7 @@ check_restart() {
 	CHECK_RET=$?
 	if [ $CHECK_RET -eq 0 ];
 	then
-		echo "$ts: Not running, restarting"
+		echo "$ts: ${1} Not running, restarting"
 		killall screen_${1}
 		sleep 1
 		# Notar que estoy agregando $2 a todos los comandos
@@ -31,7 +31,7 @@ check_restart() {
 		screen -dmS screen_${1} /home/gdrift/services/build/bin/gdrift_service_${1} /home/gdrift/services/hosts.json ${2}
 		restore=1
 	else
-		echo "$ts: Service Ok"
+		echo "$ts: ${1} Service Ok"
 	fi
 	sleep 1
 }
@@ -41,13 +41,11 @@ check_restart() {
 #while [ 1 ]; do 
 
 # timestamp
-ts=`date +%T`
+ts=`date +"%Y-%m-%d %H:%M:%S"`
 restore=0
 
 check_restart "analyzer" 
-echo "-----"
 check_restart "controller" "0"
-echo "-----"
 check_restart "scheduler" 
 echo "-----"
 
