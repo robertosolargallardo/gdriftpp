@@ -6,6 +6,8 @@
 #include <regex>
 #include <boost/algorithm/string.hpp>
 
+using namespace std;
+
 class MultipartFormParser {
 private:
     std::vector<std::string> _fields;

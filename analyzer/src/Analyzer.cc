@@ -216,7 +216,10 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	worst_dist = statsAnalisis.getWorstDistance();
 	
 	ofstream escritor(log_file, ofstream::app);
-	escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<", worst_dist: "<<worst_dist<<"\n";
+	if( escritor.is_open() && escritor.good() ){
+		escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<", worst_dist: "<<worst_dist<<"\n";
+		escritor.close();
+	}
 	
 	int tipoDistribucion = 0;
 	cout<<"Analyzer::trainModel - distPosterior...\n";
@@ -838,7 +841,29 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	cout<<"Analyzer::run - Inicio 2\n";
 	boost::property_tree::ptree fsettings;
-
+	
+	uint32_t id = this->incremental_id++;
+	
+	// global_mutex.lock();
+	// Por ahora lo guardo como texto (para facilitar el debug) pero la forma correcta es sizeof(int) en binario
+	ofstream escritor(id_file, fstream::trunc | fstream::out);
+	escritor<<incremental_id<<"\n";
+//	fstream escritor(id_file, fstream::trunc | fstream::out | fstream::binary);
+//	escritor.write((char*)&incremental_id, sizeof(int));
+	escritor.close();
+	// global_mutex.unlock();
+	
+	{
+		string out_file = logs_path + "/run_body_";
+		out_file += std::to_string(id);
+		out_file += ".log";
+		ofstream escritor(out_file, ofstream::app);
+		if( escritor.is_open() && escritor.good() ){
+			escritor<<_body<<"\n";
+			escritor.close();
+		}
+	}
+	
 	cout<<"Analyzer::run - MultipartFormParser...\n";
 	MultipartFormParser m(_body);
 	cout<<"Analyzer::run - MultipartFormParser terminado\n";
@@ -863,20 +888,7 @@ boost::property_tree::ptree Analyzer::run(const std::string &_body){
 	fsettings.put("similarity-threshold", m.get("similarity-threshold"));
 	m.remove("similarity-threshold");
 
-	/*milliseconds ms=duration_cast<milliseconds>(system_clock::now().time_since_epoch());
-	 uint32_t id = ms.count();*/
 	cout<<"Analyzer::run - Seteando id y timestamp\n";
-	
-	uint32_t id = this->incremental_id++;
-	
-	// global_mutex.lock();
-	// Por ahora lo guardo como texto (para facilitar el debug) pero la forma correcta es sizeof(int) en binario
-	ofstream escritor(id_file, fstream::trunc | fstream::out);
-	escritor<<incremental_id<<"\n";
-//	fstream escritor(id_file, fstream::trunc | fstream::out | fstream::binary);
-//	escritor.write((char*)&incremental_id, sizeof(int));
-	escritor.close();
-	// global_mutex.unlock();
 	 
 	 
 	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
