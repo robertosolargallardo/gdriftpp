@@ -121,8 +121,10 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 			// La opcion simple es dejarla, simplemente marcarla como cancelada para que se detenga
 			// Notar que la escritura directa de una variable basica (como bool) DEBERIA ser atomica
 			this->_settings[id]->cancel = true;
-			// Duermo 1 segundo para que settings termine de procesar antes de borrarlo
-			std::this_thread::sleep_for (std::chrono::seconds(1));
+			// Duermo unos segundos para que settings termine de procesar antes de borrarlo
+			cout<<"Scheduler::run - Esperando a settings...\n";
+			std::this_thread::sleep_for (std::chrono::seconds(5));
+			cout<<"Scheduler::run - Continuando con cancel\n";
 			// Los controladores pueden seguir con los trabajos actuales, pero sus resultados pueden ser omitidos por el analyzer
 			// Avisar al analyzer que cancele la simulacion (y borre los datos de esta), ese proceso DEBE ser thread-safe
 			comm::send(this->_fhosts.get<string>("analyzer.host"), this->_fhosts.get<string>("analyzer.port"), this->_fhosts.get<string>("analyzer.simulated"), _frequest);
@@ -223,6 +225,8 @@ boost::property_tree::ptree Scheduler::run(boost::property_tree::ptree &_freques
 	
 	// Borrar settings de simulaciones canceladas
 	// Notar que DOS threads llegaran aqui (el de cancel y el que genero el send), asi que debe ser thread-safe
+	// Tambien notar que lo ideal seria ESPERAR hasta estar seguro que settings termino
+	// Por ahora, como no tengo esa certeza, el thread de cancel duerme unos segundos antes de llegar aqui
 	this->_semaphore->lock();
 	if( this->_settings.find(id) != this->_settings.end() && this->_settings[id]->cancel ){
 		cout<<"Scheduler::run - Eliminando settings de simulacion "<<id<<" por cancel\n";
