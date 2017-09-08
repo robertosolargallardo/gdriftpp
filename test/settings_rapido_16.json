@@ -4,7 +4,7 @@
 	"max-number-of-simulations": "2000",
 	"batch-size": "1000",
 	"population-increase-phases": "0",
-	"name": "Test Simulation 1",
+	"name": "Test Simulation 16",
 	"user": "0",
 	"feedback": "0",
 
@@ -47,7 +47,7 @@
 					"type": "uniform",
 					"params": {
 						"a": "0",
-						"b": "10"
+						"b": "1000"
 					}
 				}
 			},
@@ -60,7 +60,7 @@
 							"type": "uniform",
 							"params": {
 								"a": "1000",
-								"b": "2000"
+								"b": "10000"
 							}
 						}
 					}
@@ -165,8 +165,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "12000",
-						"b": "16000"
+						"a": "10000",
+						"b": "15000"
 					}
 				}
 			},
@@ -200,7 +200,7 @@
 					"type": "uniform",
 					"params": {
 						"a": "0",
-						"b": "100"
+						"b": "1000"
 					}
 				}
 			},
@@ -213,7 +213,7 @@
 							"type": "uniform",
 							"params": {
 								"a": "100",
-								"b": "3000"
+								"b": "1000"
 							}
 						}
 					}
@@ -227,8 +227,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "4000",
-						"b": "6000"
+						"a": "2000",
+						"b": "5000"
 					}
 				}
 			},
@@ -257,7 +257,7 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "6000",
+						"a": "5000",
 						"b": "8000"
 					}
 				}
@@ -313,7 +313,7 @@
 					"type": "uniform",
 					"params": {
 						"a": "10000",
-						"b": "20000"
+						"b": "15000"
 					}
 				}
 			},
