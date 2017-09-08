@@ -4,7 +4,7 @@
 	"max-number-of-simulations": "2000",
 	"batch-size": "1000",
 	"population-increase-phases": "0",
-	"name": "Test Simulation 16",
+	"name": "Test Simulation 1",
 	"user": "0",
 	"feedback": "0",
 
@@ -59,7 +59,7 @@
 						"distribution": {
 							"type": "uniform",
 							"params": {
-								"a": "100",
+								"a": "1000",
 								"b": "2000"
 							}
 						}
@@ -74,8 +74,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "1000",
-						"b": "2000"
+						"a": "2000",
+						"b": "4000"
 					}
 				}
 			},
@@ -104,8 +104,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "2000",
-						"b": "3000"
+						"a": "4000",
+						"b": "6000"
 					}
 				}
 			},
@@ -134,8 +134,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "3000",
-						"b": "4000"
+						"a": "6000",
+						"b": "8000"
 					}
 				}
 			},
@@ -165,8 +165,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "4000",
-						"b": "5000"
+						"a": "12000",
+						"b": "16000"
 					}
 				}
 			},
@@ -213,7 +213,7 @@
 							"type": "uniform",
 							"params": {
 								"a": "100",
-								"b": "1000"
+								"b": "3000"
 							}
 						}
 					}
@@ -227,8 +227,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "1000",
-						"b": "2000"
+						"a": "4000",
+						"b": "6000"
 					}
 				}
 			},
@@ -257,8 +257,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "2000",
-						"b": "3000"
+						"a": "6000",
+						"b": "8000"
 					}
 				}
 			},
@@ -281,8 +281,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "3000",
-						"b": "4000"
+						"a": "8000",
+						"b": "10000"
 					}
 				}
 			},
@@ -312,8 +312,8 @@
 				"distribution": {
 					"type": "uniform",
 					"params": {
-						"a": "4000",
-						"b": "5000"
+						"a": "10000",
+						"b": "20000"
 					}
 				}
 			},
