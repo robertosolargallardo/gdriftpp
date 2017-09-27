@@ -1,0 +1,58 @@
+{
+	"analyzer" : {
+		"host" : "localhost",
+		"port" : "2001",
+		"simulated" : "/analyzer/simulated",
+		"data" : "/analyzer/data"
+	},
+	"scheduler" : {
+		"host" : "localhost",
+		"port" : "2002",
+		"resource" : "/scheduler"
+	},
+	"results" : {
+		"host" : "localhost",
+		"port" : "2003",
+		"resource" : "/results"
+	},
+	"controller" : [
+		{	
+			"id"   : "0",
+			"host" : "localhost",
+			"port" : "1980",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "1",
+			"host" : "localhost",
+			"port" : "1981",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "2",
+			"host" : "localhost",
+			"port" : "1982",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "3",
+			"host" : "localhost",
+			"port" : "1983",
+			"resource" : "/controller"
+		}
+	],
+	"globals" : {
+		"logs" : "/home/vsepulve/gdrift_services/logs"
+	},
+	"database" : {
+		"uri"  : "mongodb://localhost:27017",
+		"name" : "gdrift",
+		"collections" : {
+			"data"     : "data",
+			"settings" : "settings",
+			"results"  : "results",
+			"training"  : "training",
+			"status"  : "status"
+		}
+	}
+}

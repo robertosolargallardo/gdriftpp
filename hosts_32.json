@@ -1,0 +1,226 @@
+{
+	"analyzer" : {
+		"host" : "localhost",
+		"port" : "2001",
+		"simulated" : "/analyzer/simulated",
+		"data" : "/analyzer/data"
+	},
+	"scheduler" : {
+		"host" : "localhost",
+		"port" : "2002",
+		"resource" : "/scheduler"
+	},
+	"results" : {
+		"host" : "localhost",
+		"port" : "2003",
+		"resource" : "/results"
+	},
+	"controller" : [
+		{	
+			"id"   : "0",
+			"host" : "localhost",
+			"port" : "1980",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "1",
+			"host" : "localhost",
+			"port" : "1981",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "2",
+			"host" : "localhost",
+			"port" : "1982",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "3",
+			"host" : "localhost",
+			"port" : "1983",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "4",
+			"host" : "localhost",
+			"port" : "1984",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "5",
+			"host" : "localhost",
+			"port" : "1985",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "6",
+			"host" : "localhost",
+			"port" : "1986",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "7",
+			"host" : "localhost",
+			"port" : "1987",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "8",
+			"host" : "localhost",
+			"port" : "1988",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "9",
+			"host" : "localhost",
+			"port" : "1989",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "10",
+			"host" : "localhost",
+			"port" : "1990",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "11",
+			"host" : "localhost",
+			"port" : "1991",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "12",
+			"host" : "localhost",
+			"port" : "1992",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "13",
+			"host" : "localhost",
+			"port" : "1993",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "14",
+			"host" : "localhost",
+			"port" : "1994",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "15",
+			"host" : "localhost",
+			"port" : "1995",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "16",
+			"host" : "localhost",
+			"port" : "2980",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "17",
+			"host" : "localhost",
+			"port" : "2981",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "18",
+			"host" : "localhost",
+			"port" : "2982",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "19",
+			"host" : "localhost",
+			"port" : "2983",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "20",
+			"host" : "localhost",
+			"port" : "2984",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "21",
+			"host" : "localhost",
+			"port" : "2985",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "22",
+			"host" : "localhost",
+			"port" : "2986",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "23",
+			"host" : "localhost",
+			"port" : "2987",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "24",
+			"host" : "localhost",
+			"port" : "2988",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "25",
+			"host" : "localhost",
+			"port" : "2989",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "26",
+			"host" : "localhost",
+			"port" : "2990",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "27",
+			"host" : "localhost",
+			"port" : "2991",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "28",
+			"host" : "localhost",
+			"port" : "2992",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "29",
+			"host" : "localhost",
+			"port" : "2993",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "30",
+			"host" : "localhost",
+			"port" : "2994",
+			"resource" : "/controller"
+		},
+		{	
+			"id"   : "31",
+			"host" : "localhost",
+			"port" : "2995",
+			"resource" : "/controller"
+		}
+	],
+	"globals" : {
+		"logs" : "/home/vsepulve/gdrift_services/logs"
+	},
+	"database" : {
+		"uri"  : "mongodb://localhost:27017",
+		"name" : "gdrift",
+		"collections" : {
+			"data"     : "data",
+			"settings" : "settings",
+			"results"  : "results",
+			"training"  : "training",
+			"status"  : "status"
+		}
+	}
+}
