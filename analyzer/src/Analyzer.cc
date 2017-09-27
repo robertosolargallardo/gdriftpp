@@ -146,13 +146,16 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	for(auto &c : settings.get_child("individual.chromosomes")){
 		uint32_t cid = c.second.get<uint32_t>("id");
 		for(auto g : c.second.get_child("genes")){
-			uint32_t gid = g.second.get<uint32_t>("id");
-			string param_name = "chromosomes.";
-			param_name += std::to_string(cid);
-			param_name += ".genes.";
-			param_name += std::to_string(gid);
-			param_name += ".mutation.rate";
-			params_positions.emplace(param_name, 0);
+			string dist_type = g.second.get<string>("mutation.rate.type");
+			if( dist_type.compare("random") == 0 ){
+				uint32_t gid = g.second.get<uint32_t>("id");
+				string param_name = "chromosomes.";
+				param_name += std::to_string(cid);
+				param_name += ".genes.";
+				param_name += std::to_string(gid);
+				param_name += ".mutation.rate";
+				params_positions.emplace(param_name, 0);
+			}
 		}
 	}
 	// Posiciones
@@ -160,6 +163,11 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		it->second = count++;
 		cout<<"Analyzer::trainModel - params_positions["<<it->first<<"]: "<<it->second<<"\n";
+	}
+	
+	if( params_positions.empty() ){
+		cout<<"Analyzer::trainModel - No hay parametros que estimar, cancelando training\n";
+		return false;
 	}
 	
 	vector<vector<double>> params;
