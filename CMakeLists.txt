@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.9)
 project(gdrift_services)
 set(CMAKE_BUILD_TYPE Release)
-find_package(Boost 1.55.0 REQUIRED)
+find_package(Boost 1.54.0 REQUIRED)
 find_package(Armadillo 4.200.0 REQUIRED)
 
 include(CheckCXXCompilerFlag)
@@ -70,6 +70,9 @@ target_link_libraries(extract_data mongocxx bsoncxx restbed gdrift++ ssl crypto 
 
 add_executable(prepare_data  "${CMAKE_SOURCE_DIR}/test/statistics/prepare_data.cc")
 target_link_libraries(prepare_data mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
+
+add_executable(prepare_data_simple  "${CMAKE_SOURCE_DIR}/test/statistics/prepare_data_simple.cc")
+target_link_libraries(prepare_data_simple mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
 
 add_executable(extract_times  "${CMAKE_SOURCE_DIR}/test/statistics/extract_times.cc")
 target_link_libraries(extract_times mongocxx bsoncxx restbed gdrift++ ssl crypto pthread boost_thread boost_system curl)
