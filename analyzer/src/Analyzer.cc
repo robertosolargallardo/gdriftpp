@@ -722,6 +722,11 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 				double dist = distance(id, _frequest.get_child("posterior"));
 				cout<<"Analyzer::run - dist: "<<dist<<"\n";
 				_frequest.put("distance", dist);
+				
+				uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+				cout<<"Analyzer::run - Agregando timestamp "<<timestamp<<"\n";
+				_frequest.put("timestamp", std::to_string(timestamp));
+				
 				db_comm.writeResults(_frequest);
 			}
 			else{
