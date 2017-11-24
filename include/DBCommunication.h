@@ -407,6 +407,7 @@ class DBCommunication{
 			mongo.readResults(results_list, db_name, collection_results, id, scenario_id, feedback);
 			
 			unsigned int contador = 0;
+			double min_timestamp = DBL_MAX;
 			boost::optional<ptree&> test_child;
 //			unsigned int n_stats = 0;
 //			unsigned int n_params = 0;
@@ -505,7 +506,18 @@ class DBCommunication{
 				for(map<string, double>::iterator i = params.begin(); i != params.end(); i++){
 					values.push_back(i->second);
 				}
-				if( values.size() == (n_stats + n_params) ){
+				
+				double timestamp = 0;
+				test_child = it->get_child_optional("timestamp");
+				if( test_child ){
+					timestamp = (double)(it->get<unsigned long long>("timestamp"));
+					if( timestamp < min_timestamp ){
+						min_timestamp = timestamp;
+					}
+				}
+				values.push_back( (double)timestamp );
+				
+				if( values.size() == (n_stats + n_params + 1) ){
 					results.push_back(values);
 				}
 				
@@ -519,9 +531,11 @@ class DBCommunication{
 			for(unsigned int i = 0; i < results.size(); ++i){
 				vector<double> values = results[i];
 				escritor<<i<<"\t";
-				for(unsigned int j = 0; j < values.size(); ++j){
+				// Escribo el ultimo campo (timestamp) a parte para restar el minimo
+				for(unsigned int j = 0; j < values.size() - 1; ++j){
 					escritor<<values[j]<<"\t";
 				}
+				escritor<< (values[values.size() - 1] - min_timestamp) <<"\t";
 				escritor<<"\n";
 				
 			}
@@ -725,7 +739,7 @@ class DBCommunication{
 							}
 						}
 						else if( e_type.compare("endsim") != 0 && e_type.compare("split") != 0 && e_type.compare("extinction") != 0 ){
-							string value_type = e.second.get<string>("params.source.population.percentage");
+							string value_type = e.second.get<string>("params.source.population.percentage.type");
 							if( value_type.compare("random") == 0 ){
 								dist = parseDistribution(e.second.get_child("params.source.population.percentage.distribution"));
 								string param_name = param_base + ".params.source.population.percentage";
