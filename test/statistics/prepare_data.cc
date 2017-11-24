@@ -14,9 +14,6 @@
 
 #include "DBCommunication.h"
 
-random_device seed;
-mt19937 rng(seed());
-
 using namespace std;
 
 double distance(vector<double> stats, vector<double> target){

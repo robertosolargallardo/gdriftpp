@@ -18,8 +18,6 @@
 
 using namespace std;
 
-random_device seed;
-mt19937 rng(seed());
 mongocxx::instance inst{};
 
 int main(int argc, char** argv){
