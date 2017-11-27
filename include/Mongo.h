@@ -141,9 +141,12 @@ class Mongo{
 		}
 		
 		unsigned int readStatistics(list<boost::property_tree::ptree> &results, const string &db_name, const string &collection_name, uint32_t id, uint32_t scenid, uint32_t feedback){
-			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << "distance" << open_document << "$ne" << "inf"<< close_document << finalize);
+			cout<<"Mongo::readStatistics - Inicio (db_name: "<<db_name<<", collection_name: "<<collection_name<<", id: "<<id<<", scenario.id: "<<scenid<<", feedback: "<<feedback<<")\n";
+//			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << "distance" << open_document << "$ne" << "inf"<< close_document << finalize);
+			mongocxx::cursor cursor = client[db_name][collection_name].find(document{} << "id" << std::to_string(id) << "scenario.id" << std::to_string(scenid) << "feedback" << std::to_string(feedback) << finalize);
 			boost::property_tree::ptree json;
 			unsigned int inserted = 0;
+			cout<<"Mongo::readStatistics - Iterando\n";
 			for(auto doc : cursor){
 				istringstream is(bsoncxx::to_json(doc));
 				read_json(is, json);
@@ -156,6 +159,7 @@ class Mongo{
 				results.push_back(json);
 				++inserted;
 			}
+			cout<<"Mongo::readStatistics - Fin (inserted: "<<inserted<<")\n";
 			return inserted;
 		}
 		
