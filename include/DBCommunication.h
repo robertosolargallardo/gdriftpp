@@ -224,6 +224,8 @@ class DBCommunication{
 			vector<vector<double>> params_local;
 			vector<vector<double>> statistics_local;
 			
+			cout<<"DBCommunication::getResults - Iterando por "<<results.size()<<" resultados\n";
+			
 			for(auto &json : results){
 				
 //				std::stringstream ss;

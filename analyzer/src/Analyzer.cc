@@ -364,7 +364,9 @@ bool Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, 
 //	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
 //	- trainModel debe ser thread safe
 boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback, bool &finish){
-
+	
+	cout<<"Analyzer::updateTrainingResults - Inicio\n";
+	
 	// fresponse debe contener un documento completo de settings
 	// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
 	// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
@@ -614,6 +616,7 @@ boost::property_tree::ptree Analyzer::updateTrainingResults(uint32_t id, uint32_
 }
 
 boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest){
+	cout<<"Analyzer::run - Inicio 1\n";
 
 	boost::optional<boost::property_tree::ptree&> test_child;
 	uint32_t id = 0;
@@ -629,7 +632,7 @@ boost::property_tree::ptree Analyzer::run(boost::property_tree::ptree &_frequest
 		type = _frequest.get<string>("type");
 	}
 	
-	cout<<"Analyzer::run - Inicio 1 (id: "<<id<<", type: "<<type<<")\n";
+	cout<<"Analyzer::run - id: "<<id<<", type: "<<type<<"\n";
 	
 	switch(util::hash(_frequest.get<string>("type"))){
 		case RESTORE:  {
