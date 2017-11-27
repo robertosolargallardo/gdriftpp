@@ -26,15 +26,15 @@ void data(const shared_ptr<Session> session){
     const auto request=session->get_request();
     int length=request->get_header("Content-Length",0);
     session->fetch(length,[](const shared_ptr<Session> session,const Bytes&){
-        const auto request=session->get_request();
-        const auto body=request->get_body();
-
-		  lock_guard<mutex> lock(internal_mutex);
-        boost::property_tree::ptree fsettings=analyzer->run(string((char*)body.data(),body.size()));
+        const auto request = session->get_request();
+        const auto body = request->get_body();
+		
+		lock_guard<mutex> lock(internal_mutex);
+        boost::property_tree::ptree fsettings = analyzer->run(string((char*)body.data(),body.size()));
         ostringstream os;
-        write_json(os,fsettings);
+        write_json(os, fsettings);
         //cout << os.str() << endl;
-        session->close(OK,os.str());
+        session->close(OK, os.str());
     } );
 }
 int main(int argc,char** argv){
