@@ -1,0 +1,39 @@
+{
+	"analyzer" : {
+		"host" : "localhost",
+		"port" : "1986",
+		"simulated" : "/analyzer/simulated",
+		"data" : "/analyzer/data"
+	},
+	"scheduler" : {
+		"host" : "localhost",
+		"port" : "1987",
+		"resource" : "/scheduler"
+	},
+	"results" : {
+		"host" : "localhost",
+		"port" : "1988",
+		"resource" : "/results"
+	},
+	"controller" : [
+		{	
+			"id"   : "0",
+			"host" : "localhost",
+			"port" : "1985",
+			"resource" : "/controller"
+		}
+	],
+	"globals" : {
+		"logs" : "/home/gdrift/services/logs"
+	},
+	"database" : {
+		"uri"  : "mongodb://citiaps1.diinf.usach.cl:27017",
+		"name" : "gdrift",
+		"collections" : {
+			"data"     : "data",
+			"settings" : "settings",
+			"results"  : "results",
+			"training"  : "training"
+		}
+	}
+}
