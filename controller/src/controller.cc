@@ -26,8 +26,8 @@ static unsigned int id_controller = 0;
 list<shared_ptr<boost::property_tree::ptree>> work_list;
 std::mutex list_mutex;
 unsigned MAX_THREADS = std::thread::hardware_concurrency();
-//unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
-unsigned n_threads = 1;
+unsigned n_threads = (MAX_THREADS>1)?(MAX_THREADS-1):1;
+//unsigned n_threads = 1;
 
 // Inicializacion de los threads (Lo dejo EN el main por ahora para agregar hosts)
 //bool Controller::thread_started = Controller::startThreads(n_threads, &work_list, &list_mutex);
