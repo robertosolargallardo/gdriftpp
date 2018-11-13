@@ -52,9 +52,10 @@ private:
 	// Retorna el numero total de indices parseados
 	unsigned int parseIndices(const ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices, bool mostrar = false);
 	
+	// MEtodo obsoleto
 	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map);
 	
-	void trainModelv2(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map);
+	void trainModelv2(uint32_t id, uint32_t feedback);
 	
 	string logs_path;
 	string log_file;
@@ -62,7 +63,11 @@ private:
 
 	ptree getProfile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
 	
+	// Metodo obsoleto
 	ptree updateTrainingResults(uint32_t id, uint32_t feedback);
+	
+	// Nueva version simplificada
+	void updateResults(uint32_t id, uint32_t feedback);
 	
 	// Metodo para simplificar la toma de valor opcional de un json
 	// Version int, retorna 0 si no encuentra el valor
@@ -74,6 +79,8 @@ private:
 	
 	// Metodo para simplificar la extraccion de parametros de un escenario (para establecer el orden)
 	map<uint32_t, vector<string>> getEventsParams(ptree &scenario);
+	
+	void getCleanData(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &individual, ptree &scenario, map<string, uint32_t> &params_positions, vector<double> &distances, vector<vector<double>> &params);
 	
 public: 
 	Analyzer(ptree&);

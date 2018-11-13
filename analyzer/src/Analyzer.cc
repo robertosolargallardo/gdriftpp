@@ -112,28 +112,14 @@ map<uint32_t, vector<string>> Analyzer::getEventsParams(ptree &scenario){
 	}// for... cada evento
 	return events_params;
 }
-		
-void Analyzer::trainModelv2(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map){
-	cout << "Analyzer::trainModelv2 - Start (sim: " << id << ", scen: " << scenario_id << ", feedback: " << feedback << ")\n";
-	
-	//  Primero tomo el json del escenario, que usare despues
-	ptree scenario;
-	for(auto &s : settings.get_child("scenarios")){
-		uint32_t s_id = s.second.get<uint32_t>("id");
-		if(s_id == scenario_id){
-			scenario = s.second;
-//			cout << "Analyzer::trainModelv2 - Scenario:\n";
-//			std::stringstream ss;
-//			write_json(ss, scenario);
-//			cout << ss.str() << "\n";
-		}
-	}
+
+
+void Analyzer::getCleanData(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &individual, ptree &scenario, map<string, uint32_t> &params_positions, vector<double> &distances, vector<vector<double>> &params){
 	
 	map<uint32_t, vector<string>> events_params = getEventsParams(scenario);
 	
 	// El bloque siguiente es para convertir posiciones en parametros (incluyendo eventos y individual)
 	// Muestra, para cada codigo de texto, la posicion en params
-	map<string, uint32_t> params_positions;
 	// parametros de eventos
 	for(map<uint32_t, vector<string>>::iterator it = events_params.begin(); it != events_params.end(); it++){
 		for(unsigned int i = 0; i < it->second.size(); ++i){
@@ -145,7 +131,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t scenario_id, uint32_t feedback
 		}
 	}
 	// chromosomas
-	for(auto &c : settings.get_child("individual.chromosomes")){
+	for(auto &c : individual.get_child("chromosomes")){
 		uint32_t cid = c.second.get<uint32_t>("id");
 		for(auto g : c.second.get_child("genes")){
 			string dist_type = g.second.get<string>("mutation.rate.type");
@@ -164,168 +150,214 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t scenario_id, uint32_t feedback
 	unsigned int count = 0;
 	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
 		it->second = count++;
-		cout << "Analyzer::trainModel - params_positions[" << it->first << "]: " << it->second << "\n";
+		cout << "Analyzer::getCleanData - params_positions[" << it->first << "]: " << it->second << "\n";
 	}
 	
 	if( params_positions.empty() ){
-		cerr << "Analyzer::trainModel - Data not found\n";
+		cerr << "Analyzer::getCleanData - Data not found\n";
 		return;
 	}
 	
 	// Recupero los stats y params de la base de datos (en el orden de params_positions)
-	vector<vector<double>> params;
 	vector<vector<double>> stats;
 	db_comm.getResults(id, scenario_id, feedback, params, events_params, stats);
 	
 	if( params.size() == 0 || stats.size() == 0 ){
-		cerr << "Analyzer::trainModelv2 - Data not found\n";
+		cerr << "Analyzer::getCleanData - Data not found\n";
 		return;
 	}
 	
-	cout << "Analyzer::trainModelv2 - params data: " << params.size() << " (" << params[0].size() << " params)\n";
-	cout << "Analyzer::trainModelv2 - stats data: " << stats.size() << " (" << stats[0].size() << " stats)\n";
+	cout << "Analyzer::getCleanData - params data: " << params.size() << " (" << params[0].size() << " params)\n";
+	cout << "Analyzer::getCleanData - stats data: " << stats.size() << " (" << stats[0].size() << " stats)\n";
 	
-	// Supongamos que ahora tenemos un nuevo conjunto de parametros para relanzar, param_update
-	// En esta prueba, reuso los datos de la iteracion anterior, pero esto es el producto de algun proceso
-	vector<vector<double>> params_update = params;
+	// Todo lo que sigue depende de las distancias, y los minimos y maximos por parametro
+	// Despues, stats se puede obviar (usamos distancias en su lugar)
 	
-	vector<ptree> controllers;
-	for(auto &fcontroller: _fhosts.get_child("controller")){
-		controllers.push_back(fcontroller.second);
-	}
-	
-	for(unsigned int pos = 0; pos < params_update.size(); ++pos){
-		vector<double> new_params = params_update[pos];
-		// Preparar un nuevo json para el controller, basado en settings pero reemplazando los datos
-		ptree job = settings;
-		job.erase("scenarios");
-		job.add_child("scenario", scenario);
-		
-		job.erase("_id");
-		job.put("feedback", feedback+1);
-		job.put("batch", feedback+1);
-		job.put("run", pos);
-		
-		
-		// Actualizar chromosomas
-		for(auto &c : job.get_child("individual.chromosomes")){
-			uint32_t cid = c.second.get<uint32_t>("id");
-			for(auto &g : c.second.get_child("genes")){
-				string dist_type = g.second.get<string>("mutation.rate.type");
-				if( dist_type.compare("random") == 0 ){
-					uint32_t gid = g.second.get<uint32_t>("id");
-					string param_name = "chromosomes.";
-					param_name += std::to_string(cid);
-					param_name += ".genes.";
-					param_name += std::to_string(gid);
-					param_name += ".mutation.rate";
-					
-					double value = new_params[ params_positions[param_name] ];
-					std::ostringstream stream1;
-					stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
-					string str_value = stream1.str();
-					
-					cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
-					
-					g.second.get_child("mutation").erase("rate");
-					g.second.put("mutation.rate", str_value);
+	// Target (calculado localmente de _data_indices)
+	vector<double> target;
+	for(auto p : _data_indices[id]){
+		for(auto c : p.second){
+			for(auto g : c.second){
+				for(auto i : g.second){
+					target.push_back(i.second);
 				}
 			}
 		}
-		
-		// Actualizar eventos
-		for(auto &e : job.get_child("scenario.events")){
-			// En principio cada evento tiene timestamp y parametros
-			// Los parametros que tengan type random deben ser agregados
-			uint32_t eid = e.second.get<uint32_t>("id");
-			string etype = e.second.get<string>("type");
-			
-			string dist_type = e.second.get<string>("timestamp.type");
-			if( dist_type.compare("random") == 0 ){
-				string param_name = "events.";
-				param_name += std::to_string(eid);
-				param_name += ".";
-				param_name += "timestamp";
-				
-				double value = new_params[ params_positions[param_name] ];
-				std::ostringstream stream1;
-				stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
-				string str_value = stream1.str();
-				
-				cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
-				
-				e.second.erase("timestamp");
-				e.second.put("timestamp", str_value);
-				
-			}
-			
-			// Mientras se incrementa la poblacion, omito population.size de los parametros
-			if( etype.compare("create") == 0 ){
-				dist_type = e.second.get<string>("params.population.size.type");
-				if( dist_type.compare("random") == 0 ){
-					string param_name = "events.";
-					param_name += std::to_string(eid);
-					param_name += ".";
-					param_name += "params.population.size";
-					
-					double value = new_params[ params_positions[param_name] ];
-					std::ostringstream stream1;
-					stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
-					string str_value = stream1.str();
-					
-					cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
-					
-					e.second.get_child("params.population").erase("size");
-					e.second.put("params.population.size", str_value);
-				}
-				else if(dist_type.compare("fixed") == 0){
-					string str_value = e.second.get<string>("params.population.size.value");
-					e.second.get_child("params.population").erase("size");
-					e.second.put("params.population.size.value", str_value);
-				}
-			}
-			else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
-				dist_type = e.second.get<string>("params.source.population.percentage.type");
-				if( dist_type.compare("random") == 0 ){
-					string param_name = "events.";
-					param_name += std::to_string(eid);
-					param_name += ".";
-					param_name += "params.source.population.percentage";
-					
-					double value = new_params[ params_positions[param_name] ];
-					std::ostringstream stream1;
-					stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
-					string str_value = stream1.str();
-					
-					cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
-					
-					e.second.get_child("params.source.population").erase("percentage");
-					e.second.put("params.source.population.percentage", str_value);
-				}
-				else if(dist_type.compare("fixed") == 0){
-					string str_value = e.second.get<string>("params.source.population.percentage.value");
-					e.second.get_child("params.source.population").erase("percentage");
-					e.second.put("params.source.population.percentage", str_value);
-				}
-			}
-			
-			
-		}// for... cada evento
-		
-//		cout << "Analyzer::trainModelv2 - Job:\n";
-//		std::stringstream ss;
-//		write_json(ss, job);
-//		cout << ss.str() << "\n";
-		
-		uint32_t pos_controller = pos%controllers.size();
-		cout << "Analyzer::trainModelv2 - Sending to controller " << pos_controller << "\n";
-		comm::send(controllers[pos_controller].get<string>("host"), controllers[pos_controller].get<string>("port"), controllers[pos_controller].get<string>("resource"), job);
-		
+	}
+	// una distancia por simulacion
+	Statistics::getDistances(stats, target, distances);
+	for(unsigned int i = 0; i < ((distances.size()<10)?distances.size():10); ++i){
+		cout << "Analyzer::getCleanData - Dist[" << i << "]: " << distances[i] << "\n";
 	}
 	
+}
+
+void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
+	
+	cout << "Analyzer::trainModelv2 - Start (sim: " << id << ", feedback: " << feedback << ")\n";
+	
+	ptree settings = db_comm.readSettings(id, feedback);
+	
+	//  Primero tomo el json del escenario, que usare despues
+	ptree scenario;
+	for(auto &s : settings.get_child("scenarios")){
+		uint32_t scenario_id = s.second.get<uint32_t>("id");
+		scenario = s.second;
+	
+		cout << "Analyzer::trainModelv2 - Processing Scenario " << scenario_id << ")\n";
+		
+		map<string, uint32_t> params_positions;
+	
+		vector<double> distances;
+		vector<vector<double>> params;
+	
+		getCleanData(id, scenario_id, feedback, settings.get_child("individual"), scenario, params_positions, distances, params);
+	
+		// un min/max por parametro
+		vector<double> min_params = Statistics::getMinVector(params);
+		vector<double> max_params = Statistics::getMaxVector(params);
+	
+		cout << "Analyzer::trainModelv2 - min/max params\n";
+		for(unsigned int i = 0; i < min_params.size(); ++i){
+			cout << "Param[" << i << "]: (" << min_params[i] << ", " << max_params[i] << ")\n";
+		}
 	
 	
 	
+		// Supongamos que ahora tenemos un nuevo conjunto de parametros para relanzar, param_update
+		// En esta prueba, reuso los datos de la iteracion anterior, pero esto es el producto de algun proceso
+		vector<vector<double>> params_update = params;
+	
+		vector<ptree> controllers;
+		for(auto &fcontroller: _fhosts.get_child("controller")){
+			controllers.push_back(fcontroller.second);
+		}
+	
+		for(unsigned int pos = 0; pos < params_update.size(); ++pos){
+			vector<double> new_params = params_update[pos];
+			// Preparar un nuevo json para el controller, basado en settings pero reemplazando los datos
+			ptree job = settings;
+			job.erase("scenarios");
+			job.add_child("scenario", scenario);
+		
+			job.erase("_id");
+			job.put("feedback", feedback+1);
+			job.put("batch", feedback+1);
+			job.put("run", pos);
+		
+		
+			// Actualizar chromosomas
+			for(auto &c : job.get_child("individual.chromosomes")){
+				uint32_t cid = c.second.get<uint32_t>("id");
+				for(auto &g : c.second.get_child("genes")){
+					string dist_type = g.second.get<string>("mutation.rate.type");
+					if( dist_type.compare("random") == 0 ){
+						uint32_t gid = g.second.get<uint32_t>("id");
+						string param_name = "chromosomes.";
+						param_name += std::to_string(cid);
+						param_name += ".genes.";
+						param_name += std::to_string(gid);
+						param_name += ".mutation.rate";
+					
+						double value = new_params[ params_positions[param_name] ];
+						std::ostringstream stream1;
+						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
+						string str_value = stream1.str();
+					
+						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+					
+						g.second.get_child("mutation").erase("rate");
+						g.second.put("mutation.rate", str_value);
+					}
+				}
+			}
+		
+			// Actualizar eventos
+			for(auto &e : job.get_child("scenario.events")){
+				// En principio cada evento tiene timestamp y parametros
+				// Los parametros que tengan type random deben ser agregados
+				uint32_t eid = e.second.get<uint32_t>("id");
+				string etype = e.second.get<string>("type");
+			
+				string dist_type = e.second.get<string>("timestamp.type");
+				if( dist_type.compare("random") == 0 ){
+					string param_name = "events.";
+					param_name += std::to_string(eid);
+					param_name += ".";
+					param_name += "timestamp";
+				
+					double value = new_params[ params_positions[param_name] ];
+					std::ostringstream stream1;
+					stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
+					string str_value = stream1.str();
+				
+					cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+				
+					e.second.erase("timestamp");
+					e.second.put("timestamp", str_value);
+				
+				}
+			
+				// Mientras se incrementa la poblacion, omito population.size de los parametros
+				if( etype.compare("create") == 0 ){
+					dist_type = e.second.get<string>("params.population.size.type");
+					if( dist_type.compare("random") == 0 ){
+						string param_name = "events.";
+						param_name += std::to_string(eid);
+						param_name += ".";
+						param_name += "params.population.size";
+					
+						double value = new_params[ params_positions[param_name] ];
+						std::ostringstream stream1;
+						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
+						string str_value = stream1.str();
+					
+						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+					
+						e.second.get_child("params.population").erase("size");
+						e.second.put("params.population.size", str_value);
+					}
+					else if(dist_type.compare("fixed") == 0){
+						string str_value = e.second.get<string>("params.population.size.value");
+						e.second.get_child("params.population").erase("size");
+						e.second.put("params.population.size.value", str_value);
+					}
+				}
+				else if( etype.compare("endsim") != 0 && etype.compare("split") != 0 && etype.compare("extinction") != 0 ){
+					dist_type = e.second.get<string>("params.source.population.percentage.type");
+					if( dist_type.compare("random") == 0 ){
+						string param_name = "events.";
+						param_name += std::to_string(eid);
+						param_name += ".";
+						param_name += "params.source.population.percentage";
+					
+						double value = new_params[ params_positions[param_name] ];
+						std::ostringstream stream1;
+						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
+						string str_value = stream1.str();
+					
+						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+					
+						e.second.get_child("params.source.population").erase("percentage");
+						e.second.put("params.source.population.percentage", str_value);
+					}
+					else if(dist_type.compare("fixed") == 0){
+						string str_value = e.second.get<string>("params.source.population.percentage.value");
+						e.second.get_child("params.source.population").erase("percentage");
+						e.second.put("params.source.population.percentage", str_value);
+					}
+				}
+			
+			
+			}// for... cada evento
+		
+			uint32_t pos_controller = pos%controllers.size();
+			cout << "Analyzer::trainModelv2 - Sending to controller " << pos_controller << "\n";
+			comm::send(controllers[pos_controller].get<string>("host"), controllers[pos_controller].get<string>("port"), controllers[pos_controller].get<string>("resource"), job);
+		
+		}
+	
+	} // for... cada escenario
 	
 	cout << "Analyzer::trainModelv2 - End\n";
 	
@@ -617,8 +649,8 @@ ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback){
 		map<string, Distribution> posterior_map;
 		map<string, Distribution> adjustment_map;
 		map<string, map<string, double>> statistics_map;
-//		trainModel(id, s_ids[i], feedback, settings, posterior_map, adjustment_map, statistics_map);
-		trainModelv2(id, s_ids[i], feedback, settings, posterior_map, adjustment_map, statistics_map);
+		trainModel(id, s_ids[i], feedback, settings, posterior_map, adjustment_map, statistics_map);
+//		trainModelv2(id, s_ids[i], feedback);
 		
 		// Agregar posterior_map al json de resultados de entrenamiento
 		ptree scenario;
@@ -741,6 +773,7 @@ ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback){
 				}
 			}// for... cada feedback
 			
+			/*
 			// Aqui se puede agregar la curva de otra distribucion, por ejemplo la ajustada
 			if( adjustment_map.find(dist_name) != adjustment_map.end() ){
 				Distribution dist_adjustment = adjustment_map[dist_name];
@@ -773,6 +806,7 @@ ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback){
 				curves.push_back(make_pair("", curve_adjustment));
 			
 			}
+			*/
 			
 			// Finalmente, agrego curves a estimation de este parametro
 			estimation.add_child("curves", curves);
@@ -811,6 +845,157 @@ ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback){
 	return settings;	
 }
 
+
+// Este codigo deberia ser resistente a concurrencia
+//	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
+//	- trainModel debe ser thread safe
+void Analyzer::updateResults(uint32_t id, uint32_t feedback){
+	
+	cout<<"Analyzer::updateResults - Start\n";
+	
+	ptree settings = db_comm.readSettings(id, feedback);
+	
+	// scenario_id -> param_name -> distribution
+	map<uint32_t, map<string, Distribution>> dists_prior = db_comm.getDistributions(id, 0);
+	
+	ptree scenarios;
+	for(auto &s : settings.get_child("scenarios")){
+		uint32_t scenario_id = s.second.get<uint32_t>("id");
+		map<string, Distribution> posterior_map;
+		map<string, map<string, double>> statistics_map;
+		
+		map<string, uint32_t> params_positions;
+		vector<double> distances;
+		vector<vector<double>> params;
+		double min_dist = 0.0;
+		double cut_dist = 0.0;
+		
+		cout<<"Analyzer::updateResults - Preparing data for scenario " << scenario_id << "\n";
+		getCleanData(id, scenario_id, feedback, settings.get_child("individual"), s.second, params_positions, distances, params);
+		
+		cout<<"Analyzer::updateResults - Preparing Posterior Normal Distribution\n";
+		vector<pair<double, double>> values_dists = Statistics::getNormalValues(distances, params, 0.05, min_dist, cut_dist);
+		
+		vector<double> min_params = Statistics::getMinVector(params);
+		vector<double> max_params = Statistics::getMaxVector(params);
+		
+		// Agregar posterior_map al json de resultados de entrenamiento
+		ptree scenario;
+		string name = "Scenario " + std::to_string(scenario_id);
+		scenario.put("name", name);
+		scenario.put("id", scenario_id);
+		scenario.put("Min Distance", min_dist);
+		scenario.put("Cut Distance", cut_dist);
+		scenario.put("Similarity", (1.0 - min_dist));
+		
+		ptree estimations;
+		
+		for( auto it_params : params_positions ){
+			cout<<"Analyzer::updateResults - Preparing estimations for parameter " << it_params.first << "\n";
+			
+			ptree estimation;
+			estimation.put("parameter", it_params.first);
+			
+			double mean = values_dists[ it_params.second ].first;
+			double var = values_dists[ it_params.second ].second;
+			double stddev = pow(var, 0.5);
+			
+			estimation.put("mean", mean);
+			estimation.put("var", var);
+			estimation.put("stddev", stddev);
+			
+			double min_post = min_params[it_params.second];
+			double max_post = max_params[it_params.second];
+			vector<pair<double, double>> vals;
+			
+			ptree curves;
+			
+			// Curva Posterior
+			
+			ptree curve_posterior;
+			curve_posterior.put("name", "Posterior");
+			
+			ptree fvalue_posterior;
+			ptree fvalues_posterior;
+			cout << "Analyzer::updateResults - Curve Posterior\n";
+			
+			Statistics::graphNormalDistribution(vals, mean, stddev, min_post, max_post, min_post, max_post);
+			for(unsigned int j = 0; j < vals.size(); ++j){
+				fvalue_posterior.put("x", vals[j].first);
+				fvalue_posterior.put("y", vals[j].second);
+				fvalues_posterior.push_back(make_pair("", fvalue_posterior));
+			}
+			vals.clear();
+			
+			// Agrego values a la curva
+			curve_posterior.add_child("values", fvalues_posterior);
+			
+			// Agrego la curva posterior a curves
+			curves.push_back(make_pair("", curve_posterior));
+			
+			// Curva Prior
+			
+			ptree curve_prior;
+			curve_prior.put("name", "Prior");
+			
+			ptree fvalue_prior;
+			ptree fvalues_prior;
+			cout << "Analyzer::updateResults - Curve Prior\n";
+			
+			Distribution dist_prior = dists_prior[scenario_id][it_params.first];
+			
+			cout << "Analyzer::updateResults - Preparing values\n";
+		
+			// Para la distribucion prior, no tengo necesariamente min y max
+			// Por ello, en ese caso pido minimos y maximos analiticos
+			// La distribucion conoce valores razonables
+			vals = Statistics::generateDistributionGraph(dist_prior, dist_prior.getMinValue(), dist_prior.getMaxValue(), min_post, max_post);
+			for( unsigned int j = 0; j < vals.size(); ++j ){
+				fvalue_prior.put("x", vals[j].first);
+				fvalue_prior.put("y", vals[j].second);
+				fvalues_prior.push_back(make_pair("", fvalue_prior));
+			}
+			vals.clear();
+			// Agrego values a la curva
+			curve_prior.add_child("values", fvalues_prior);
+	
+			// Agrego la curva posterior a curves
+			curves.push_back(make_pair("", curve_prior));
+			
+			// Finalmente, agrego curves a estimation de este parametro
+			estimation.add_child("curves", curves);
+			
+			estimations.push_back(make_pair("", estimation));
+			
+		}
+		
+		scenario.add_child("estimations", estimations);
+		scenarios.push_back(make_pair("", scenario));
+		
+		scenario.add_child("estimations", estimations);
+		
+		posterior_map.clear();
+	}
+	
+	ptree estimations;
+	estimations.add_child("scenarios", scenarios);
+	
+	ptree training_results;
+	training_results.put("id", std::to_string(id));
+	training_results.put("feedback", feedback);
+		
+	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	cout<<"Analyzer::updateResults - Agregando timestamp "<<timestamp<<"\n";
+	training_results.put("timestamp", std::to_string(timestamp));
+	
+	training_results.add_child("estimations", estimations);
+	
+	// Almacenar el json de resultados de entrenamiento
+	db_comm.storeTrainingResults(training_results);
+	
+	cout<<"Analyzer::updateResults - End\n";
+	
+}
 
 
 // Metodo para simplificar la toma de valor opcional de un json
@@ -860,8 +1045,9 @@ ptree Analyzer::run(ptree &_frequest){
 			
 			// Solo agrego batch_size[id] como valor inicial la primera vez, de ahi se suma batch_size
 			next_batch.emplace(id, batch_size);
+			next_results.emplace(id, update_results);
 			
-			cout << "Analyzer::run - SIMULATED (id: " << id << ", scenario: " << scenario_id << ", feedback: " << feedback << ")\n";
+			cout << "Analyzer::run - SIMULATED (id: " << id << ", scenario: " << scenario_id << ", feedback: " << feedback << ", batch_size: " << batch_size << ", max_sims: " << max_sims << ")\n";
 			
 			finished[id]++;
 			
@@ -883,27 +1069,27 @@ ptree Analyzer::run(ptree &_frequest){
 			
 			cout << "Analyzer::run - Finished: " << finished[id] << " / " << next_batch[id] << " / " << max_sims << "\n";
 			
-			ptree fresponse;
+			if( finished[id] >= next_results[id] ){
+				// Update de resultados
+				next_results[id] += update_results;
+				updateResults(id, feedback);
+			}
+			
+			if( finished[id] >= next_batch[id] ){
+				cout << "Analyzer::run - Feedback (batch_size: " << batch_size << ")\n";
+				// Codigo de feedback, preparacion de nuevos parametros
+				next_batch[id] += batch_size;
+				trainModelv2(id, feedback);
+			}
 			
 			if( finished[id] >= max_sims ){
 				cout << "Analyzer::run - Preparing FINALIZE\n";
 				finished.erase(id);
+				next_batch.erase(id);
+				ptree fresponse;
 				fresponse.put("id", std::to_string(id));
 				fresponse.put("type", "finalize");
 				comm::send(_fhosts.get<string>("scheduler.host"), _fhosts.get<string>("scheduler.port"), _fhosts.get<string>("scheduler.resource"), fresponse);
-			}
-			else if( finished[id] >= next_batch[id] ){
-				cout << "Analyzer::run - Feedback (batch_size: " << batch_size << ")\n";
-				// Codigo de feedback, preparacion de nuevos parametros
-				next_batch[id] += batch_size;
-				
-				cout<<"Analyzer::run - Preparing RELOAD (next feedback in " << next_batch[id] << ")\n";
-				
-				fresponse = updateTrainingResults(id, feedback);
-				fresponse.put("type", "reload");
-				fresponse.put("feedback", 1 + feedback);
-				
-//				comm::send(_fhosts.get<string>("scheduler.host"), _fhosts.get<string>("scheduler.port"), _fhosts.get<string>("scheduler.resource"), fresponse);
 			}
 			break;
 		};
