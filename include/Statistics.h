@@ -104,7 +104,7 @@ public:
 				break;
 			}
 			case UNKNOWN : {
-				cerr<<"Statistics::generateDistributionGraph - Unknown distribution.\n";
+				cerr<<"Statistics::getMinValue - Unknown distribution.\n";
 				break;
 			}
 		}
@@ -126,7 +126,7 @@ public:
 				break;
 			}
 			case UNKNOWN : {
-				cerr<<"Statistics::generateDistributionGraph - Unknown distribution.\n";
+				cerr<<"Statistics::getMaxValue - Unknown distribution.\n";
 				break;
 			}
 		}
@@ -350,7 +350,147 @@ public:
 		}
 		return (value - min) / (max - min);
 	}
-
+	
+	static vector<double> getMinVector(vector<vector<double>> &values){
+		vector<double> min_values;
+		if( values.size() < 1 ){
+			return min_values;
+		}
+		for(unsigned int j = 0; j < values[0].size(); ++j){
+			min_values.push_back( values[0][j] );
+		}
+		for(unsigned int i = 1; i < values.size(); ++i){
+			for(unsigned int j = 0; j < values[0].size(); ++j){
+				if( values[i][j] < min_values[j] ){
+					min_values[j] = values[i][j];
+				}
+			}
+		}
+		return min_values;
+	}
+	
+	static vector<double> getMaxVector(vector<vector<double>> &values){
+		vector<double> max_values;
+		if( values.size() < 1 ){
+			return max_values;
+		}
+		for(unsigned int j = 0; j < values[0].size(); ++j){
+			max_values.push_back( values[0][j] );
+		}
+		for(unsigned int i = 1; i < values.size(); ++i){
+			for(unsigned int j = 0; j < values[0].size(); ++j){
+				if( values[i][j] > max_values[j] ){
+					max_values[j] = values[i][j];
+				}
+			}
+		}
+		return max_values;
+	}
+	
+	static void getDistances(vector<vector<double>> &values, vector<double> &target, vector<double> &distances){
+		if( values.size() < 1 ){
+			return;
+		}
+		if( values[0].size() != target.size() ){
+			cerr << "Statistics::getDistances - Error (wrong number of statistics)\n";
+			return;
+		}
+		
+		unsigned int n_stats = target.size();
+		
+		// Minimos y maximos (incluyendo target)
+		vector<double> min;
+		vector<double> max;
+		for(unsigned int j = 0; j < n_stats; ++j){
+			min.push_back(target[j]);
+			max.push_back(target[j]);
+		}
+		for(unsigned int i = 0; i < values.size(); ++i){
+			for(unsigned int j = 0; j < n_stats; ++j){
+				if( values[i][j] < min[j] ){
+					min[j] = values[i][j];
+				}
+				if( values[i][j] > max[j] ){
+					max[j] = values[i][j];
+				}
+			}
+		}
+		for(unsigned int j = 0; j < n_stats; ++j){
+			target[j] = (target[j] - min[j]) / (max[j] - min[j]);
+		}
+			
+		// Normalizar
+		for(unsigned int i = 0; i < values.size(); ++i){
+			for(unsigned int j = 0; j < n_stats; ++j){
+				values[i][j] = (values[i][j] - min[j]) / (max[j] - min[j]);
+			}
+		}
+		
+		unsigned int max_dist = 0;
+		for(unsigned int i = 0; i < values.size(); ++i){
+			// double d = distance(values[i], target);
+			double d = 0;
+			for(unsigned int j = 0; j < n_stats; ++j){
+				double delta = values[i][j] - target[j];
+				d += delta * delta;
+			}
+			d = pow(d, 0.5);
+			if( d > max_dist ){
+				max_dist = d;
+			}
+			distances.push_back(d);
+		}
+		
+		for(unsigned int i = 0; i < distances.size(); ++i){
+			distances[i] /= max_dist;
+		}
+		
+	}
+	
+	static vector<pair<double, double>> getNormalValues(vector<double> &distances, vector<vector<double>> &params, double fraction, double &min_dist, double &cut_dist){
+		vector<pair<double, double>> values_dists;
+		if( distances.size() < 1 || distances.size() != params.size() ){
+			cerr << "Statistics::getNormalValues - Error, invalid data\n";
+		}
+		
+		unsigned int n_sims = distances.size();
+		unsigned int n_params = params[0].size();
+		
+		cout << "Statistics::getNormalValues - Sorting Distances (n_sims: " << n_sims << ", n_params: " << n_params << ")\n";
+		vector<pair<double, unsigned int>> dist_positions;
+		for(unsigned int i = 0; i < n_sims; ++i){
+			dist_positions.push_back( pair<double, unsigned int>(distances[i], i) );
+		}
+		std::sort(dist_positions.begin(), dist_positions.end());
+		
+		unsigned int top_k = n_sims * fraction;
+		if( top_k < 10 ){
+			top_k = 10;
+		}
+		if( top_k > n_sims ){
+			top_k = n_sims;
+		}
+		
+		min_dist = dist_positions[0].first;
+		cut_dist = dist_positions[top_k-1].first;
+		
+		cout << "Statistics::getNormalValues - TopK: " << top_k << " (fraction: " << fraction << ", min_dist: " << min_dist << ", cut_dist: " << cut_dist << ")\n";
+		
+		for(unsigned int p = 0; p < n_params; ++p){
+			vector<double> values;
+			for(unsigned int i = 0; i < top_k; ++i){
+				unsigned int pos = dist_positions[i].second;
+				values.push_back( params[pos][p] );
+			}// for... each simulation in top_k
+			double mean = getMean(values);
+			double var = getVariance(values, mean);
+			values_dists.push_back( pair<double, double>(mean, var) );
+		}// for... each parameter
+		
+		return values_dists;
+	}
+	
+	
 };
 
 
