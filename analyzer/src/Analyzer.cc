@@ -5,7 +5,7 @@ uint32_t Analyzer::update_results = 100;
 
 Analyzer::Analyzer(ptree &fhosts) : Node(fhosts){
 
-	cout<<"Analyzer - Inicio\n";
+	cout << "Analyzer - Start\n";
 	
 	db_comm = DBCommunication(fhosts.get<string>("database.uri"), fhosts.get<string>("database.name"), fhosts.get<string>("database.collections.data"), fhosts.get<string>("database.collections.results"), fhosts.get<string>("database.collections.settings"), fhosts.get<string>("database.collections.training"));
 	
@@ -19,7 +19,7 @@ Analyzer::Analyzer(ptree &fhosts) : Node(fhosts){
 	// Archivos de log
 	log_file = logs_path + "/analyzer.log";
 	id_file = logs_path + "/analyzer_id.log";
-	cout<<"Analyzer - logs_path: "<<logs_path<<", log_file: "<<log_file<<", id_file: "<<id_file<<"\n";
+	cout << "Analyzer - logs_path: " << logs_path << ", log_file: " << log_file << ", id_file: " << id_file << "\n";
 	// Carga de datos iniciales (o de config)
 	// Por ahora cargo el id como texto (para facilitar el debug)
 	incremental_id = 0;
@@ -34,12 +34,8 @@ Analyzer::Analyzer(ptree &fhosts) : Node(fhosts){
 		}
 		lector.close();
 	}
-//	fstream lector(id_file, fstream::in | fstream::binary);
-//	if( lector.is_open() && lector.good() ){
-//		lector.read((char*)&incremental_id, sizeof(int));
-//		lector.close();
-//	}
-	cout<<"Analyzer - Fin (incremental_id: "<<incremental_id<<")\n";
+	
+	cout << "Analyzer - End (incremental_id: " << incremental_id << ")\n";
 }
 Analyzer::~Analyzer(void){
 }
@@ -67,7 +63,7 @@ unsigned int Analyzer::parseIndices(const ptree &posterior, map<string, map<uint
 	
 	if(mostrar){
 		// Prueba de resultados
-		cout<<"Analyzer::parseIndices - Statistics:\t";
+		cout << "Analyzer::parseIndices - Statistics:\t";
 		for(auto p : indices){
 			for(auto c : p.second){
 				for(auto g : c.second){
@@ -77,7 +73,7 @@ unsigned int Analyzer::parseIndices(const ptree &posterior, map<string, map<uint
 				}
 			}
 		}
-		cout<<"\n";
+		cout << "\n";
 	}
 	
 	return inserts;
@@ -192,9 +188,9 @@ void Analyzer::getCleanData(uint32_t id, uint32_t scenario_id, uint32_t feedback
 	
 }
 
-void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
+void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 	
-	cout << "Analyzer::trainModelv2 - Start (sim: " << id << ", feedback: " << feedback << ")\n";
+	cout << "Analyzer::trainModel - Start (sim: " << id << ", feedback: " << feedback << ")\n";
 	
 	ptree settings = db_comm.readSettings(id, feedback);
 	
@@ -204,7 +200,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 		uint32_t scenario_id = s.second.get<uint32_t>("id");
 		scenario = s.second;
 	
-		cout << "Analyzer::trainModelv2 - Processing Scenario " << scenario_id << ")\n";
+		cout << "Analyzer::trainModel - Processing Scenario " << scenario_id << ")\n";
 		
 		map<string, uint32_t> params_positions;
 	
@@ -217,7 +213,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 		vector<double> min_params = Statistics::getMinVector(params);
 		vector<double> max_params = Statistics::getMaxVector(params);
 	
-		cout << "Analyzer::trainModelv2 - min/max params\n";
+		cout << "Analyzer::trainModel - min/max params\n";
 		for(unsigned int i = 0; i < min_params.size(); ++i){
 			cout << "Param[" << i << "]: (" << min_params[i] << ", " << max_params[i] << ")\n";
 		}
@@ -264,7 +260,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
 						string str_value = stream1.str();
 					
-						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+						cout << "Analyzer::trainModel - Replacing " << param_name << " with value " << value << "\n";
 					
 						g.second.get_child("mutation").erase("rate");
 						g.second.put("mutation.rate", str_value);
@@ -291,7 +287,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 					stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
 					string str_value = stream1.str();
 				
-					cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+					cout << "Analyzer::trainModel - Replacing " << param_name << " with value " << value << "\n";
 				
 					e.second.erase("timestamp");
 					e.second.put("timestamp", str_value);
@@ -312,7 +308,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
 						string str_value = stream1.str();
 					
-						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+						cout << "Analyzer::trainModel - Replacing " << param_name << " with value " << value << "\n";
 					
 						e.second.get_child("params.population").erase("size");
 						e.second.put("params.population.size", str_value);
@@ -336,7 +332,7 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
 						string str_value = stream1.str();
 					
-						cout << "Analyzer::trainModelv2 - Replacing " << param_name << " with value " << value << "\n";
+						cout << "Analyzer::trainModel - Replacing " << param_name << " with value " << value << "\n";
 					
 						e.second.get_child("params.source.population").erase("percentage");
 						e.second.put("params.source.population.percentage", str_value);
@@ -352,506 +348,23 @@ void Analyzer::trainModelv2(uint32_t id, uint32_t feedback){
 			}// for... cada evento
 		
 			uint32_t pos_controller = pos%controllers.size();
-			cout << "Analyzer::trainModelv2 - Sending to controller " << pos_controller << "\n";
+			cout << "Analyzer::trainModel - Sending to controller " << pos_controller << "\n";
 			comm::send(controllers[pos_controller].get<string>("host"), controllers[pos_controller].get<string>("port"), controllers[pos_controller].get<string>("resource"), job);
 		
 		}
 	
 	} // for... cada escenario
 	
-	cout << "Analyzer::trainModelv2 - End\n";
+	cout << "Analyzer::trainModel - End\n";
 	
 }
-
-// Este metodo debe ser resistente a concurrencia
-//	- Asumo que las llamadas a db_comm son thread safe (dependen de Mongo)
-void Analyzer::trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map){
-	cout<<"Analyzer::trainModel - Inicio ("<<id<<", "<<scenario_id<<", "<<feedback<<")\n";
-	
-//	vector<string> fields = db_comm.getFields(id, scenario_id, feedback);
-//	cout<<"Analyzer::trainModel - Fields: \n";
-//	for(unsigned int i = 0; i < fields.size(); ++i){
-//		cout<<"\""<<fields[i]<<"\"\n";
-//	}
-	
-	map<uint32_t, vector<string>> events_params = db_comm.getEventsParams(id, scenario_id);
-	
-	map<string, uint32_t> params_positions;
-	// parametros de eventos
-	for(map<uint32_t, vector<string>>::iterator it = events_params.begin(); it != events_params.end(); it++){
-		for(unsigned int i = 0; i < it->second.size(); ++i){
-			string param_name = "events.";
-			param_name += std::to_string(it->first);
-			param_name += ".";
-			param_name += it->second[i];
-			params_positions.emplace(param_name, 0);
-		}
-	}
-	// chromosomas
-	for(auto &c : settings.get_child("individual.chromosomes")){
-		uint32_t cid = c.second.get<uint32_t>("id");
-		for(auto g : c.second.get_child("genes")){
-			string dist_type = g.second.get<string>("mutation.rate.type");
-			if( dist_type.compare("random") == 0 ){
-				uint32_t gid = g.second.get<uint32_t>("id");
-				string param_name = "chromosomes.";
-				param_name += std::to_string(cid);
-				param_name += ".genes.";
-				param_name += std::to_string(gid);
-				param_name += ".mutation.rate";
-				params_positions.emplace(param_name, 0);
-			}
-		}
-	}
-	// Posiciones
-	unsigned int count = 0;
-	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
-		it->second = count++;
-		cout<<"Analyzer::trainModel - params_positions["<<it->first<<"]: "<<it->second<<"\n";
-	}
-	
-	if( params_positions.empty() ){
-		cout<<"Analyzer::trainModel - No hay parametros que estimar, cancelando training\n";
-		return;
-	}
-	
-	vector<vector<double>> params;
-	vector<vector<double>> stats;
-	db_comm.getResults(id, scenario_id, feedback, params, events_params, stats);
-	
-	// Los minimos y maximos (para normalizar y otras cosas) los puedo leer de la base de datos, o calcular
-	vector<double> min_stats;
-	vector<double> max_stats;
-	vector<double> min_params;
-	vector<double> max_params;
-	Statistics::getMinMax(params, min_params, max_params);
-	Statistics::getMinMax(stats, min_stats, max_stats);
-	
-	// Por ahora, asumimos que las distribuciones son normales
-	// De ese modo, la distribucion de cada parametro se representa por la media y la varianza
-	// El metodo entonces debe entregar exactamente params_positions.size() pares de valores
-	// Luego, itero por el escenario en settings
-	// En cada evento y chromosoma, genero el string absoluto de la ruta del parametro, y reemplazo los valores con los de la nueva distribucion
-	
-	vector<double> target;
-	for(auto p : _data_indices[id]){
-		for(auto c : p.second){
-			for(auto g : c.second){
-				for(auto i : g.second){
-					target.push_back(i.second);
-				}
-			}
-		}
-	}
-	
-	// Prueba de objeto estadistico
-	cout<<"Analyzer::trainModel - Probando objeto estadistico\n";
-	
-	/**** Comienzo analisis *****/
-	SimulationStatistics statsAnalisis;
-	cout<<"Analyzer::trainModel - loadData...\n";
-	statsAnalisis.loadData(stats, params, target);
-	int medidaDistancia = 4;
-	int opcionNormalizar = 1;
-	cout<<"Analyzer::trainModel - computeDistances...\n";
-	// Antes de esto abria que leer o calcular y guardar los min/max por stat
-	statsAnalisis.computeDistances(medidaDistancia, opcionNormalizar, min_stats, max_stats);
-	cout<<"Analyzer::trainModel - selectSample...\n";
-	double min_dist = 0;
-	double max_dist = 0;
-	double mean_dist = 0;
-	double worst_dist = 0;
-	/*Selecciona muestra segun porcentaje de datos ej: porcentajeSelection=0.1 (10%) esto se deja como opcion en la interfaz del frontend*/
-	unsigned int used_data = statsAnalisis.selectSample(0.1, min_dist, max_dist, mean_dist);
-	
-	worst_dist = statsAnalisis.getWorstDistance();
-	
-	ofstream escritor(log_file, ofstream::app);
-	if( escritor.is_open() && escritor.good() ){
-		escritor<<"simulation "<<id<<", scenario "<<scenario_id<<", feedback "<<feedback<<", min_dist "<<min_dist<<", max_dist "<<max_dist<<", mean_dist "<<mean_dist<<", worst_dist: "<<worst_dist<<"\n";
-		escritor.close();
-	}
-	
-	int tipoDistribucion = 0;
-	cout<<"Analyzer::trainModel - distPosterior...\n";
-	/*Obtiene la distribucion posterior*/ 
-	statsAnalisis.distPosterior(tipoDistribucion);
-	
-	cout<<"Analyzer::trainModel - ajustarWLS...\n";
-	statsAnalisis.ajustarWLS();
-	
-	/**** Fin analisis *****/
-	
-	cout<<"Analyzer::trainModel - Extrayendo resultados de "<<params_positions.size()<<" parametros\n";
-	for(map<string, uint32_t>::iterator it = params_positions.begin(); it != params_positions.end(); it++){
-		unsigned int pos_param = it->second;
-		string nombre = it->first;
-		Distribution dist = statsAnalisis.getDistribution(pos_param);
-		cout<<"Analyzer::trainModel - Mostrando resultados["<<pos_param<<"] ("<<nombre<<", med: "<<dist.getValue(0)<<", std: "<<dist.getValue(1)<<")\n";
-		
-		posterior_map[nombre] = dist;
-		
-		statistics_map[nombre]["median"] = dist.getSampleMedian();
-		statistics_map[nombre]["mean"] = dist.getSampleMean();
-		statistics_map[nombre]["stddev"] = dist.getSampleStddev();
-		statistics_map[nombre]["var"] = dist.getSampleVar();
-		statistics_map[nombre]["min"] = dist.getSampleMin();
-		statistics_map[nombre]["max"] = dist.getSampleMax();
-		statistics_map[nombre]["used_data"] = used_data;
-		statistics_map[nombre]["threshold"] = max_dist;
-		
-		// Distribucion de Ajuste
-		double adjust_median = Statistics::getMean(statsAnalisis.getAdjustmentData(pos_param));
-		double adjust_var = Statistics::getVariance(statsAnalisis.getAdjustmentData(pos_param));
-		double adjust_stddev = pow(adjust_var, 0.5);
-		cout<<"Analyzer::trainModel - Ajuste ("<<used_data<<") med: "<<adjust_median<<", std: "<<adjust_stddev<<"\n";
-		adjustment_map[nombre] = Distribution("normal", adjust_median, adjust_stddev);
-		
-	}
-	
-	cout<<"Analyzer::trainModel - Actualizando Genes\n";
-	for(auto &c : settings.get_child("individual.chromosomes")){
-		uint32_t cid = c.second.get<uint32_t>("id");
-		for(auto &g : c.second.get_child("genes")){
-			uint32_t gid = g.second.get<uint32_t>("id");
-			string param_name = "chromosomes.";
-			param_name += std::to_string(cid);
-			param_name += ".genes.";
-			param_name += std::to_string(gid);
-			param_name += ".mutation.rate";
-			cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<params_positions[param_name]<<")\n";
-			g.second.get_child("mutation.rate.distribution").put<string>("type", "normal");
-			// Elimino parametros previos
-			g.second.get_child("mutation.rate.distribution").erase("params");
-			g.second.get_child("mutation.rate.distribution").put_child("params", ptree());
-			g.second.get_child("mutation.rate.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
-			g.second.get_child("mutation.rate.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
-		}
-	}
-	
-	cout<<"Analyzer::trainModel - Actualizando Eventos\n";
-	for(auto &s : settings.get_child("scenarios")){
-		uint32_t s_id = s.second.get<uint32_t>("id");
-		if(s_id == scenario_id){
-			for(auto &e : s.second.get_child("events")){
-				// En principio cada evento tiene timestamp y parametros
-				// Los parametros que tengan type random deben ser agregados
-				uint32_t eid = e.second.get<uint32_t>("id");
-				string etype = e.second.get<string>("type");
-//				cout<<"Analyzer::trainModel - Evento "<<eid<<" ("<<etype<<")\n";
-				
-				string param_name = "events.";
-				param_name += std::to_string(eid);
-				param_name += ".timestamp";
-				map<string, uint32_t>::iterator it = params_positions.find(param_name);
-				if( it != params_positions.end() ){
-					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-					e.second.get_child("timestamp.distribution").put<string>("type", "normal");
-					// Elimino parametros previos
-					e.second.get_child("timestamp.distribution").erase("params");
-					e.second.get_child("timestamp.distribution").put_child("params", ptree());
-					e.second.get_child("timestamp.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
-					e.second.get_child("timestamp.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
-				}
-				
-				param_name = "events.";
-				param_name += std::to_string(eid);
-				param_name += ".params.population.size";
-				it = params_positions.find(param_name);
-				if( it != params_positions.end() ){
-					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-					e.second.get_child("params.population.size.distribution").put<string>("type", "normal");
-					// Elimino parametros previos
-					e.second.get_child("params.population.size.distribution").erase("params");
-					e.second.get_child("params.population.size.distribution").put_child("params", ptree());
-					e.second.get_child("params.population.size.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
-					e.second.get_child("params.population.size.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
-				}
-				
-				param_name = "events.";
-				param_name += std::to_string(eid);
-				param_name += ".params.source.population.percentage";
-				it = params_positions.find(param_name);
-				if( it != params_positions.end() ){
-					cout<<"Analyzer::trainModel - Modificando "<<param_name<<" (position "<<it->second<<")\n";
-					e.second.get_child("params.source.population.percentage.distribution").put<string>("type", "normal");
-					// Elimino parametros previos
-					e.second.get_child("params.source.population.percentage.distribution").erase("params");
-					e.second.get_child("params.source.population.percentage.distribution").put_child("params", ptree());
-					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("mean", posterior_map[param_name].getValue(0));
-					e.second.get_child("params.source.population.percentage.distribution.params").put<double>("stddev", posterior_map[param_name].getValue(1));
-				}
-				
-//				cout<<"Analyzer::trainModel - Evento resultante:\n";
-//				std::stringstream ss;
-//				write_json(ss, e.second);
-//				cout<<ss.str()<<"\n";
-				
-			}
-		}
-	}
-	
-	cout<<"Analyzer::trainModel - Fin\n";
-}
-
-// Esto es solo para debug
-//unsigned int training_id = 0;
-
-// Este codigo deberia ser resistente a concurrencia
-//	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
-//	- trainModel debe ser thread safe
-ptree Analyzer::updateTrainingResults(uint32_t id, uint32_t feedback){
-	
-	cout<<"Analyzer::updateTrainingResults - Inicio\n";
-	
-	// fresponse debe contener un documento completo de settings
-	// La idea es cargar los settings de id, feedback, y luego agregar los parametros nuevos
-	// La otra forma, es pasarle el settings al modulo de entrenamiento para que actualice los parametros
-	// Notar que con esto estoy REEMPLAZANDO fresponse (pero el id tambien se incluye)
-	// Por ultimo, notar que hay que guardar las distribuciones a priori antes de modificarlo
-	ptree settings = db_comm.readSettings(id, feedback);
-	
-	// Creo que esto hay que hacerlo para CADA escenario del setting
-	// Eso es debido a que, por ahora, feedback se aplica a la simulacion completa
-	// Iterar por cada scenario_id de la simulacion
-	// Notar que dejo el ciclo aqui (en lugar de en trainModel) pues en la version final, deberia entrenarse solo el escenario actual
-	
-	// Por seguridad (del iterador) primero extraigo los scenario.id de settings
-	vector<uint32_t> s_ids;
-	for(auto s : settings.get_child("scenarios")){
-		uint32_t s_id = s.second.get<uint32_t>("id");
-		s_ids.push_back(s_id);
-	}
-	
-	// La idea es cargar distribuciones de cada feedback aqui
-	// La dist de feedback 0 es prior, la de cada otro valor es propuesta, y la estiamcion actual es posterior
-	// scen_id -> name -> dist
-	// Ahroa es feedback -> scen_id -> name -> dist
-//	map<uint32_t, map<string, Distribution>> dists_prior = db_comm.getDistributions(id, feedback);
-	map<uint32_t, map<uint32_t, map<string, Distribution>>> dists_prior;
-	for(unsigned int f = 0; f <= feedback; ++f){
-		dists_prior[f] = db_comm.getDistributions(id, f);
-		
-//		cout<<"Analyzer::updateTrainingResults - Revisando distribuciones feedback "<<f<<"\n";
-//		for( auto scenario_dist : dists_prior[f] ){
-//			for( auto dist : scenario_dist.second ){
-//				cout<<"Analyzer::updateTrainingResults - dists_prior["<<f<<"]["<<scenario_dist.first<<"]["<<dist.first<<"]: "<<dist.second.to_string()<<"\n";
-//			}
-//		}
-		
-	}
-	
-	ptree scenarios;
-	for(unsigned int i = 0; i < s_ids.size(); ++i){
-		// Notar que es valido pasarle el mismo ptree settings para cada escenario
-		// Eso es por que cada llamada a trainModel SOLO REEMPLAZA LOS VALORES DEL ESCENARIO DADO
-		// Al final del ciclo, todos los escenarios han sido actualizados en settings
-		map<string, Distribution> posterior_map;
-		map<string, Distribution> adjustment_map;
-		map<string, map<string, double>> statistics_map;
-		trainModel(id, s_ids[i], feedback, settings, posterior_map, adjustment_map, statistics_map);
-//		trainModelv2(id, s_ids[i], feedback);
-		
-		// Agregar posterior_map al json de resultados de entrenamiento
-		ptree scenario;
-		string name = "Scenario " + std::to_string(s_ids[i]);
-		scenario.put("name", name);
-		scenario.put("id", s_ids[i]);
-		
-		ptree estimations;
-		
-//		unsigned int param_id = 0;
-		for(map<string, Distribution>::iterator it = posterior_map.begin(); it != posterior_map.end(); it++){
-			
-			string dist_name = it->first;
-			Distribution dist_posterior = it->second;
-			
-			ptree estimation;
-			estimation.put("parameter", dist_name);
-//			cout<<"Parameter "<<dist_name<<"\n";
-			
-			//estimation.put("min", min);
-			//estimation.put("max", max);
-			//estimation.put("median", mediana);
-			map<string, double> stats = statistics_map[dist_name];
-			for(map<string, double>::iterator stat = stats.begin(); stat != stats.end(); stat++){
-				estimation.put(stat->first, stat->second);
-			}
-			
-			// Para graficar las curvas necesito los factores de escalamiento globales
-			// De hecho, basta con min/max de cualquiera de las curvas, quizas convenga usar las de rango menor
-			// Notar tambien que min y max no son necesariamente directos para la normal
-			//  - Puedo usar los observados (y graficar solo en ese rango)
-			//  - O puedo usar min y max que cubran razonablemente la curva (como +- 3 stddev)
-			
-			double min_post = stats["min"];
-			double max_post = stats["max"];
-			vector<pair<double, double>> vals;
-			
-			ptree curves;
-			
-			ptree curve;
-			curve.put("name", "Posterior");
-			
-			ptree fvalue;
-			ptree fvalues;
-			cout<<"Posterior\n";
-			
-//			char buff[1024];
-//			ofstream escritor;
-			
-			vals = Statistics::generateDistributionGraph(dist_posterior, min_post, max_post, min_post, max_post);
-//			sprintf(buff, "logs/posterior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-//			escritor.open(buff, fstream::trunc | fstream::out);
-			for(unsigned int j = 0; j < vals.size(); ++j){
-//				escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
-				fvalue.put("x", vals[j].first);
-				fvalue.put("y", vals[j].second);
-				fvalues.push_back(make_pair("", fvalue));
-			}
-//			escritor.close();
-			vals.clear();
-			
-			// Agrego values a la curva
-			curve.add_child("values", fvalues);
-			
-			// Agrego la curva posterior a curves
-			curves.push_back(make_pair("", curve));
-			
-			
-			// Busqueda de distribucion prior del parametro
-			// Aqui hay que iterar por cada feedback
-			// Con 0 es la verdadera prior, en los demas casos es la proposal N
-			for( unsigned f = 0; f <= feedback; ++f ){
-				map<uint32_t, map<string, Distribution>> dists_feedback = dists_prior[f];
-				map<string, Distribution> prior = dists_feedback[s_ids[i]];
-				if( prior.find(dist_name) == prior.end() ){
-					cerr<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<" no encontrada\n";
-				}
-				else{
-					Distribution dist_prior = prior[dist_name];
-	//				cout<<"Analyzer::updateTrainingResults - Distribucion a priori de "<<dist_name<<": "<<dist_prior.to_string()<<"\n";
-				
-					string curve_name;
-					if(f == 0){
-						curve_name = "Prior";
-					}
-					else{
-						curve_name = "Proposal ";
-						curve_name += std::to_string(f);
-					}
-					ptree curve_prior;
-					curve_prior.put("name", curve_name);
-					
-					ptree fvalue_prior;
-					ptree fvalues_prior;
-					cout<<""<<curve_name<<"\n";
-				
-					// Para la distribucion prior, no tengo necesariamente min y max
-					// Por ello, en ese caso pido minimos y maximos analiticos
-					// La distribucion conoce valores razonables
-					double min_prior = dist_prior.getMinValue();
-					if(min_prior < 0.0){
-						min_prior = 0.0;
-					}
-					vals = Statistics::generateDistributionGraph(dist_prior, min_prior, dist_prior.getMaxValue(), min_post, max_post);
-//					sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-//					escritor.open(buff, fstream::trunc | fstream::out);
-					for( unsigned int j = 0; j < vals.size(); ++j ){
-//						escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
-						fvalue_prior.put("x", vals[j].first);
-						fvalue_prior.put("y", vals[j].second);
-						fvalues_prior.push_back(make_pair("", fvalue_prior));
-					}
-//					escritor.close();
-					// Agrego values a la curva
-					curve_prior.add_child("values", fvalues_prior);
-			
-					// Agrego la curva posterior a curves
-					curves.push_back(make_pair("", curve_prior));
-				
-				}
-			}// for... cada feedback
-			
-			/*
-			// Aqui se puede agregar la curva de otra distribucion, por ejemplo la ajustada
-			if( adjustment_map.find(dist_name) != adjustment_map.end() ){
-				Distribution dist_adjustment = adjustment_map[dist_name];
-				
-				ptree curve_adjustment;
-				curve_adjustment.put("name", "Adjustment");
-					
-				ptree fvalue_adjustment;
-				ptree fvalues_adjustment;
-				cout<<"Adjustment\n";
-				
-				double min_adjustment = dist_adjustment.getMinValue();
-				if(min_adjustment < 0.0){
-					min_adjustment = 0.0;
-				}
-				vals = Statistics::generateDistributionGraph(dist_adjustment, min_adjustment, dist_adjustment.getMaxValue(), min_post, max_post);
-//				sprintf(buff, "logs/prior_%d_%d_%d_%d.log", id, s_ids[i], param_id, training_id);
-//				escritor.open(buff, fstream::trunc | fstream::out);
-				for( unsigned int j = 0; j < vals.size(); ++j ){
-//					escritor<<""<<vals[j].first<<"\t"<<vals[j].second<<"\n";
-					fvalue_adjustment.put("x", vals[j].first);
-					fvalue_adjustment.put("y", vals[j].second);
-					fvalues_adjustment.push_back(make_pair("", fvalue_adjustment));
-				}
-//				escritor.close();
-				// Agrego values a la curva
-				curve_adjustment.add_child("values", fvalues_adjustment);
-		
-				// Agrego la curva posterior a curves
-				curves.push_back(make_pair("", curve_adjustment));
-			
-			}
-			*/
-			
-			// Finalmente, agrego curves a estimation de este parametro
-			estimation.add_child("curves", curves);
-			
-			estimations.push_back(make_pair("", estimation));
-			
-//			++param_id;
-			
-		}
-		scenario.add_child("estimations", estimations);
-		scenarios.push_back(make_pair("", scenario));
-		
-		scenario.add_child("estimations", estimations);
-		
-		posterior_map.clear();
-	}
-	
-//	++training_id;
-	
-	ptree estimations;
-	estimations.add_child("scenarios", scenarios);
-	
-	ptree training_results;
-	training_results.put("id", std::to_string(id));
-	training_results.put("feedback", feedback);
-		
-	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	cout<<"Analyzer::updateTrainingResults - Agregando timestamp "<<timestamp<<"\n";
-	training_results.put("timestamp", std::to_string(timestamp));
-	
-	training_results.add_child("estimations", estimations);
-	
-	// Almacenar el json de resultados de entrenamiento
-	db_comm.storeTrainingResults(training_results);
-	
-	return settings;	
-}
-
 
 // Este codigo deberia ser resistente a concurrencia
 //	- Asumo que todas las operaciones de db_comm son thread safe (dependen de Mongo)
 //	- trainModel debe ser thread safe
 void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 	
-	cout<<"Analyzer::updateResults - Start\n";
+	cout << "Analyzer::updateResults - Start\n";
 	
 	ptree settings = db_comm.readSettings(id, feedback);
 	
@@ -860,6 +373,7 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 	
 	ptree scenarios;
 	for(auto &s : settings.get_child("scenarios")){
+		// Datos del Escenario
 		uint32_t scenario_id = s.second.get<uint32_t>("id");
 		map<string, Distribution> posterior_map;
 		map<string, map<string, double>> statistics_map;
@@ -870,10 +384,10 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 		double min_dist = 0.0;
 		double cut_dist = 0.0;
 		
-		cout<<"Analyzer::updateResults - Preparing data for scenario " << scenario_id << "\n";
+		cout << "Analyzer::updateResults - Preparing data for scenario " << scenario_id << "\n";
 		getCleanData(id, scenario_id, feedback, settings.get_child("individual"), s.second, params_positions, distances, params);
 		
-		cout<<"Analyzer::updateResults - Preparing Posterior Normal Distribution\n";
+		cout << "Analyzer::updateResults - Preparing Posterior Normal Distribution\n";
 		vector<pair<double, double>> values_dists = Statistics::getNormalValues(distances, params, 0.05, min_dist, cut_dist);
 		
 		vector<double> min_params = Statistics::getMinVector(params);
@@ -891,7 +405,7 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 		ptree estimations;
 		
 		for( auto it_params : params_positions ){
-			cout<<"Analyzer::updateResults - Preparing estimations for parameter " << it_params.first << "\n";
+			cout << "Analyzer::updateResults - Preparing estimations for parameter " << it_params.first << "\n";
 			
 			ptree estimation;
 			estimation.put("parameter", it_params.first);
@@ -985,7 +499,7 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 	training_results.put("feedback", feedback);
 		
 	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-	cout<<"Analyzer::updateResults - Agregando timestamp "<<timestamp<<"\n";
+	cout << "Analyzer::updateResults - Adding timestamp " << timestamp << "\n";
 	training_results.put("timestamp", std::to_string(timestamp));
 	
 	training_results.add_child("estimations", estimations);
@@ -993,10 +507,9 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 	// Almacenar el json de resultados de entrenamiento
 	db_comm.storeTrainingResults(training_results);
 	
-	cout<<"Analyzer::updateResults - End\n";
+	cout << "Analyzer::updateResults - End\n";
 	
 }
-
 
 // Metodo para simplificar la toma de valor opcional de un json
 // Version int, retorna 0 si no encuentra el valor
@@ -1021,7 +534,7 @@ string Analyzer::getString(ptree &json, const string &field){
 }
 
 ptree Analyzer::run(ptree &_frequest){
-	cout << "Analyzer::run - Start 1\n";
+	cout << "Analyzer::run - Start Simulated\n";
 
 	uint32_t id = getUInt(_frequest, "id");
 	string type = getString(_frequest, "type");
@@ -1079,7 +592,7 @@ ptree Analyzer::run(ptree &_frequest){
 				cout << "Analyzer::run - Feedback (batch_size: " << batch_size << ")\n";
 				// Codigo de feedback, preparacion de nuevos parametros
 				next_batch[id] += batch_size;
-				trainModelv2(id, feedback);
+				trainModel(id, feedback);
 			}
 			
 			if( finished[id] >= max_sims ){
@@ -1129,17 +642,14 @@ ptree Analyzer::run(ptree &_frequest){
 }
 
 ptree Analyzer::run(const std::string &_body){
-	cout<<"Analyzer::run - Inicio 2\n";
+	cout << "Analyzer::run - Start Data\n";
 	ptree fsettings;
 	
 	uint32_t id = incremental_id++;
 	
 	// global_mutex.lock();
-	// Por ahora lo guardo como texto (para facilitar el debug) pero la forma correcta es sizeof(int) en binario
 	ofstream escritor(id_file, fstream::trunc | fstream::out);
-	escritor<<incremental_id<<"\n";
-//	fstream escritor(id_file, fstream::trunc | fstream::out | fstream::binary);
-//	escritor.write((char*)&incremental_id, sizeof(int));
+	escritor << incremental_id << "\n";
 	escritor.close();
 	// global_mutex.unlock();
 	
@@ -1154,9 +664,9 @@ ptree Analyzer::run(const std::string &_body){
 		}
 	}
 	
-	cout<<"Analyzer::run - MultipartFormParser...\n";
+	cout << "Analyzer::run - MultipartFormParser...\n";
 	MultipartFormParser m(_body);
-	cout<<"Analyzer::run - MultipartFormParser terminado\n";
+	cout << "Analyzer::run - MultipartFormParser finished\n";
 	
 	fsettings.put("max-number-of-simulations", m.get("max-number-of-simulations"));
 	m.remove("max-number-of-simulations");
@@ -1178,14 +688,13 @@ ptree Analyzer::run(const std::string &_body){
 	fsettings.put("similarity-threshold", m.get("similarity-threshold"));
 	m.remove("similarity-threshold");
 
-	cout<<"Analyzer::run - Seteando id y timestamp\n";
-	 
-	 
-	 uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+	cout << "Analyzer::run - Setting id and timestamp\n";
+	
+	uint64_t timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 	fsettings.put("id", std::to_string(id));
 	fsettings.put("timestamp", std::to_string(timestamp));
 	
-	cout<<"Analyzer::run - id: "<<id<<", timestamp: "<<timestamp<<"\n";
+	cout << "Analyzer::run - id: " << id << ", timestamp: " << timestamp << "\n";
 
 	map<uint32_t, map<uint32_t, map<uint32_t, vector<Marker>>>> samples;
 
@@ -1205,17 +714,17 @@ ptree Analyzer::run(const std::string &_body){
 		uint32_t filetype = boost::lexical_cast<uint32_t>(m.get("FileType"));
 		m.remove("FileType");
 
-		cout<<"Analyzer::run - Creando FileParser\n";
+		cout << "Analyzer::run - Preparing FileParser\n";
 		FileParser fp(m.get("File"), FileType(filetype), MarkerType(markertype));
 		m.remove("File");
 
-		cout<<"Analyzer::run - fp.parse...\n";
+		cout << "Analyzer::run - fp.parse...\n";
 		vector<Marker> markers = fp.parse();
-		cout<<"Analyzer::run - fp.parse terminado\n";
+		cout << "Analyzer::run - fp.parse finished\n";
 		samples[sample][chromosome][gene] = markers;
 	}
 
-	cout<<"Analyzer::run - Creando samples\n";
+	cout << "Analyzer::run - Preparing samples\n";
 	ptree fsamples;
 	for(auto& sample : samples){
 		ptree fsample;
@@ -1223,14 +732,13 @@ ptree Analyzer::run(const std::string &_body){
 		fsamples.push_back(std::make_pair("", fsample));
 	}
 
-	cout<<"Analyzer::run - Creando Profile\n";
+	cout << "Analyzer::run - Preparing Profile\n";
 	ptree findividual = getProfile(samples, ploidy);
 	
 	fsettings.add_child("samples", fsamples);
 	fsettings.add_child("individual", findividual);
 
-	 /*computing statistics*/
-	cout<<"Analyzer::run - Preparando estadisticos\n";
+	cout << "Analyzer::run - Preparing statistics\n";
 	finished[id] = 0;
 
 	ptree fdata, fposterior;
@@ -1252,15 +760,14 @@ ptree Analyzer::run(const std::string &_body){
 	_data_indices.emplace(id, map<string, map<uint32_t, map<uint32_t, map<string, double>>>>{});
 	parseIndices(_data[id].get_child("posterior"), _data_indices[id]);
 	
-	cout<<"Analyzer::run - Guardando data\n";
+	cout << "Analyzer::run - Storing data\n";
 	db_comm.writeData(fdata);
 	
 	std::stringstream ss;
 	write_json(ss,fdata);
 	cout << ss.str() << endl;
-	 /*computing statistics*/
 
-	cout<<"Analyzer::run - Fin\n";
+	cout << "Analyzer::run - End\n";
 	return(fsettings);
 }
 

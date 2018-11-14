@@ -52,19 +52,13 @@ private:
 	// Retorna el numero total de indices parseados
 	unsigned int parseIndices(const ptree &json, map<string, map<uint32_t, map<uint32_t, map<string, double>>>> &indices, bool mostrar = false);
 	
-	// MEtodo obsoleto
-	void trainModel(uint32_t id, uint32_t scenario_id, uint32_t feedback, ptree &settings, map<string, Distribution> &posterior_map, map<string, Distribution> &adjustment_map, map<string, map<string, double>> &statistics_map);
-	
-	void trainModelv2(uint32_t id, uint32_t feedback);
+	void trainModel(uint32_t id, uint32_t feedback);
 	
 	string logs_path;
 	string log_file;
 	string id_file;
 
 	ptree getProfile(const map<uint32_t,map<uint32_t,map<uint32_t,vector<Marker>>>> &_samples,const uint32_t &_ploidy);
-	
-	// Metodo obsoleto
-	ptree updateTrainingResults(uint32_t id, uint32_t feedback);
 	
 	// Nueva version simplificada
 	void updateResults(uint32_t id, uint32_t feedback);
