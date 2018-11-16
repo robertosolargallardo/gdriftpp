@@ -188,6 +188,26 @@ void Analyzer::getCleanData(uint32_t id, uint32_t scenario_id, uint32_t feedback
 	
 }
 
+vector<vector<double>> generateNormalParams(unsigned int batch_size, vector<pair<double, double>> &values_dists){
+	vector<vector<double>> new_params;
+	random_device seed;
+	mt19937 generator(seed());
+	vector<std::normal_distribution<>> normal_dists;
+	for(unsigned int j = 0; j < values_dists.size(); ++j){
+		std::normal_distribution<> normal(values_dists[j].first, values_dists[j].second);
+		normal_dists.push_back(normal);
+	}
+	for(unsigned int i = 0; i < batch_size; ++i){
+		vector<double> params_sim;
+		for(unsigned int j = 0; j < values_dists.size(); ++j){
+			double value = normal_dists[j](generator);
+			params_sim.push_back(value);
+		}
+		new_params.push_back(params_sim);
+	}
+	return new_params;
+}
+
 void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 	
 	cout << "Analyzer::trainModel - Start (sim: " << id << ", feedback: " << feedback << ")\n";
@@ -217,13 +237,20 @@ void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 		for(unsigned int i = 0; i < min_params.size(); ++i){
 			cout << "Param[" << i << "]: (" << min_params[i] << ", " << max_params[i] << ")\n";
 		}
-	
-	
-	
+		
 		// Supongamos que ahora tenemos un nuevo conjunto de parametros para relanzar, param_update
 		// En esta prueba, reuso los datos de la iteracion anterior, pero esto es el producto de algun proceso
-		vector<vector<double>> params_update = params;
-	
+//		vector<vector<double>> params_update = params;
+		
+		// Version original: distribuciones posterior con topk, y gegenrar valores con esas distribuciones
+		
+		cout << "Analyzer::trainModel - Preparing Posterior Normal Distribution\n";
+		double min_dist = 0.0;
+		double cut_dist = 0.0;
+		vector<pair<double, double>> values_dists = Statistics::getNormalValues(distances, params, 0.05, min_dist, cut_dist);
+		// TODO: Generar vector de limites (del json de settings quizas) y pasarlo al generador de valores
+		vector<vector<double>> params_update = generateNormalParams(getUInt(settings, "batch-size"), values_dists);
+		
 		vector<ptree> controllers;
 		for(auto &fcontroller: _fhosts.get_child("controller")){
 			controllers.push_back(fcontroller.second);
@@ -411,11 +438,9 @@ void Analyzer::updateResults(uint32_t id, uint32_t feedback){
 			estimation.put("parameter", it_params.first);
 			
 			double mean = values_dists[ it_params.second ].first;
-			double var = values_dists[ it_params.second ].second;
-			double stddev = pow(var, 0.5);
+			double stddev = values_dists[ it_params.second ].second;
 			
 			estimation.put("mean", mean);
-			estimation.put("var", var);
 			estimation.put("stddev", stddev);
 			
 			double min_post = min_params[it_params.second];
