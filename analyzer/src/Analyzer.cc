@@ -188,7 +188,7 @@ void Analyzer::getCleanData(uint32_t id, uint32_t scenario_id, uint32_t feedback
 	
 }
 
-vector<vector<double>> generateNormalParams(unsigned int batch_size, vector<pair<double, double>> &values_dists){
+vector<vector<double>> generateNormalParams(unsigned int batch_size, vector<pair<double, double>> &values_dists, vector<double> &min_params, vector<double> &max_params){
 	vector<vector<double>> new_params;
 	random_device seed;
 	mt19937 generator(seed());
@@ -201,6 +201,12 @@ vector<vector<double>> generateNormalParams(unsigned int batch_size, vector<pair
 		vector<double> params_sim;
 		for(unsigned int j = 0; j < values_dists.size(); ++j){
 			double value = normal_dists[j](generator);
+			if( value < min_params[j] ){
+				value = min_params[j];
+			}
+			if( value > max_params[j] ){
+				value = max_params[j];
+			}
 			params_sim.push_back(value);
 		}
 		new_params.push_back(params_sim);
@@ -219,20 +225,20 @@ void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 	for(auto &s : settings.get_child("scenarios")){
 		uint32_t scenario_id = s.second.get<uint32_t>("id");
 		scenario = s.second;
-	
+		
 		cout << "Analyzer::trainModel - Processing Scenario " << scenario_id << ")\n";
 		
 		map<string, uint32_t> params_positions;
-	
+		
 		vector<double> distances;
 		vector<vector<double>> params;
-	
+		
 		getCleanData(id, scenario_id, feedback, settings.get_child("individual"), scenario, params_positions, distances, params);
-	
+		
 		// un min/max por parametro
 		vector<double> min_params = Statistics::getMinVector(params);
 		vector<double> max_params = Statistics::getMaxVector(params);
-	
+		
 		cout << "Analyzer::trainModel - min/max params\n";
 		for(unsigned int i = 0; i < min_params.size(); ++i){
 			cout << "Param[" << i << "]: (" << min_params[i] << ", " << max_params[i] << ")\n";
@@ -243,13 +249,12 @@ void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 //		vector<vector<double>> params_update = params;
 		
 		// Version original: distribuciones posterior con topk, y gegenrar valores con esas distribuciones
-		
 		cout << "Analyzer::trainModel - Preparing Posterior Normal Distribution\n";
 		double min_dist = 0.0;
 		double cut_dist = 0.0;
 		vector<pair<double, double>> values_dists = Statistics::getNormalValues(distances, params, 0.05, min_dist, cut_dist);
 		// TODO: Generar vector de limites (del json de settings quizas) y pasarlo al generador de valores
-		vector<vector<double>> params_update = generateNormalParams(getUInt(settings, "batch-size"), values_dists);
+		vector<vector<double>> params_update = generateNormalParams(getUInt(settings, "batch-size"), values_dists, min_params, max_params);
 		
 		vector<ptree> controllers;
 		for(auto &fcontroller: _fhosts.get_child("controller")){
@@ -281,7 +286,7 @@ void Analyzer::trainModel(uint32_t id, uint32_t feedback){
 						param_name += ".genes.";
 						param_name += std::to_string(gid);
 						param_name += ".mutation.rate";
-					
+						
 						double value = new_params[ params_positions[param_name] ];
 						std::ostringstream stream1;
 						stream1 << std::setprecision(std::numeric_limits<double>::digits10) << value;
