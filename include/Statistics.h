@@ -484,7 +484,8 @@ public:
 			}// for... each simulation in top_k
 			double mean = getMean(values);
 			double var = getVariance(values, mean);
-			values_dists.push_back( pair<double, double>(mean, var) );
+			double stddev = pow(var, 0.5);
+			values_dists.push_back( pair<double, double>(mean, stddev) );
 		}// for... each parameter
 		
 		return values_dists;
